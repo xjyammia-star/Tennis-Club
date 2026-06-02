@@ -21,10 +21,16 @@ const STYLE_CLASS = {
 const CONTRACT_WARN = 16  // 剩余周数 ≤ 此值时显示警告
 
 // ── 忠诚度颜色 ────────────────────────────────────────
-function loyaltyColor(v) {
+function loyaltyBarColor(v) {
   if (v >= 80) return styles.loyalHigh
   if (v >= 50) return styles.loyalMid
   return styles.loyalLow
+}
+
+function loyaltyTextColor(v) {
+  if (v >= 80) return styles.loyalHighText
+  if (v >= 50) return styles.loyalMidText
+  return styles.loyalLowText
 }
 
 // ── 合同状态标签 ──────────────────────────────────────
@@ -43,9 +49,9 @@ function ContractBadge({ weeks }) {
 // ── 教练详情抽屉 ──────────────────────────────────────
 function CoachDetail({ coach, onClose }) {
   const loyaltyStatus =
-    coach.loyalty >= 80 ? { label: '高忠诚', cls: styles.loyalHigh } :
-    coach.loyalty >= 50 ? { label: '正常',   cls: styles.loyalMid  } :
-                          { label: '低忠诚', cls: styles.loyalLow  }
+    coach.loyalty >= 80 ? { label: '高忠诚', cls: styles.loyalHighText } :
+    coach.loyalty >= 50 ? { label: '正常',   cls: styles.loyalMidText  } :
+                          { label: '低忠诚', cls: styles.loyalLowText  }
 
   const efficiencyNote =
     coach.loyalty >= 80 ? '训练效率 +10%' :
@@ -117,11 +123,11 @@ function CoachDetail({ coach, onClose }) {
             <div className={styles.loyaltyRow}>
               <div className={styles.loyaltyBarWrap}>
                 <div
-                  className={`${styles.loyaltyBarFill} ${loyaltyColor(coach.loyalty)}`}
+                  className={`${styles.loyaltyBarFill} ${loyaltyBarColor(coach.loyalty)}`}
                   style={{ width: `${coach.loyalty}%` }}
                 />
               </div>
-              <span className={`${styles.loyaltyVal} ${loyaltyColor(coach.loyalty)}`}>
+              <span className={`${styles.loyaltyVal} ${loyaltyTextColor(coach.loyalty)}`}>
                 {coach.loyalty}
               </span>
               <span className={`${styles.loyaltyLabel} ${loyaltyStatus.cls}`}>
@@ -238,11 +244,11 @@ function CoachCard({ coach, onClick }) {
           <span className={styles.miniLabel}>忠诚</span>
           <div className={styles.loyaltyBarWrap}>
             <div
-              className={`${styles.loyaltyBarFill} ${loyaltyColor(coach.loyalty)}`}
+              className={`${styles.loyaltyBarFill} ${loyaltyBarColor(coach.loyalty)}`}
               style={{ width: `${coach.loyalty}%` }}
             />
           </div>
-          <span className={`${styles.miniVal} ${loyaltyColor(coach.loyalty)}`}>
+          <span className={`${styles.miniVal} ${loyaltyTextColor(coach.loyalty)}`}>
             {coach.loyalty}
           </span>
         </div>

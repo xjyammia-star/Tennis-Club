@@ -240,9 +240,15 @@
   border-radius: 3px;
   transition: width 0.3s;
 }
-.loyalHigh { background: var(--forest); color: var(--forest); }
-.loyalMid  { background: var(--gold);   color: #9a6e0a; }
-.loyalLow  { background: #c0392b;       color: #c0392b; }
+/* 进度条填充色 */
+.loyalHigh { background: var(--forest); }
+.loyalMid  { background: var(--gold);   }
+.loyalLow  { background: #c0392b;       }
+
+/* 数值文字色（单独 class，不带 background） */
+.loyalHighText { color: var(--forest); }
+.loyalMidText  { color: #9a6e0a;       }
+.loyalLowText  { color: #c0392b;       }
 
 .miniSkills {
   display: flex;
@@ -409,8 +415,6 @@
 .loyaltyVal { font-size: 14px; font-weight: 500; width: 28px; flex-shrink: 0; }
 .loyaltyLabel {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
   flex-shrink: 0;
   font-weight: 500;
 }
