@@ -438,13 +438,13 @@ export default function LandingPage() {
 
   function handleLoadSave(save) {
     setLocal('tcm_current_save', save)
-    navigate('/')
+    navigate('/home')
   }
 
   function handleNewGame() {
     if (!user) { setModal('login'); return }
     setLocal('tcm_current_save', null)
-    navigate('/')
+    navigate('/home')
   }
 
   return (
