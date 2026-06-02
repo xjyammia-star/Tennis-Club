@@ -10,7 +10,7 @@ import SchedulePage from './pages/SchedulePage'
 import FacilitiesPage from './pages/FacilitiesPage'
 import EventsPage from './pages/EventsPage'
 import FinancePage from './pages/FinancePage'
-import PlaceholderPage from './pages/PlaceholderPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -29,7 +29,7 @@ export default function App() {
               <Route path="/facilities" element={<FacilitiesPage />} />
               <Route path="/events"     element={<EventsPage />}     />
               <Route path="/finance"    element={<FinancePage />}    />
-              <Route path="/settings"   element={<PlaceholderPage path="/settings" />} />
+              <Route path="/settings"   element={<SettingsPage />}   />
             </Routes>
           </main>
         </div>

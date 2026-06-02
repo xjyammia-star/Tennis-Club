@@ -1,0 +1,191 @@
+/* ── Page ── */
+.page { min-height: 100%; background: var(--cream); }
+
+.mobileHeader {
+  background: var(--forest); padding: 48px 22px 20px;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+@media (min-width: 768px) { .mobileHeader { display: none; } }
+.mobileTitle {
+  font-family: var(--font-serif); font-size: 22px; font-weight: 600;
+  color: var(--gold-pale); letter-spacing: 0.04em;
+}
+
+/* ── Inner ── */
+.inner {
+  padding: 16px 16px 32px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+@media (min-width: 768px) {
+  .inner {
+    padding: 28px 32px 40px;
+    max-width: 680px;
+  }
+}
+
+/* ── Section ── */
+.section {
+  background: var(--white);
+  border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.sectionHeader {
+  display: flex; align-items: center; gap: 8px;
+  padding: 13px 16px 11px;
+  border-bottom: 0.5px solid var(--cream-dark);
+  font-size: 11px; font-weight: 500; color: var(--forest);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sectionHeader i { font-size: 15px; }
+
+.sectionBody { display: flex; flex-direction: column; }
+
+/* ── Row ── */
+.row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; gap: 12px;
+  border-bottom: 0.5px solid var(--cream);
+  transition: background 0.12s;
+}
+.row:last-child { border-bottom: none; }
+
+.rowClickable { cursor: pointer; }
+.rowClickable:hover { background: var(--cream); }
+.rowClickable:active { background: var(--cream-dark); }
+
+.rowDanger:hover { background: #fdecea; }
+
+.rowLeft { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rowLabel { font-size: 14px; color: var(--ink); }
+.rowLabelDanger { color: #a83228; }
+.rowDesc  { font-size: 11px; color: var(--ink-faint); line-height: 1.4; }
+
+.rowRight {
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0; color: var(--ink-faint); font-size: 15px;
+}
+
+/* ── Value text ── */
+.valueText { font-size: 13px; color: var(--ink-muted); }
+
+/* ── Difficulty badge ── */
+.diffBadge {
+  font-size: 11px; padding: 2px 10px; border-radius: 4px;
+  font-weight: 500; white-space: nowrap;
+}
+.diff_easy   { background: #e8f5e2; color: #1a6010; border: 0.5px solid #90d060; }
+.diff_normal { background: #e8f0fb; color: #1a4090; border: 0.5px solid #90b8f0; }
+.diff_hard   { background: #fdecea; color: #a83228; border: 0.5px solid #f0a0a0; }
+
+/* ── Tag ── */
+.tagComingSoon {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  background: var(--cream-dark); color: var(--ink-faint);
+  border: 0.5px solid var(--ink-faint); white-space: nowrap;
+}
+
+/* ── Toggle switch ── */
+.toggle {
+  width: 44px; height: 26px; border-radius: 13px;
+  border: none; cursor: pointer; padding: 3px;
+  background: var(--cream-dark);
+  display: flex; align-items: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggleOn { background: var(--forest); justify-content: flex-end; }
+.toggleThumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: all 0.2s;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center; font-size: 11px; color: var(--ink-faint);
+  line-height: 1.7; padding: 8px 0 16px;
+}
+
+/* ════════════════════════════════
+   MODALS
+   ════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,30,14,0.55); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  width: 100%; max-width: 360px;
+  background: var(--white); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+  animation: popIn 0.18s ease;
+}
+@keyframes popIn {
+  from { transform: scale(0.93); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.modalHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 18px 14px; border-bottom: 0.5px solid var(--cream-dark);
+}
+.modalTitle { font-family: var(--font-serif); font-size: 16px; font-weight: 600; color: var(--ink); }
+.closeBtn {
+  background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: 50%; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px; color: var(--ink-muted); flex-shrink: 0;
+}
+.closeBtn:hover { background: var(--cream-dark); }
+
+.modalBody { padding: 16px 18px; }
+
+/* name input */
+.nameInput {
+  width: 100%; padding: 10px 12px;
+  border: 0.5px solid var(--cream-dark); border-radius: var(--radius-md);
+  font-family: var(--font-sans); font-size: 15px; color: var(--ink);
+  background: var(--cream); outline: none; transition: border-color 0.15s;
+  display: block;
+}
+.nameInput:focus { border-color: var(--forest); background: var(--white); }
+.nameCount {
+  display: block; text-align: right; font-size: 11px;
+  color: var(--ink-faint); margin-top: 5px;
+}
+
+/* confirm desc */
+.confirmDesc {
+  font-size: 13px; color: var(--ink-mid); line-height: 1.7;
+}
+
+.modalFooter {
+  display: flex; gap: 10px;
+  padding: 0 18px 18px;
+}
+.btnCancel {
+  flex: 1; background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); color: var(--ink-mid);
+  font-family: var(--font-sans); font-size: 13px; padding: 10px; cursor: pointer;
+}
+.btnSave {
+  flex: 1; background: var(--forest); border: none;
+  border-radius: var(--radius-md); color: var(--gold);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  padding: 10px; cursor: pointer; transition: background 0.15s;
+}
+.btnSave:disabled { background: var(--ink-faint); color: white; cursor: not-allowed; }
+.btnSave:not(:disabled):hover { background: var(--forest-mid); }
+.btnDanger {
+  flex: 1; background: #a83228; border: none;
+  border-radius: var(--radius-md); color: white;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  padding: 10px; cursor: pointer; transition: background 0.15s;
+}
+.btnDanger:hover { background: #8a2820; }
