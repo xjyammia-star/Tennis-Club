@@ -1,0 +1,292 @@
+/* ── Page ── */
+.page {
+  min-height: 100%;
+  background: var(--cream);
+}
+
+/* ── Header ── */
+.header {
+  background: var(--forest);
+  padding: 48px 22px 24px;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(201, 168, 76, 0.65);
+  text-transform: uppercase;
+}
+
+.prestigePill {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(201, 168, 76, 0.15);
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  border: 0.5px solid rgba(201, 168, 76, 0.35);
+}
+
+.clubName {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--gold-pale);
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.roundRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.roundText {
+  font-size: 12px;
+  color: rgba(245, 237, 218, 0.45);
+  letter-spacing: 0.06em;
+}
+
+.nextWeekBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.12);
+  border: 0.5px solid rgba(201, 168, 76, 0.3);
+  border-radius: var(--radius-xl);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nextWeekBtn:active {
+  background: rgba(201, 168, 76, 0.22);
+}
+
+.nextWeekBtn i {
+  font-size: 13px;
+}
+
+/* ── KPI band ── */
+.kpiBand {
+  background: var(--white);
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--cream-dark);
+  padding: 14px 0;
+}
+
+.kpiItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+}
+
+.kpiVal {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.kpiLabel {
+  font-size: 10px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.kpiSub {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+
+.kpiDivider {
+  width: 0.5px;
+  background: var(--cream-dark);
+  margin: 4px 0;
+}
+
+/* ── Body ── */
+.body {
+  padding: 18px 18px 0;
+}
+
+/* ── Section label ── */
+.sectionLabel {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+.sectionLine {
+  flex: 1;
+  height: 0.5px;
+  background: var(--cream-dark);
+}
+
+/* ── News card ── */
+.newsCard {
+  background: var(--white);
+  border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: var(--shadow-card);
+}
+
+.newsIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(28, 58, 26, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--forest);
+  font-size: 18px;
+}
+
+.newsContent {
+  flex: 1;
+}
+
+.newsTag {
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.newsText {
+  font-size: 13px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+/* ── News dots ── */
+.newsDots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cream-dark);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.dotActive {
+  background: var(--gold);
+}
+
+/* ── Events card ── */
+.eventsCard {
+  background: var(--white);
+  border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.eventRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+}
+
+.eventBorder {
+  border-bottom: 0.5px solid var(--cream);
+}
+
+.eventName {
+  font-size: 13px;
+  color: var(--ink);
+  flex: 1;
+}
+
+.eventWeek {
+  font-size: 11px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+
+/* ── Menu grid ── */
+.menuGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.menuBtn {
+  background: var(--white);
+  border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-lg);
+  padding: 16px 8px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  box-shadow: var(--shadow-card);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menuBtn:active {
+  background: var(--cream);
+  border-color: rgba(201, 168, 76, 0.4);
+  transform: scale(0.97);
+}
+
+.menuIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--forest);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 20px;
+}
+
+.menuLabel {
+  font-size: 11px;
+  color: var(--ink-mid);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
