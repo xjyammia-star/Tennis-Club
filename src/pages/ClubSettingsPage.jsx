@@ -245,6 +245,11 @@ export default function ClubSettingsPage() {
             min={0} max={500} step={10} prefix="¥" suffix="/人/小时"
           />
           <NumRow
+            label="体能团课" desc="每人每小时收费"
+            value={settings.fitnessClassFee} onChange={v => update('fitnessClassFee', v)}
+            min={0} max={500} step={10} prefix="¥" suffix="/人/小时"
+          />
+          <NumRow
             label="战术分析课" desc="每人每小时收费"
             value={settings.tacticsClassFee} onChange={v => update('tacticsClassFee', v)}
             min={0} max={300} step={10} prefix="¥" suffix="/人/小时"

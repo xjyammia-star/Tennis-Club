@@ -2,7 +2,8 @@
 export const DEFAULT_CLUB_SETTINGS = {
   courtHourlyRate:      200,  // 场地每小时租金（元）
   privateCoachCut:       40,  // 俱乐部私教分成比例（%）
-  groupClassFee:         80,  // 团课每人每小时收费（元）
+  groupClassFee:         80,  // 球场团课每人每小时收费（元）
+  fitnessClassFee:       70,  // 体能团课每人每小时收费（元）
   tacticsClassFee:       60,  // 战术课每人每小时收费（元）
   // 私教费用按教练级别（元/小时）
   privateFeeElite:      800,
