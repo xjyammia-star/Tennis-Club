@@ -63,7 +63,7 @@ function PlayerDetail({ player, onClose }) {
           <div className={styles.detailHeaderInfo}>
             <div className={styles.detailName}>{player.name}</div>
             <div className={styles.detailMeta}>
-              {GENDER_LABEL[player.gender]} · {player.age} 岁 · {player.familyBg}家庭
+              {GENDER_LABEL[player.gender]} · {player.age} 岁 · {player.height} cm · {player.weight} kg · {player.familyBg}家庭
             </div>
             <div className={styles.detailTags}>
               <span className={`${styles.talentTag} ${TALENT_CLASS[player.talentLabel]}`}>
@@ -227,7 +227,7 @@ function PlayerCard({ player, onClick }) {
             </span>
           </div>
           <div className={styles.cardMeta}>
-            {GENDER_LABEL[player.gender]} · {player.age} 岁
+            {GENDER_LABEL[player.gender]} · {player.age} 岁 · {player.height} cm
             {player.ranking && <span className={styles.ranking}> · #{player.ranking}</span>}
           </div>
           <div className={styles.cardTags}>

@@ -4,10 +4,10 @@ import BottomNav from './components/BottomNav'
 import Topbar from './components/Topbar'
 import HomePage from './pages/HomePage'
 import PlayersPage from './pages/PlayersPage'
+import CoachesPage from './pages/CoachesPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 const placeholderRoutes = [
-  '/coaches',
   '/schedule',
   '/facilities',
   '/finance',
@@ -19,20 +19,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
-
-        {/* Desktop sidebar */}
         <Sidebar />
-
-        {/* Main content area */}
         <div className="main-area">
-
-          {/* Desktop top bar */}
           <Topbar />
-
           <main className="page-content">
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/players" element={<PlayersPage />} />
+              <Route path="/"         element={<HomePage />}    />
+              <Route path="/players"  element={<PlayersPage />} />
+              <Route path="/coaches"  element={<CoachesPage />} />
               {placeholderRoutes.map(path => (
                 <Route
                   key={path}
@@ -43,10 +37,7 @@ export default function App() {
             </Routes>
           </main>
         </div>
-
-        {/* Mobile bottom nav */}
         <BottomNav />
-
       </div>
     </BrowserRouter>
   )

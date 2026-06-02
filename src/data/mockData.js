@@ -52,12 +52,12 @@ export const upcomingEvents = [
 ]
 
 export const menuItems = [
-  { id: 'players',   label: '球员管理',   icon: 'ti-users',              path: '/players'  },
-  { id: 'coaches',   label: '教练团队',   icon: 'ti-user-star',          path: '/coaches'  },
-  { id: 'schedule',  label: '训练安排',   icon: 'ti-calendar-week',      path: '/schedule' },
-  { id: 'facilities',label: '俱乐部设施', icon: 'ti-building', path: '/facilities'},
-  { id: 'finance',   label: '财务收支',   icon: 'ti-chart-bar',          path: '/finance'  },
-  { id: 'events',    label: '赛事管理',   icon: 'ti-trophy',             path: '/events'   },
+  { id: 'players',    label: '球员管理',   icon: 'ti-users',         path: '/players'   },
+  { id: 'coaches',    label: '教练团队',   icon: 'ti-user-star',     path: '/coaches'   },
+  { id: 'schedule',   label: '训练安排',   icon: 'ti-calendar-week', path: '/schedule'  },
+  { id: 'facilities', label: '俱乐部设施', icon: 'ti-building',      path: '/facilities'},
+  { id: 'finance',    label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'   },
+  { id: 'events',     label: '赛事管理',   icon: 'ti-trophy',        path: '/events'    },
 ]
 
 export const navItems = [
@@ -68,41 +68,41 @@ export const navItems = [
   { id: 'settings', label: '设置', icon: 'ti-settings',  path: '/settings' },
 ]
 
-// ── 球员数据 ────────────────────────────────────────────
+// ── 球员数据 ─────────────────────────────────────────────────────────
+// 身高体重生成规律：
+//   男青少年基准身高 165-185cm，女 155-172cm，成年男 178-198cm，女 165-180cm
+//   体重与身高正相关，高水平球员体型更优（力量高→偏重，灵活高→偏轻）
+//   年龄越小，体型越小；优秀运动员发育往往更好
 export const players = [
   {
     id: 1,
     name: '王小明',
     gender: 'male',
     age: 15,
+    height: 178,   // cm — 15岁男孩中偏高，天赋异禀早发育
+    weight: 66,    // kg
     familyBg: '普通',
     isSponsored: false,
-    health: 'healthy',       // healthy | minor | major
+    health: 'healthy',
     fatigue: 38,
     loyalty: 72,
     ranking: null,
     points: 0,
-    // 天赋（隐藏，用标签显示）
     talent: 88,
     talentLabel: '天赋异禀',
-    // 身体属性
     strength: 62,
     stamina: 68,
     agility: 70,
-    // 精神属性
     pressure: 55,
     willpower: 72,
     focus: 65,
-    // 技术属性
     serve: 58,
     forehand: 64,
     backhand: 60,
     returnServe: 55,
     volley: 48,
     footwork: 66,
-    // 特殊技能
     skills: ['上旋月亮'],
-    // 偏好
     preferences: ['效率偏好', '教练偏好'],
   },
   {
@@ -110,6 +110,8 @@ export const players = [
     name: '陈晓雨',
     gender: 'female',
     age: 16,
+    height: 168,   // 16岁女生偏高，体能好
+    weight: 58,
     familyBg: '小康',
     isSponsored: false,
     health: 'healthy',
@@ -139,6 +141,8 @@ export const players = [
     name: '李浩然',
     gender: 'male',
     age: 17,
+    height: 183,   // 17岁发球型球员，高大，力量72
+    weight: 78,
     familyBg: '富裕',
     isSponsored: true,
     health: 'minor',
@@ -168,6 +172,8 @@ export const players = [
     name: '张雪',
     gender: 'female',
     age: 14,
+    height: 163,   // 14岁女孩，天才型，发育中
+    weight: 50,
     familyBg: '贫穷',
     isSponsored: true,
     health: 'healthy',
@@ -197,6 +203,8 @@ export const players = [
     name: '刘宇',
     gender: 'male',
     age: 22,
+    height: 188,   // 成年男职业，力量型，排名412
+    weight: 84,
     familyBg: '普通',
     isSponsored: false,
     health: 'healthy',
@@ -226,6 +234,8 @@ export const players = [
     name: '赵敏',
     gender: 'female',
     age: 20,
+    height: 172,   // 成年女职业，灵活型，排名388，灵活80
+    weight: 61,
     familyBg: '小康',
     isSponsored: false,
     health: 'major',
@@ -255,6 +265,8 @@ export const players = [
     name: '孙博',
     gender: 'male',
     age: 13,
+    height: 158,   // 13岁少年，尚未发育
+    weight: 46,
     familyBg: '普通',
     isSponsored: false,
     health: 'healthy',
@@ -284,6 +296,8 @@ export const players = [
     name: '吴静怡',
     gender: 'female',
     age: 18,
+    height: 170,   // 18岁女生，资质优良，体型匀称
+    weight: 59,
     familyBg: '小康',
     isSponsored: false,
     health: 'healthy',
@@ -313,6 +327,8 @@ export const players = [
     name: '郑凯',
     gender: 'male',
     age: 11,
+    height: 148,   // 11岁少年，最小，体型偏小
+    weight: 38,
     familyBg: '富裕',
     isSponsored: false,
     health: 'healthy',
@@ -342,6 +358,8 @@ export const players = [
     name: '林晨',
     gender: 'male',
     age: 25,
+    height: 192,   // 成年男，排名245，全面型，高大有优势
+    weight: 88,
     familyBg: '普通',
     isSponsored: true,
     health: 'healthy',
@@ -371,6 +389,8 @@ export const players = [
     name: '何美玲',
     gender: 'female',
     age: 17,
+    height: 166,   // 17岁女生，灵活型
+    weight: 55,
     familyBg: '小康',
     isSponsored: false,
     health: 'minor',
@@ -400,6 +420,8 @@ export const players = [
     name: '陈志远',
     gender: 'male',
     age: 19,
+    height: 180,   // 19岁男，普通职业起步
+    weight: 74,
     familyBg: '普通',
     isSponsored: false,
     health: 'healthy',
@@ -423,6 +445,86 @@ export const players = [
     footwork: 62,
     skills: [],
     preferences: ['环境偏好'],
+  },
+]
+
+// ── 教练数据 ─────────────────────────────────────────────────────────
+export const coaches = [
+  {
+    id: 1,
+    name: '张国强',
+    gender: 'male',
+    age: 48,
+    level: 'senior',        // assistant | normal | senior | elite
+    levelLabel: '高级教练',
+    style: 'strict',        // strict | relaxed | free
+    styleLabel: '一丝不苟',
+    expBonus: '+10%',
+    loyalty: 78,
+    weeklySalary: 6000,
+    contractWeeksLeft: 40,
+    specialSkills: ['发球', '正手', '底线战术', '心理训练'],
+    studentCount: 3,        // 当前私教学员数
+    totalStudents: 8,       // 历史执教人数（体现经验）
+    careerHighlight: '前ATP巡回赛职业球员，最高排名 #288',
+    bio: '执教风格严谨，擅长技术纠正与发球训练，曾培养多名青少年进入职业赛场。',
+  },
+  {
+    id: 2,
+    name: '李梅',
+    gender: 'female',
+    age: 35,
+    level: 'normal',
+    levelLabel: '普通教练',
+    style: 'free',
+    styleLabel: '自由发挥',
+    expBonus: '+3%',
+    loyalty: 65,
+    weeklySalary: 4000,
+    contractWeeksLeft: 28,
+    specialSkills: ['正手', '脚步移动'],
+    studentCount: 2,
+    totalStudents: 15,
+    careerHighlight: '前WTA资深球员，最高排名 #412',
+    bio: '擅长女子底线技术训练，和球员沟通顺畅，善于激发球员潜能。',
+  },
+  {
+    id: 3,
+    name: '王志明',
+    gender: 'male',
+    age: 29,
+    level: 'normal',
+    levelLabel: '普通教练',
+    style: 'strict',
+    styleLabel: '一丝不苟',
+    expBonus: '+10%',
+    loyalty: 55,
+    weeklySalary: 4000,
+    contractWeeksLeft: 12,
+    specialSkills: ['截击', '体能训练'],
+    studentCount: 1,
+    totalStudents: 6,
+    careerHighlight: '体育学院网球专业，持有 ITF Level 2 教练证书',
+    bio: '年轻教练，训练强度高，对体能和截击网前技术有独到见解。合同即将到期，需关注续约。',
+  },
+  {
+    id: 4,
+    name: '陈文博',
+    gender: 'male',
+    age: 24,
+    level: 'assistant',
+    levelLabel: '助教',
+    style: 'relaxed',
+    styleLabel: '宽松随意',
+    expBonus: '-5%',
+    loyalty: 70,
+    weeklySalary: 2000,
+    contractWeeksLeft: 48,
+    specialSkills: [],
+    studentCount: 0,
+    totalStudents: 2,
+    careerHighlight: '体育学院应届毕业，执教满 2 年可晋升普通教练',
+    bio: '执教第 1 年，热情有余、经验不足，需要资深教练带教。忠诚度高，潜力可期。',
   },
 ]
 
