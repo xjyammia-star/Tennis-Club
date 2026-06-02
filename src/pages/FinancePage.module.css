@@ -1,0 +1,246 @@
+/* ── Page ── */
+.page { min-height: 100%; background: var(--cream); }
+
+.mobileHeader {
+  background: var(--forest); padding: 48px 22px 20px;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+@media (min-width: 768px) { .mobileHeader { display: none; } }
+.mobileTitle {
+  font-family: var(--font-serif); font-size: 22px; font-weight: 600;
+  color: var(--gold-pale); letter-spacing: 0.04em;
+}
+
+.inner { padding: 16px 16px 0; }
+@media (min-width: 768px) { .inner { padding: 28px 32px 0; max-width: 900px; } }
+
+/* ── Cash card ── */
+.cashCard {
+  background: var(--forest); border-radius: var(--radius-lg);
+  padding: 20px 20px 0; margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(28,58,26,0.18);
+  overflow: hidden;
+}
+
+.cashMain {
+  display: flex; flex-direction: column; gap: 4px; padding-bottom: 16px;
+}
+.cashLabel { font-size: 11px; color: rgba(245,237,218,0.5); letter-spacing: 0.1em; text-transform: uppercase; }
+.cashVal { font-family: var(--font-serif); font-size: 36px; font-weight: 600; color: var(--gold-pale); line-height: 1.1; }
+.cashSub { font-size: 12px; color: rgba(245,237,218,0.4); }
+
+.cashStats {
+  display: flex; border-top: 0.5px solid rgba(245,237,218,0.12);
+  margin: 0 -20px; padding: 0;
+}
+.cashStatItem {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 12px 4px;
+}
+.cashStatVal { font-size: 15px; font-weight: 500; line-height: 1; }
+.cashStatLbl { font-size: 10px; color: rgba(245,237,218,0.4); letter-spacing: 0.04em; }
+.cashStatDiv { width: 0.5px; background: rgba(245,237,218,0.12); margin: 8px 0; }
+
+/* ── Action bar ── */
+.actionBar { display: flex; gap: 8px; margin-bottom: 12px; }
+.adBtn2 {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); color: var(--ink-mid);
+  font-family: var(--font-sans); font-size: 12px; padding: 9px;
+  cursor: pointer; transition: all 0.15s;
+}
+.adBtn2:hover { border-color: var(--forest); color: var(--forest); }
+.adBtn2 i { font-size: 15px; }
+.loanBtn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); color: var(--ink-mid);
+  font-family: var(--font-sans); font-size: 12px; padding: 9px;
+  cursor: pointer; transition: all 0.15s;
+}
+.loanBtn:hover { border-color: var(--forest); color: var(--forest); }
+.loanBtn i { font-size: 15px; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 0;
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); padding: 3px; margin-bottom: 14px;
+  box-shadow: var(--shadow-card);
+}
+.tab {
+  flex: 1; font-family: var(--font-sans); font-size: 12px;
+  color: var(--ink-muted); background: transparent; border: none;
+  border-radius: calc(var(--radius-md) - 1px); padding: 8px 6px; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.tabActive { background: var(--forest); color: var(--gold-pale); }
+
+/* ── Transactions ── */
+.transSection { display: flex; flex-direction: column; gap: 0; padding-bottom: 16px; }
+
+.transSectionHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0 8px;
+}
+.transSectionTitle {
+  font-size: 10px; letter-spacing: 0.12em; color: var(--ink-muted); text-transform: uppercase;
+}
+.transSectionTotal { font-size: 14px; font-weight: 500; }
+
+.transRow {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 6px;
+  box-shadow: var(--shadow-card);
+}
+.transIcon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.transLabel { flex: 1; font-size: 13px; color: var(--ink-mid); }
+.transAmt { font-size: 14px; font-weight: 500; flex-shrink: 0; }
+
+.netRow {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--cream); border-radius: var(--radius-md);
+  padding: 12px 14px; margin-top: 6px;
+  border: 0.5px solid var(--cream-dark);
+}
+.netLabel { font-size: 13px; font-weight: 500; color: var(--ink); }
+.netVal   { font-size: 18px; font-weight: 600; }
+
+/* ── Breakdown ── */
+.breakdownSection { padding-bottom: 16px; }
+.breakdownTitle {
+  font-size: 11px; font-weight: 500; color: var(--forest);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 10px;
+}
+.breakdownTitle i { font-size: 14px; }
+
+.breakdownList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.breakdownRow { display: flex; align-items: center; gap: 8px; }
+.breakdownLabel {
+  font-size: 12px; color: var(--ink-mid); width: 60px; flex-shrink: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.breakdownBarWrap { flex: 1; height: 6px; background: var(--cream-dark); border-radius: 3px; overflow: hidden; }
+.breakdownBarFill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.breakdownPct { font-size: 11px; color: var(--ink-faint); width: 28px; text-align: right; flex-shrink: 0; }
+.breakdownAmt { font-size: 11px; color: var(--ink-mid); width: 50px; text-align: right; flex-shrink: 0; }
+
+/* ── Trend ── */
+.trendSection { padding-bottom: 16px; }
+.trendLegend {
+  display: flex; gap: 14px; margin-bottom: 12px;
+}
+.legendIncome, .legendExpense {
+  display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-muted);
+}
+.legendIncome span {
+  width: 10px; height: 10px; border-radius: 2px; background: var(--forest); display: block;
+}
+.legendExpense span {
+  width: 10px; height: 10px; border-radius: 2px; background: #c0392b; display: block;
+}
+
+.trendChart {
+  display: flex; align-items: flex-end; gap: 6px;
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); padding: 16px 14px 8px;
+  box-shadow: var(--shadow-card); margin-bottom: 12px;
+  height: 110px;
+}
+.trendCol {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.trendBars { display: flex; gap: 3px; align-items: flex-end; height: 60px; }
+.trendBarIncome  { width: 10px; background: var(--forest); border-radius: 2px 2px 0 0; min-height: 2px; }
+.trendBarExpense { width: 10px; background: #c0392b;       border-radius: 2px 2px 0 0; min-height: 2px; }
+.trendLabel { font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
+
+.trendStats {
+  background: var(--white); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-card);
+}
+.trendStatRow {
+  display: grid; grid-template-columns: 3fr 2fr 2fr 2fr;
+  gap: 8px; padding: 9px 14px; border-bottom: 0.5px solid var(--cream);
+  font-size: 12px; align-items: center;
+}
+.trendStatRow:last-child { border-bottom: none; }
+.trendStatWeek { color: var(--ink-muted); font-size: 11px; }
+
+/* ════════════════════════════════
+   AD MODAL
+   ════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,30,14,0.55); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+@media (min-width: 768px) { .overlay { align-items: center; padding: 20px; } }
+
+.adPanel {
+  width: 100%; max-width: 480px; max-height: 88vh;
+  background: var(--white);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex; flex-direction: column;
+  animation: slideUp 0.2s ease;
+}
+@media (min-width: 768px) { .adPanel { border-radius: var(--radius-lg); } }
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.adHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 18px 14px; border-bottom: 0.5px solid var(--cream-dark); flex-shrink: 0;
+}
+.adTitle { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--ink); }
+.closeBtn {
+  background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: 50%; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; color: var(--ink-muted); flex-shrink: 0;
+}
+.closeBtn:hover { background: var(--cream-dark); }
+
+.adBody { flex: 1; overflow-y: auto; padding: 16px 18px; }
+.adNote { font-size: 12px; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5; }
+
+.adOptions { display: flex; flex-direction: column; gap: 8px; }
+.adBtn {
+  display: flex; flex-direction: column; gap: 5px;
+  background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); padding: 12px 14px; cursor: pointer;
+  transition: all 0.15s; text-align: left;
+}
+.adBtn:hover { border-color: rgba(28,58,26,0.3); }
+.adBtnActive { background: rgba(28,58,26,0.07); border-color: var(--forest); }
+.adBtnTop { display: flex; align-items: center; justify-content: space-between; }
+.adBtnLabel { font-size: 14px; font-weight: 500; color: var(--ink); }
+.adBtnCost  { font-size: 14px; font-weight: 500; color: #c0392b; }
+.adBtnDesc  { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
+
+.adFooter {
+  display: flex; gap: 10px;
+  padding: 14px 18px max(18px, env(safe-area-inset-bottom));
+  border-top: 0.5px solid var(--cream-dark); flex-shrink: 0; background: var(--white);
+}
+.btnCancel {
+  flex: 1; background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); color: var(--ink-mid);
+  font-family: var(--font-sans); font-size: 13px; padding: 11px; cursor: pointer;
+}
+.btnAd {
+  flex: 2; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--forest); border: none; border-radius: var(--radius-md);
+  color: var(--gold); font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  padding: 11px; cursor: pointer; transition: background 0.15s;
+}
+.btnAd:hover { background: var(--forest-mid); }

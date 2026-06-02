@@ -1111,3 +1111,117 @@ export const buildableTypes = [
   { type: 'dormitory',   name: '宿舍',     category: 'service',  icon: 'ti-bed',         desc: '每天疲劳减少 + 创收' },
   { type: 'shop',        name: '装备店',   category: 'service',  icon: 'ti-shopping-bag',desc: '球员购物 + 创收' },
 ]
+
+// ── 赛事数据 ──────────────────────────────────────────────────────────
+
+export const allEvents = [
+  { id:  1, name: '澳大利亚网球公开赛', level: 'slam', levelLabel: '大满贯', week:  3, duration: 2, qualify: '排名150内',   surface: '硬地' },
+  { id:  2, name: 'ITF青少年赛（一）',  level: 'itf',  levelLabel: 'ITF',    week:  5, duration: 2, qualify: '14-18岁',     surface: '硬地' },
+  { id:  3, name: '马赛250',           level: '250',  levelLabel: '250赛',  week:  6, duration: 2, qualify: '任何职业球员', surface: '硬地' },
+  { id:  4, name: '迈阿密1000赛',      level: '1000', levelLabel: '1000赛', week: 11, duration: 2, qualify: '排名300内',   surface: '硬地' },
+  { id:  5, name: 'ITF青少年赛（二）',  level: 'itf',  levelLabel: 'ITF',    week: 13, duration: 2, qualify: '14-18岁',     surface: '硬地' },
+  { id:  6, name: 'ITF青少年赛（三）',  level: 'itf',  levelLabel: 'ITF',    week: 21, duration: 2, qualify: '14-18岁',     surface: '红土' },
+  { id:  7, name: '法国网球公开赛',     level: 'slam', levelLabel: '大满贯', week: 22, duration: 2, qualify: '排名150内',   surface: '红土' },
+  { id:  8, name: '温布尔登网球锦标赛', level: 'slam', levelLabel: '大满贯', week: 26, duration: 2, qualify: '排名150内',   surface: '草地' },
+  { id:  9, name: '华盛顿公开赛500',   level: '500',  levelLabel: '500赛',  week: 27, duration: 2, qualify: '排名500内',   surface: '硬地' },
+  { id: 10, name: 'ITF青少年赛（四）',  level: 'itf',  levelLabel: 'ITF',    week: 29, duration: 2, qualify: '14-18岁',     surface: '硬地' },
+  { id: 11, name: '美国网球公开赛',     level: 'slam', levelLabel: '大满贯', week: 35, duration: 2, qualify: '排名150内',   surface: '硬地' },
+  { id: 12, name: 'ITF青少年赛（五）',  level: 'itf',  levelLabel: 'ITF',    week: 37, duration: 2, qualify: '14-18岁',     surface: '硬地' },
+  { id: 13, name: '上海大师赛1000',    level: '1000', levelLabel: '1000赛', week: 38, duration: 2, qualify: '排名300内',   surface: '硬地' },
+  { id: 14, name: '中网北京赛500',     level: '500',  levelLabel: '500赛',  week: 41, duration: 2, qualify: '排名500内',   surface: '硬地' },
+  { id: 15, name: '成都公开赛250',     level: '250',  levelLabel: '250赛',  week: 44, duration: 2, qualify: '任何职业球员', surface: '硬地' },
+  { id: 16, name: 'ITF青少年赛（六）',  level: 'itf',  levelLabel: 'ITF',    week: 45, duration: 2, qualify: '14-18岁',     surface: '硬地' },
+]
+
+// 本周 = 第1周，已报名赛事
+export const myEntries = [
+  {
+    eventId: 2,
+    playerIds: [1, 4, 7],   // 王小明、张雪、孙博
+    status: 'upcoming',      // upcoming | ongoing | done
+  },
+  {
+    eventId: 3,
+    playerIds: [5, 12],      // 刘宇、陈志远
+    status: 'upcoming',
+  },
+]
+
+// 历史战绩
+export const eventHistory = [
+  {
+    id: 'h1',
+    eventName: 'ITF青少年赛（去年秋季）',
+    level: 'itf', levelLabel: 'ITF',
+    year: 0, week: 45,
+    results: [
+      { playerName: '王小明', round: '四强', prestige: 0, prize: 800 },
+      { playerName: '陈晓雨', round: '八强', prestige: 0, prize: 400 },
+    ],
+    totalPrestige: 0,
+    totalPrize: 1200,
+  },
+]
+
+// 承办赛事配置
+export const hostEventConfig = {
+  small:  { cost: 30000,  regFee: 200, regMax: 100,  ticketFee: 50,  ticketMax: 200,  prestige: 50  },
+  medium: { cost: 70000,  regFee: 500, regMax: 200,  ticketFee: 100, ticketMax: 500,  prestige: 100 },
+  large:  { cost: 150000, regFee: 800, regMax: 500,  ticketFee: 200, ticketMax: 1000, prestige: 200 },
+}
+
+// ── 财务数据 ──────────────────────────────────────────────────────────
+
+// 本周收支汇总
+export const financeSummary = {
+  cash: 200000,
+  weekIncome: 18400,
+  weekExpense: 22000,
+  weekNet: -3600,
+  yearIncome: 18400,
+  yearExpense: 22000,
+}
+
+// 本周明细
+export const weekTransactions = [
+  // 收入
+  { id: 't1',  type: 'income',  category: 'court_rent',   label: '场地外租',     amount:  3200 },
+  { id: 't2',  type: 'income',  category: 'group_class',  label: '球员团课费',   amount:  4800 },
+  { id: 't3',  type: 'income',  category: 'private_cut',  label: '私教分成（40%）', amount: 2400 },
+  { id: 't4',  type: 'income',  category: 'cafe',         label: '咖啡馆收入',   amount:  1600 },
+  { id: 't5',  type: 'income',  category: 'physio',       label: '理疗室收入',   amount:  2400 },
+  { id: 't6',  type: 'income',  category: 'sponsor',      label: '赞助收入',     amount:  4000 },
+  // 支出
+  { id: 't7',  type: 'expense', category: 'coach_salary', label: '教练周薪',     amount: 16000 },
+  { id: 't8',  type: 'expense', category: 'staff',        label: '固定员工成本', amount:  2000 },  // 中型
+  { id: 't9',  type: 'expense', category: 'insurance',    label: '球员+教练保险（16人）', amount: 3200 },
+  { id: 't10', type: 'expense', category: 'subsidy',      label: '赞助球员补助（张雪）', amount: 500 },
+  { id: 't11', type: 'expense', category: 'ad',           label: '广告投放（初级）', amount: 300 },
+]
+
+// 月度收支趋势（近6周）
+export const weeklyTrend = [
+  { week: '第-5周', income: 15200, expense: 20800 },
+  { week: '第-4周', income: 16800, expense: 21200 },
+  { week: '第-3周', income: 14400, expense: 22000 },
+  { week: '第-2周', income: 19600, expense: 21600 },
+  { week: '第-1周', income: 17200, expense: 22000 },
+  { week: '本周',   income: 18400, expense: 22000 },
+]
+
+// 收入分类汇总
+export const incomeBreakdown = [
+  { category: '场地外租',   amount:  3200, pct: 17 },
+  { category: '团课费',     amount:  4800, pct: 26 },
+  { category: '私教分成',   amount:  2400, pct: 13 },
+  { category: '设施营收',   amount:  4000, pct: 22 },
+  { category: '赞助收入',   amount:  4000, pct: 22 },
+]
+
+// 支出分类汇总
+export const expenseBreakdown = [
+  { category: '教练薪资',   amount: 16000, pct: 73 },
+  { category: '员工成本',   amount:  2000, pct:  9 },
+  { category: '保险',       amount:  3200, pct: 15 },
+  { category: '其他',       amount:   800, pct:  3 },
+]

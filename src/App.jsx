@@ -8,9 +8,9 @@ import CoachesPage from './pages/CoachesPage'
 import RecruitPage from './pages/RecruitPage'
 import SchedulePage from './pages/SchedulePage'
 import FacilitiesPage from './pages/FacilitiesPage'
+import EventsPage from './pages/EventsPage'
+import FinancePage from './pages/FinancePage'
 import PlaceholderPage from './pages/PlaceholderPage'
-
-const placeholderRoutes = ['/finance', '/events', '/settings']
 
 export default function App() {
   return (
@@ -27,9 +27,9 @@ export default function App() {
               <Route path="/recruit"    element={<RecruitPage />}    />
               <Route path="/schedule"   element={<SchedulePage />}   />
               <Route path="/facilities" element={<FacilitiesPage />} />
-              {placeholderRoutes.map(path => (
-                <Route key={path} path={path} element={<PlaceholderPage path={path} />} />
-              ))}
+              <Route path="/events"     element={<EventsPage />}     />
+              <Route path="/finance"    element={<FinancePage />}    />
+              <Route path="/settings"   element={<PlaceholderPage path="/settings" />} />
             </Routes>
           </main>
         </div>
