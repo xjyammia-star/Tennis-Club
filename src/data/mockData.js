@@ -968,3 +968,146 @@ export const SLOTS = [
   { key: 'pm',  label: '下午' },
   { key: 'eve', label: '晚上' },
 ]
+
+// ── 设施数据 ──────────────────────────────────────────────────────────
+
+// 级别定义
+export const FACILITY_LEVELS = ['糟糕', '普通', '高级', '顶级']
+
+// 级别对应训练效果
+export const LEVEL_TRAIN_EFFECT = { 糟糕: 80, 普通: 100, 高级: 110, 顶级: 120 }
+
+// 建设价格表（万元）
+export const FACILITY_PRICES = {
+  hard_court:  { 糟糕: 10, 普通: 15, 高级: 25, 顶级: 40  },
+  clay_court:  { 糟糕: 20, 普通: 25, 高级: 40, 顶级: 60  },
+  grass_court: { 糟糕: 30, 普通: 40, 高级: 60, 顶级: 80  },
+  gym:         { 糟糕: 10, 普通: 20, 高级: 30, 顶级: 50  },
+  meeting:     { 糟糕:  1, 普通:  3, 高级:  5, 顶级: 10  },
+  locker:      { 糟糕:  2, 普通:  5, 高级: 10, 顶级: 20  },
+  lounge:      { 糟糕:  5, 普通: 10, 高级: 20, 顶级: 30  },
+  physio:      { 糟糕:  2, 普通:  5, 高级: 10, 顶级: 20  },
+  cafe:        { 糟糕:  2, 普通:  5, 高级: 10, 顶级: 20  },
+  restaurant:  { 糟糕:  5, 普通: 10, 高级: 20, 顶级: 40  },
+  dormitory:   { 糟糕: 10, 普通: 15, 高级: 30, 顶级: 50  },
+  shop:        { 糟糕:  2, 普通:  5, 高级: 10, 顶级: 20  },
+}
+
+// 维护费率
+export const MAINTENANCE_RATE = {
+  hard_court: 0.05, clay_court: 0.10, grass_court: 0.15,
+  gym: 0.10, meeting: 0.10, locker: 0.10, lounge: 0.10,
+  physio: 0.10, cafe: 0.10, restaurant: 0.10, dormitory: 0.10, shop: 0.10,
+}
+
+// 当前俱乐部设施（正常难度初始）
+export const facilities = [
+  // ─── 训练设施 ───
+  {
+    id: 'hard_1', type: 'hard_court', category: 'training',
+    name: '硬地球场 1', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'hard_2', type: 'hard_court', category: 'training',
+    name: '硬地球场 2', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'hard_3', type: 'hard_court', category: 'training',
+    name: '硬地球场 3', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'hard_4', type: 'hard_court', category: 'training',
+    name: '硬地球场 4', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'hard_5', type: 'hard_court', category: 'training',
+    name: '硬地球场 5', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'hard_6', type: 'hard_court', category: 'training',
+    name: '硬地球场 6', level: '普通', count: 1,
+    mainEffect: '技术 +100%，身体 +50%',
+    icon: 'ti-rectangle',
+    maintenancePaid: true,
+  },
+  {
+    id: 'gym_1', type: 'gym', category: 'training',
+    name: '健身房', level: '普通',
+    mainEffect: '身体 +100%，精神 +50%',
+    icon: 'ti-barbell',
+    maintenancePaid: true,
+  },
+  {
+    id: 'meeting_1', type: 'meeting', category: 'training',
+    name: '会议室', level: '普通',
+    mainEffect: '精神 +100%',
+    icon: 'ti-presentation',
+    maintenancePaid: true,
+  },
+  // ─── 服务设施 ───
+  {
+    id: 'locker_1', type: 'locker', category: 'service',
+    name: '更衣室', level: '普通',
+    mainEffect: '每天疲劳 -4',
+    icon: 'ti-door',
+    maintenancePaid: true,
+  },
+  {
+    id: 'lounge_1', type: 'lounge', category: 'service',
+    name: '休息室', level: '普通',
+    mainEffect: '每天疲劳 -5',
+    icon: 'ti-sofa',
+    maintenancePaid: true,
+  },
+  // ─── 空地槽（可建设）───
+  {
+    id: 'empty_1', type: 'empty', category: 'empty',
+    name: '空地 A', level: null,
+    mainEffect: '可建设新设施（¥10万开发费）',
+    icon: 'ti-square-plus',
+    maintenancePaid: null,
+  },
+  {
+    id: 'empty_2', type: 'empty', category: 'empty',
+    name: '空地 B', level: null,
+    mainEffect: '可建设新设施（¥10万开发费）',
+    icon: 'ti-square-plus',
+    maintenancePaid: null,
+  },
+  {
+    id: 'empty_3', type: 'empty', category: 'empty',
+    name: '空地 C', level: null,
+    mainEffect: '可建设新设施（¥10万开发费）',
+    icon: 'ti-square-plus',
+    maintenancePaid: null,
+  },
+]
+
+// 可新建的设施类型（用于空地建设选择）
+export const buildableTypes = [
+  { type: 'hard_court',  name: '硬地球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
+  { type: 'clay_court',  name: '红土球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
+  { type: 'grass_court', name: '草地球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
+  { type: 'gym',         name: '健身房',   category: 'training', icon: 'ti-barbell',     desc: '身体 +100%，精神 +50%' },
+  { type: 'meeting',     name: '会议室',   category: 'training', icon: 'ti-presentation',desc: '精神 +100%' },
+  { type: 'physio',      name: '理疗室',   category: 'service',  icon: 'ti-first-aid-kit',desc: '加快伤病恢复 + 创收' },
+  { type: 'cafe',        name: '咖啡馆',   category: 'service',  icon: 'ti-coffee',      desc: '每周创收' },
+  { type: 'restaurant',  name: '餐厅',     category: 'service',  icon: 'ti-tools-kitchen-2', desc: '每周创收（较高）' },
+  { type: 'dormitory',   name: '宿舍',     category: 'service',  icon: 'ti-bed',         desc: '每天疲劳减少 + 创收' },
+  { type: 'shop',        name: '装备店',   category: 'service',  icon: 'ti-shopping-bag',desc: '球员购物 + 创收' },
+]
