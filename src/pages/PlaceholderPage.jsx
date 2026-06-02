@@ -2,9 +2,9 @@ import { useNavigate } from 'react-router-dom'
 
 const pageNames = {
   '/players':    { title: '球员管理',   icon: 'ti-users'              },
-  '/coaches':    { title: '教练团队',   icon: 'ti-whistle'            },
+  '/coaches':    { title: '教练团队',   icon: 'ti-user-star'          },
   '/schedule':   { title: '训练安排',   icon: 'ti-calendar-week'      },
-  '/facilities': { title: '俱乐部设施', icon: 'ti-building-community' },
+  '/facilities': { title: '俱乐部设施', icon: 'ti-building' },
   '/finance':    { title: '财务收支',   icon: 'ti-chart-bar'          },
   '/events':     { title: '赛事管理',   icon: 'ti-trophy'             },
   '/settings':   { title: '设置',       icon: 'ti-settings'           },

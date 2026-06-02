@@ -11,9 +11,9 @@ import {
 import styles from './HomePage.module.css'
 
 const newsIcons = {
-  skill:   'ti-sparkles',
-  finance: 'ti-coin-yuan',
-  player:  'ti-user-exclamation',
+  skill:   'ti-star',
+  finance: 'ti-currency-yen',
+  player:  'ti-user',
   event:   'ti-trophy',
   default: 'ti-bell',
 }
@@ -80,7 +80,7 @@ export default function HomePage() {
         {/* ── Desktop-only KPI cards ───────────────── */}
         <div className={styles.desktopKpiGrid}>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-coin-yuan" aria-hidden="true" />资金</div>
+            <div className={styles.dkLabel}><i className="ti ti-currency-yen" aria-hidden="true" />资金</div>
             <div className={styles.dkVal}>{formatCash(gameState.cash)}</div>
             <div className={styles.dkSub}>{gameState.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</div>
           </div>
@@ -90,7 +90,7 @@ export default function HomePage() {
             <div className={styles.dkSub}>{clubStats.playerCapacity - clubStats.playerCount} 个空位</div>
           </div>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-users-group" aria-hidden="true" />教练</div>
+            <div className={styles.dkLabel}><i className="ti ti-user" aria-hidden="true" />教练</div>
             <div className={styles.dkVal}>{clubStats.coachCount}</div>
             <div className={styles.dkSub}>普通2 · 助教2</div>
           </div>
