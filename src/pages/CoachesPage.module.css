@@ -226,7 +226,7 @@
   gap: 8px;
 }
 .miniLabel { font-size: 11px; color: var(--ink-faint); width: 26px; flex-shrink: 0; }
-.miniVal { font-size: 11px; width: 22px; text-align: right; flex-shrink: 0; font-weight: 500; }
+.miniVal { font-size: 11px; width: 30px; text-align: right; flex-shrink: 0; font-weight: 500; }
 
 .loyaltyBarWrap {
   flex: 1;

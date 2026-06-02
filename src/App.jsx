@@ -5,6 +5,7 @@ import Topbar from './components/Topbar'
 import HomePage from './pages/HomePage'
 import PlayersPage from './pages/PlayersPage'
 import CoachesPage from './pages/CoachesPage'
+import RecruitPage from './pages/RecruitPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 const placeholderRoutes = [
@@ -24,9 +25,10 @@ export default function App() {
           <Topbar />
           <main className="page-content">
             <Routes>
-              <Route path="/"         element={<HomePage />}    />
-              <Route path="/players"  element={<PlayersPage />} />
-              <Route path="/coaches"  element={<CoachesPage />} />
+              <Route path="/"        element={<HomePage />}    />
+              <Route path="/players" element={<PlayersPage />} />
+              <Route path="/coaches" element={<CoachesPage />} />
+              <Route path="/recruit" element={<RecruitPage />} />
               {placeholderRoutes.map(path => (
                 <Route
                   key={path}

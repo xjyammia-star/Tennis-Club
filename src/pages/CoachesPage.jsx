@@ -333,12 +333,6 @@ export default function CoachesPage() {
           ))}
         </div>
 
-        {/* 招募提示 */}
-        <div className={styles.recruitBanner}>
-          <i className="ti ti-plus" aria-hidden="true" />
-          <span>招募新教练（功能开发中）</span>
-        </div>
-
         {/* 结果计数 */}
         <div className={styles.resultCount}>
           显示 {sorted.length} / {coaches.length} 名教练

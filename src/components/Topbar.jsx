@@ -5,6 +5,7 @@ const pageTitles = {
   '/':           '主页总览',
   '/players':    '球员管理',
   '/coaches':    '教练团队',
+  '/recruit':    '招募市场',
   '/schedule':   '训练安排',
   '/facilities': '俱乐部设施',
   '/events':     '赛事管理',
