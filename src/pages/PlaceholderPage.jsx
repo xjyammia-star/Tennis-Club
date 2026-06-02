@@ -17,14 +17,16 @@ export default function PlaceholderPage({ path }) {
   return (
     <div style={{ minHeight: '100%', background: 'var(--cream)', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header */}
+      {/* Mobile header */}
       <div style={{
         background: 'var(--forest)',
         padding: '48px 22px 24px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-      }}>
+      }}
+        className="mobile-page-header"
+      >
         <button
           onClick={() => navigate('/')}
           style={{
@@ -36,6 +38,7 @@ export default function PlaceholderPage({ path }) {
             color: 'var(--gold-pale)',
             cursor: 'pointer',
             fontSize: '18px',
+            flexShrink: 0,
           }}
         >
           <i className="ti ti-arrow-left" aria-hidden="true" />
@@ -51,7 +54,7 @@ export default function PlaceholderPage({ path }) {
         </h1>
       </div>
 
-      {/* Coming soon */}
+      {/* Coming soon body */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -80,8 +83,27 @@ export default function PlaceholderPage({ path }) {
             此页面正在开发中<br />敬请期待
           </p>
         </div>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'var(--forest)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--gold)',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '13px',
+            padding: '10px 20px',
+            cursor: 'pointer',
+          }}
+        >
+          <i className="ti ti-home" aria-hidden="true" />
+          返回主页
+        </button>
       </div>
-
     </div>
   )
 }

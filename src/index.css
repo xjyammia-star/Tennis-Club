@@ -27,55 +27,57 @@
   --radius-xl:  20px;
 
   --shadow-card: 0 1px 3px rgba(26,42,24,0.06), 0 4px 12px rgba(26,42,24,0.04);
+
+  /* Layout */
+  --sidebar-w: 220px;
 }
 
 html, body {
   height: 100%;
-  background: var(--cream);
+  background: var(--cream-dark);
   font-family: var(--font-sans);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── App shell: center on desktop, full-width on mobile ── */
-#root {
-  min-height: 100%;
-  display: flex;
-  justify-content: center;
-  background: var(--cream-dark);
-}
+#root { min-height: 100%; }
 
+/* ════════════════════════════════════════
+   MOBILE LAYOUT  (default, < 768px)
+   ════════════════════════════════════════ */
 .app-shell {
-  width: 100%;
-  max-width: 430px;
-  min-height: 100vh;
-  background: var(--cream);
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow-x: hidden;
+  min-height: 100vh;
+  background: var(--cream);
 }
 
-/* ── Page container (scrollable area above nav) ── */
+/* sidebar hidden on mobile */
+.sidebar { display: none; }
+
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px;
+  padding-bottom: 80px; /* space for bottom nav */
 }
 
-/* ── Bottom nav ── */
+/* ── Bottom nav (mobile only) ── */
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
+  left: 0;
+  right: 0;
   background: var(--white);
   border-top: 1px solid var(--cream-dark);
   display: flex;
-  padding: 10px 0 max(20px, env(safe-area-inset-bottom));
+  padding: 10px 0 max(16px, env(safe-area-inset-bottom));
   z-index: 100;
 }
 
@@ -84,11 +86,11 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   cursor: pointer;
   padding: 2px 0;
   text-decoration: none;
-  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item i {
@@ -96,7 +98,6 @@ html, body {
   color: var(--ink-faint);
   transition: color 0.15s;
 }
-
 .nav-item.active i { color: var(--forest); }
 
 .nav-item span {
@@ -105,7 +106,6 @@ html, body {
   letter-spacing: 0.04em;
   transition: color 0.15s;
 }
-
 .nav-item.active span { color: var(--forest); font-weight: 500; }
 
 .nav-dot {
@@ -115,10 +115,226 @@ html, body {
   opacity: 0;
   transition: opacity 0.15s;
 }
-
 .nav-item.active .nav-dot { opacity: 1; }
 
-/* ── Shared card ── */
+/* ════════════════════════════════════════
+   DESKTOP LAYOUT  (≥ 768px)
+   ════════════════════════════════════════ */
+@media (min-width: 768px) {
+
+  .app-shell {
+    flex-direction: row;
+    min-height: 100vh;
+    background: var(--cream-dark);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: var(--forest);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 28px 20px 24px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  }
+
+  .sidebar-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(201,168,76,0.55);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .sidebar-club-name {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gold-pale);
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+  }
+
+  .sidebar-round {
+    font-size: 11px;
+    color: rgba(245,237,218,0.35);
+    margin-top: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s;
+    color: rgba(245,237,218,0.55);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sidebar-nav-item i {
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  .sidebar-nav-item:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--gold-pale);
+  }
+
+  .sidebar-nav-item.active {
+    background: rgba(201,168,76,0.15);
+    color: var(--gold);
+  }
+
+  .sidebar-nav-item.active i { color: var(--gold); }
+
+  .sidebar-section-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: rgba(245,237,218,0.25);
+    text-transform: uppercase;
+    padding: 14px 12px 6px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 12px 24px;
+    border-top: 0.5px solid rgba(255,255,255,0.07);
+  }
+
+  .sidebar-next-week-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(201,168,76,0.15);
+    border: 0.5px solid rgba(201,168,76,0.3);
+    border-radius: var(--radius-md);
+    color: var(--gold);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.04em;
+  }
+
+  .sidebar-next-week-btn:hover {
+    background: rgba(201,168,76,0.25);
+  }
+
+  .sidebar-next-week-btn i { font-size: 15px; }
+
+  /* ── Main area on desktop ── */
+  .main-area {
+    flex: 1;
+    min-width: 0;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar (desktop only) ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    background: var(--white);
+    border-bottom: 1px solid var(--cream-dark);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-title {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+
+  .topbar-kpis {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .topbar-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 0 20px;
+    border-right: 0.5px solid var(--cream-dark);
+  }
+  .topbar-kpi:last-child { border-right: none; padding-right: 0; }
+  .topbar-kpi:first-child { padding-left: 0; }
+
+  .topbar-kpi-val {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+
+  .topbar-kpi-label {
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  .page-content {
+    padding-bottom: 40px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* hide mobile bottom nav on desktop */
+  .bottom-nav { display: none; }
+}
+
+/* ════════════════════════════════════════
+   WIDE DESKTOP  (≥ 1280px)
+   ════════════════════════════════════════ */
+@media (min-width: 1280px) {
+  :root { --sidebar-w: 240px; }
+
+  .sidebar-club-name { font-size: 16px; }
+}
+
+/* ════════════════════════════════════════
+   SHARED COMPONENTS
+   ════════════════════════════════════════ */
 .card {
   background: var(--white);
   border: 0.5px solid var(--cream-dark);
@@ -126,26 +342,6 @@ html, body {
   box-shadow: var(--shadow-card);
 }
 
-/* ── Section label ── */
-.section-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--ink-muted);
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.section-label::after {
-  content: '';
-  flex: 1;
-  height: 0.5px;
-  background: var(--cream-dark);
-}
-
-/* ── Badges ── */
 .badge {
   font-size: 10px;
   padding: 2px 8px;
