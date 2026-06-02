@@ -1,30 +1,22 @@
 import { useState, useMemo } from 'react'
 import {
-  weekSchedule, DAYS, SLOTS, courseTypes,
+  weekSchedule, DAYS, courseTypes,
   players, coaches, clubStats,
 } from '../data/mockData'
 import { generatePrivateLessons } from '../utils/privateLesson'
 import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
-import { DEFAULT_CLUB_SETTINGS } from './ClubSettingsPage'
+import { getClubSettings } from '../utils/clubSettings'
 import styles from './SchedulePage.module.css'
 
-// ── 读取经营设置 ──────────────────────────────────────
-function getSettings() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('tcm_club_settings'))
-    return { ...DEFAULT_CLUB_SETTINGS, ...saved }
-  } catch { return { ...DEFAULT_CLUB_SETTINGS } }
-}
-
-// ── 时段定义（含新增私教时段）────────────────────────
+// ── 时段定义 ─────────────────────────────────────────
 const FULL_SLOTS = [
-  { key: 'private', label: '私教', sublabel: '06-10点', color: '#9a6e0a', clubOnly: false },
-  { key: 'am',      label: '上午', sublabel: '10-12点', color: '#1c3a1a', clubOnly: true  },
-  { key: 'pm',      label: '下午', sublabel: '12-19点', color: '#1c3a1a', clubOnly: false },
-  { key: 'eve',     label: '晚上', sublabel: '19-22点', color: '#1c3a1a', clubOnly: false },
+  { key: 'private', label: '私教',  sublabel: '06–10点', clubOnly: false, rentable: true  },
+  { key: 'am',      label: '上午',  sublabel: '10–12点', clubOnly: true,  rentable: false },
+  { key: 'pm',      label: '下午',  sublabel: '12–19点', clubOnly: false, rentable: true  },
+  { key: 'eve',     label: '晚上',  sublabel: '19–22点', clubOnly: false, rentable: true  },
 ]
 
-// ── 工具函数 ──────────────────────────────────────────
+// ── 工具 ──────────────────────────────────────────────
 function getCourseType(id) {
   return courseTypes.find(c => c.id === id) || courseTypes[0]
 }
@@ -36,10 +28,8 @@ function dayTotalHours(sessions) {
 function calcWeekStats(schedule) {
   let totalSessions = 0, totalHours = 0
   const playerHoursMap = {}
-
   DAYS.forEach(({ key }) => {
-    const sessions = schedule[key] || []
-    sessions.forEach(s => {
+    ;(schedule[key] || []).forEach(s => {
       if (s.type !== 'private') totalSessions++
       totalHours += s.hours || 0
       ;(s.playerIds || []).forEach(pid => {
@@ -47,49 +37,43 @@ function calcWeekStats(schedule) {
       })
     })
   })
-
   const restCount = players.filter(p => !playerHoursMap[p.id]).length
   return { totalSessions, totalHours, playerHoursMap, restCount }
 }
 
-// ── 私教聚合记录详情弹窗 ──────────────────────────────
+// ── 私教详情弹窗 ──────────────────────────────────────
 function PrivateDetailModal({ session, onClose }) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.detailPanel} onClick={e => e.stopPropagation()}>
         <div className={styles.detailHeader} style={{ borderTopColor: '#9a6e0a' }}>
           <div className={styles.detailTitleRow}>
-            <div className={styles.detailTypeIcon} style={{ background: '#9a6e0a18', color: '#9a6e0a' }}>
+            <div className={styles.detailTypeIcon} style={{ background: 'rgba(154,110,10,0.1)', color: '#9a6e0a' }}>
               <i className="ti ti-user-star" />
             </div>
             <div>
               <div className={styles.detailTitle}>{session.label}</div>
-              <div className={styles.detailSubtitle}>06:00 – 10:00 · 系统自动安排 · 每节1小时</div>
+              <div className={styles.detailSubtitle}>06:00–10:00 · 系统自动安排 · 每节1小时</div>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}>
-            <i className="ti ti-x" />
-          </button>
+          <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
-
         <div className={styles.detailBody}>
           <div className={styles.privateList}>
             {(session.details || []).map((d, i) => (
               <div key={i} className={styles.privateItem}>
-                <div className={styles.privatePlayerAvatar}>{d.playerName.charAt(0)}</div>
+                <div className={styles.privateAvatar}>{d.playerName.charAt(0)}</div>
                 <div className={styles.privateInfo}>
-                  <span className={styles.privatePlayerName}>{d.playerName}</span>
-                  <span className={styles.privateCoachName}>
-                    <i className="ti ti-user-star" /> {d.coachName}
-                  </span>
+                  <span className={styles.privatePlayer}>{d.playerName}</span>
+                  <span className={styles.privateCoach}><i className="ti ti-user-star" />{d.coachName}</span>
                 </div>
-                <div className={styles.privateMeta}>1h · 技术 +20exp</div>
+                <span className={styles.privateMeta}>1h · +20exp</span>
               </div>
             ))}
           </div>
           <div className={styles.privateNote}>
             <i className="ti ti-info-circle" />
-            私教由系统根据球员家庭背景和水平自动安排，不可手动修改。比赛周或受伤球员将自动跳过。
+            私教由系统根据球员家庭背景和水平自动安排，不可手动修改
           </div>
         </div>
       </div>
@@ -99,29 +83,26 @@ function PrivateDetailModal({ session, onClose }) {
 
 // ── 课程卡片 ──────────────────────────────────────────
 function SessionChip({ session, onClick }) {
-  const isPrivate = session.type === 'private' && session.isMerged
+  const isMergedPrivate = session.type === 'private' && session.isMerged
   const ct = getCourseType(session.type)
   const color = session.color || ct.color
-
   return (
     <div
-      className={`${styles.chip} ${isPrivate ? styles.chipPrivate : ''}`}
+      className={`${styles.chip} ${isMergedPrivate ? styles.chipPrivate : ''}`}
       style={{ borderLeftColor: color }}
       onClick={() => onClick(session)}
     >
       <div className={styles.chipLabel}>
         {session.label}
-        {session.isAutoScheduled && (
-          <span className={styles.chipAutoTag}>系统</span>
-        )}
+        {session.isAutoScheduled && <span className={styles.chipAutoTag}>系统</span>}
       </div>
       <div className={styles.chipMeta}>
         <span className={styles.chipCoach}>
-          {isPrivate ? `${session.playerIds?.length || 0}人` : session.coachName}
+          {isMergedPrivate ? `${session.playerIds?.length || 0}人` : session.coachName}
         </span>
         <span className={styles.chipHours}>{session.hours}h</span>
       </div>
-      {!isPrivate && (
+      {!isMergedPrivate && (
         <div className={styles.chipPlayers}>
           {(session.playerNames || []).slice(0, 3).join('、')}
           {(session.playerNames || []).length > 3 && ` +${session.playerNames.length - 3}`}
@@ -139,7 +120,7 @@ function EmptySlot({ day, slot, onClick }) {
   )
 }
 
-// ── 课程详情弹窗（团课）──────────────────────────────
+// ── 团课详情弹窗 ──────────────────────────────────────
 function SessionDetail({ session, onClose, onDelete }) {
   const ct = getCourseType(session.type)
   return (
@@ -159,24 +140,18 @@ function SessionDetail({ session, onClose, onDelete }) {
         </div>
         <div className={styles.detailBody}>
           <div className={styles.detailGrid}>
-            <div className={styles.detailBox}>
-              <span className={styles.detailBoxVal}>{session.hours}h</span>
-              <span className={styles.detailBoxLbl}>课时</span>
-            </div>
-            <div className={styles.detailBox}>
-              <span className={styles.detailBoxVal}>{session.hours * ct.expPerHour}</span>
-              <span className={styles.detailBoxLbl}>经验/人</span>
-            </div>
-            <div className={styles.detailBox}>
-              <span className={styles.detailBoxVal}>{(session.playerIds || []).length}</span>
-              <span className={styles.detailBoxLbl}>参与球员</span>
-            </div>
-            <div className={styles.detailBox}>
-              <span className={styles.detailBoxVal}>+{session.hours * 10}</span>
-              <span className={styles.detailBoxLbl}>疲劳/人</span>
-            </div>
+            {[
+              { val: `${session.hours}h`,                    lbl: '课时' },
+              { val: session.hours * ct.expPerHour,          lbl: '经验/人' },
+              { val: (session.playerIds || []).length,       lbl: '参与球员' },
+              { val: `+${session.hours * 10}`,               lbl: '疲劳/人' },
+            ].map((b, i) => (
+              <div key={i} className={styles.detailBox}>
+                <span className={styles.detailBoxVal}>{b.val}</span>
+                <span className={styles.detailBoxLbl}>{b.lbl}</span>
+              </div>
+            ))}
           </div>
-
           <div className={styles.detailSection}>
             <div className={styles.detailSectionTitle}><i className="ti ti-user-star" /> 负责教练</div>
             <div className={styles.coachRow}>
@@ -184,27 +159,25 @@ function SessionDetail({ session, onClose, onDelete }) {
               <span className={styles.coachName}>{session.coachName}</span>
             </div>
           </div>
-
           <div className={styles.detailSection}>
             <div className={styles.detailSectionTitle}>
-              <i className="ti ti-users" /> 参与球员（{(session.playerNames || []).length} 人）
+              <i className="ti ti-users" /> 参与球员（{(session.playerNames || []).length}人）
             </div>
             <div className={styles.playerChips}>
               {(session.playerNames || []).map((name, i) => {
                 const p = players.find(pl => pl.id === session.playerIds?.[i])
-                const fatigue = p?.fatigue || 0
+                const hi = (p?.fatigue || 0) >= 70
                 return (
-                  <span key={i} className={`${styles.playerChip} ${fatigue >= 70 ? styles.playerChipWarn : ''}`}>
-                    {name}{fatigue >= 70 && <i className="ti ti-flame" />}
+                  <span key={i} className={`${styles.playerChip} ${hi ? styles.playerChipWarn : ''}`}>
+                    {name}{hi && <i className="ti ti-flame" />}
                   </span>
                 )
               })}
             </div>
           </div>
-
           <div className={styles.detailActions}>
-            <button className={styles.btnEdit} onClick={() => { alert('编辑功能开发中…'); onClose() }}>
-              <i className="ti ti-edit" /> 编辑课程
+            <button className={styles.btnEdit} onClick={() => { alert('编辑功能开发中'); onClose() }}>
+              <i className="ti ti-edit" /> 编辑
             </button>
             <button className={styles.btnDelete} onClick={() => onDelete(session)}>
               <i className="ti ti-trash" /> 删除
@@ -216,54 +189,43 @@ function SessionDetail({ session, onClose, onDelete }) {
   )
 }
 
-// ── 添加课程弹窗（排除私教类型）────────────────────
+// ── 添加课程弹窗 ──────────────────────────────────────
 function AddSessionModal({ day, slot, onClose, onAdd }) {
-  const [type, setType]   = useState('court_group')
+  const [type, setType]       = useState('court_group')
   const [coachId, setCoachId] = useState(coaches[0]?.id)
-  const [hours, setHours] = useState(2)
+  const [hours, setHours]     = useState(2)
   const [selected, setSelected] = useState([])
-
-  const ct = getCourseType(type)
   const allowedTypes = courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private')
+  const slotInfo = FULL_SLOTS.find(s => s.key === slot)
 
   function togglePlayer(pid) {
     setSelected(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])
   }
 
   function handleAdd() {
-    if (selected.length === 0) { alert('请至少选择一名球员'); return }
+    if (!selected.length) { alert('请至少选择一名球员'); return }
     const coach = coaches.find(c => c.id === coachId)
-    const ct2 = getCourseType(type)
+    const ct = getCourseType(type)
     onAdd({
       id: `s_${Date.now()}`,
-      slot,
-      type,
-      label: ct2.label,
-      hours,
-      coachId,
+      slot, type, label: ct.label, hours, coachId,
       coachName: coach?.name || '',
       playerIds: selected,
       playerNames: selected.map(id => players.find(p => p.id === id)?.name || ''),
-      color: ct2.color,
+      color: ct.color,
     })
   }
-
-  // 获取时段的时间范围说明
-  const slotInfo = FULL_SLOTS.find(s => s.key === slot)
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.addPanel} onClick={e => e.stopPropagation()}>
         <div className={styles.addHeader}>
           <div>
-            <div className={styles.addTitle}>
-              {DAYS.find(d => d.key === day)?.label} · {slotInfo?.label}
-            </div>
+            <div className={styles.addTitle}>{DAYS.find(d => d.key === day)?.label} · {slotInfo?.label}</div>
             <div className={styles.addSubtitle}>{slotInfo?.sublabel}</div>
           </div>
           <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
-
         <div className={styles.addBody}>
           <div className={styles.addField}>
             <label className={styles.addLabel}>课程类型</label>
@@ -277,71 +239,53 @@ function AddSessionModal({ day, slot, onClose, onAdd }) {
                 >
                   <i className={`ti ${c.icon}`} style={{ color: c.color }} />
                   <span>{c.label}</span>
-                  <span className={styles.typeExp}>{c.expPerHour * hours} exp/人</span>
+                  <span className={styles.typeExp}>{c.expPerHour * hours}exp/人</span>
                 </button>
               ))}
             </div>
           </div>
-
           <div className={styles.addField}>
             <label className={styles.addLabel}>课时时长</label>
             <div className={styles.hoursRow}>
-              {[0.5, 1, 1.5, 2, 2.5, 3].map(h => (
-                <button
-                  key={h}
-                  className={`${styles.hourBtn} ${hours === h ? styles.hourBtnActive : ''}`}
-                  onClick={() => setHours(h)}
-                >{h}h</button>
+              {[0.5,1,1.5,2,2.5,3].map(h => (
+                <button key={h} className={`${styles.hourBtn} ${hours===h?styles.hourBtnActive:''}`} onClick={() => setHours(h)}>{h}h</button>
               ))}
             </div>
           </div>
-
           <div className={styles.addField}>
             <label className={styles.addLabel}>负责教练</label>
             <div className={styles.coachSelect}>
               {coaches.map(c => (
-                <button
-                  key={c.id}
-                  className={`${styles.coachBtn} ${coachId === c.id ? styles.coachBtnActive : ''}`}
-                  onClick={() => setCoachId(c.id)}
-                >
+                <button key={c.id} className={`${styles.coachBtn} ${coachId===c.id?styles.coachBtnActive:''}`} onClick={() => setCoachId(c.id)}>
                   <span className={styles.coachBtnAvatar}>{c.name.charAt(0)}</span>
-                  <div>
-                    <div className={styles.coachBtnName}>{c.name}</div>
-                    <div className={styles.coachBtnLevel}>{c.levelLabel}</div>
-                  </div>
+                  <div><div className={styles.coachBtnName}>{c.name}</div><div className={styles.coachBtnLevel}>{c.levelLabel}</div></div>
                 </button>
               ))}
             </div>
           </div>
-
           <div className={styles.addField}>
             <label className={styles.addLabel}>参与球员（已选 {selected.length} 人）</label>
             <div className={styles.playerSelect}>
               {players.map(p => {
                 const isSelected = selected.includes(p.id)
-                const fatigueHigh = p.fatigue >= 70
+                const hi = p.fatigue >= 70
                 return (
-                  <button
-                    key={p.id}
-                    className={`${styles.playerBtn} ${isSelected ? styles.playerBtnActive : ''} ${fatigueHigh ? styles.playerBtnWarn : ''}`}
+                  <button key={p.id}
+                    className={`${styles.playerBtn} ${isSelected?styles.playerBtnActive:''} ${hi?styles.playerBtnWarn:''}`}
                     onClick={() => togglePlayer(p.id)}
                   >
                     <span>{p.name}</span>
                     <span className={styles.playerBtnAge}>{p.age}岁</span>
-                    {fatigueHigh && <i className="ti ti-flame" style={{ color: '#c0392b', fontSize: 11 }} />}
+                    {hi && <i className="ti ti-flame" style={{color:'#c0392b',fontSize:11}} />}
                   </button>
                 )
               })}
             </div>
           </div>
         </div>
-
         <div className={styles.addFooter}>
           <button className={styles.btnCancel} onClick={onClose}>取消</button>
-          <button className={styles.btnAdd} onClick={handleAdd}>
-            <i className="ti ti-plus" /> 添加课程
-          </button>
+          <button className={styles.btnAdd} onClick={handleAdd}><i className="ti ti-plus" /> 添加课程</button>
         </div>
       </div>
     </div>
@@ -349,7 +293,7 @@ function AddSessionModal({ day, slot, onClose, onAdd }) {
 }
 
 // ── 周统计 ────────────────────────────────────────────
-function WeekStats({ stats, rentalInfo }) {
+function WeekStats({ stats, rentalIncome }) {
   return (
     <div className={styles.statsRow}>
       <div className={styles.statItem}>
@@ -368,16 +312,12 @@ function WeekStats({ stats, rentalInfo }) {
       </div>
       <div className={styles.statDiv} />
       <div className={styles.statItem}>
-        <span className={`${styles.statVal} ${stats.restCount > 0 ? styles.statWarn : ''}`}>
-          {stats.restCount}
-        </span>
+        <span className={`${styles.statVal} ${stats.restCount > 0 ? styles.statWarn : ''}`}>{stats.restCount}</span>
         <span className={styles.statLbl}>未排课</span>
       </div>
       <div className={styles.statDiv} />
       <div className={styles.statItem}>
-        <span className={styles.statVal} style={{ color: '#1a6010' }}>
-          ¥{rentalInfo.income.toLocaleString()}
-        </span>
+        <span className={styles.statVal} style={{ color: '#1a6010', fontSize: 14 }}>¥{rentalIncome.toLocaleString()}</span>
         <span className={styles.statLbl}>外租预估</span>
       </div>
     </div>
@@ -386,18 +326,15 @@ function WeekStats({ stats, rentalInfo }) {
 
 // ── 主页面 ────────────────────────────────────────────
 export default function SchedulePage() {
-  const settings = getSettings()
+  const settings = getClubSettings()
 
-  // 生成私教安排
   const privateLessons = useMemo(() => generatePrivateLessons({
-    players,
-    coaches,
+    players, coaches,
     courtCount: clubStats.courtCount,
     isMatchWeek: false,
     settings,
   }), [])
 
-  // 合并团课 + 私教到同一个 schedule
   const [groupSchedule, setGroupSchedule] = useState(weekSchedule)
 
   const fullSchedule = useMemo(() => {
@@ -410,20 +347,18 @@ export default function SchedulePage() {
     return merged
   }, [groupSchedule, privateLessons])
 
-  // 外租收入预估
   const weekPrivateCounts = useMemo(() => {
     const counts = {}
     DAYS.forEach(({ key }) => {
-      const priv = privateLessons[key] || []
-      counts[key] = priv.reduce((sum, s) => sum + (s.playerIds?.length || 0), 0)
+      counts[key] = (privateLessons[key] || []).reduce((sum, s) => sum + (s.playerIds?.length || 0), 0)
     })
     return counts
   }, [privateLessons])
 
   const rentalInfo = useMemo(() => calcCourtRentalIncome({
-    courtCount:  clubStats.courtCount,
-    prestige:    1000,
-    hourlyRate:  settings.courtHourlyRate,
+    courtCount: clubStats.courtCount,
+    prestige:   1000,
+    hourlyRate: settings.courtHourlyRate,
     weekPrivateCounts,
     eventModifier: 0,
   }), [weekPrivateCounts, settings.courtHourlyRate])
@@ -431,120 +366,99 @@ export default function SchedulePage() {
   const [selectedDay, setSelectedDay] = useState('mon')
   const [sessionDetail, setSessionDetail] = useState(null)
   const [privateDetail, setPrivateDetail] = useState(null)
-  const [addTarget, setAddTarget] = useState(null)
-  const [view, setView] = useState('week')
+  const [addTarget, setAddTarget]         = useState(null)
+  const [view, setView]                   = useState('week')
 
   const stats = useMemo(() => calcWeekStats(fullSchedule), [fullSchedule])
 
-  function handleSessionClick(session) {
-    if (session.isMerged && session.type === 'private') {
-      setPrivateDetail(session)
-    } else {
-      setSessionDetail(session)
-    }
+  function handleClick(session) {
+    if (session.isMerged && session.type === 'private') setPrivateDetail(session)
+    else setSessionDetail(session)
   }
 
-  function handleDeleteSession(session) {
+  function handleDelete(session) {
     setGroupSchedule(prev => {
-      const updated = { ...prev }
-      DAYS.forEach(({ key }) => {
-        updated[key] = (updated[key] || []).filter(s => s.id !== session.id)
-      })
-      return updated
+      const u = { ...prev }
+      DAYS.forEach(({ key }) => { u[key] = (u[key] || []).filter(s => s.id !== session.id) })
+      return u
     })
     setSessionDetail(null)
   }
 
-  function handleAddSession(dayKey, slot, sessionData) {
-    setGroupSchedule(prev => ({
-      ...prev,
-      [dayKey]: [...(prev[dayKey] || []), sessionData],
-    }))
+  function handleAdd(dayKey, slot, data) {
+    setGroupSchedule(prev => ({ ...prev, [dayKey]: [...(prev[dayKey] || []), data] }))
     setAddTarget(null)
   }
 
-  // ── 周视图 ────────────────────────────────────────
-  const WeekView = () => (
-    <div className={styles.weekGrid}>
-      <div className={styles.weekHeaderCell} />
-      {DAYS.map(d => {
-        const hours = dayTotalHours(fullSchedule[d.key] || [])
-        return (
-          <div key={d.key} className={`${styles.weekHeaderCell} ${d.key === 'mon' ? styles.today : ''}`}>
-            <span className={styles.dayLabel}>{d.label}</span>
-            {hours > 0 && <span className={styles.dayHours}>{hours}h</span>}
-          </div>
-        )
-      })}
+  // ── 周视图 ──────────────────────────────────────────
+  function WeekView() {
+    return (
+      <div className={styles.weekGrid}>
+        {/* 表头 */}
+        <div className={styles.slotLabelCell} />
+        {DAYS.map(d => {
+          const h = dayTotalHours(fullSchedule[d.key] || [])
+          return (
+            <div key={d.key} className={`${styles.weekHeaderCell} ${d.key==='mon'?styles.today:''}`}>
+              <span className={styles.dayLabel}>{d.label}</span>
+              {h > 0 && <span className={styles.dayHours}>{h}h</span>}
+            </div>
+          )
+        })}
+        {/* 时段行 */}
+        {FULL_SLOTS.map(slot => (
+          <>
+            <div key={`lbl-${slot.key}`} className={`${styles.slotLabelCell} ${slot.clubOnly?styles.slotClubOnly:''}`}>
+              <span className={styles.slotLabelText}>{slot.label}</span>
+              <span className={styles.slotTimeText}>{slot.sublabel}</span>
+            </div>
+            {DAYS.map(d => {
+              const slotSessions = (fullSchedule[d.key] || []).filter(s => s.slot === slot.key)
+              return (
+                <div key={`${d.key}-${slot.key}`} className={`${styles.weekCell} ${slot.clubOnly?styles.weekCellClub:''}`}>
+                  {slotSessions.map(s => <SessionChip key={s.id} session={s} onClick={handleClick} />)}
+                  {slot.key !== 'private' && (
+                    <EmptySlot day={d.key} slot={slot.key} onClick={(day,sl) => setAddTarget({day,slot:sl})} />
+                  )}
+                </div>
+              )
+            })}
+          </>
+        ))}
+      </div>
+    )
+  }
 
-      {FULL_SLOTS.map(slot => (
-        <div key={slot.key} className={styles.weekRow}>
-          <div className={`${styles.slotLabel} ${slot.clubOnly ? styles.slotClubOnly : ''}`}>
-            <span>{slot.label}</span>
-            <span className={styles.slotTime}>{slot.sublabel}</span>
-          </div>
-          {DAYS.map(d => {
-            const slotSessions = (fullSchedule[d.key] || []).filter(s => s.slot === slot.key)
-            const isClubOnly = slot.clubOnly
-            return (
-              <div key={d.key} className={`${styles.weekCell} ${isClubOnly ? styles.weekCellClubOnly : ''}`}>
-                {slotSessions.map(s => (
-                  <SessionChip key={s.id} session={s} onClick={handleSessionClick} />
-                ))}
-                {/* 非俱乐部专用时段且非私教时段才显示添加按钮 */}
-                {!isClubOnly && slot.key !== 'private' && (
-                  <EmptySlot day={d.key} slot={slot.key} onClick={(day, sl) => setAddTarget({ day, slot: sl })} />
-                )}
-                {/* 俱乐部专用时段（上午团课）显示添加按钮 */}
-                {isClubOnly && (
-                  <EmptySlot day={d.key} slot={slot.key} onClick={(day, sl) => setAddTarget({ day, slot: sl })} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ))}
-    </div>
-  )
-
-  // ── 日视图 ────────────────────────────────────────
-  const DayView = () => {
-    const sessions = fullSchedule[selectedDay] || []
+  // ── 日视图 ──────────────────────────────────────────
+  function DayView() {
     const grouped = {}
     FULL_SLOTS.forEach(s => { grouped[s.key] = [] })
-    sessions.forEach(s => { if (grouped[s.slot]) grouped[s.slot].push(s) })
+    ;(fullSchedule[selectedDay] || []).forEach(s => { if (grouped[s.slot]) grouped[s.slot].push(s) })
 
     return (
       <div className={styles.dayView}>
         <div className={styles.dayPicker}>
-          {DAYS.map(d => {
-            const hasSession = (fullSchedule[d.key] || []).length > 0
-            return (
-              <button
-                key={d.key}
-                className={`${styles.dayPickerBtn} ${selectedDay === d.key ? styles.dayPickerActive : ''}`}
-                onClick={() => setSelectedDay(d.key)}
-              >
-                <span className={styles.dayPickerShort}>{d.short}</span>
-                {hasSession && <span className={styles.dayPickerDot} />}
-              </button>
-            )
-          })}
+          {DAYS.map(d => (
+            <button key={d.key}
+              className={`${styles.dayPickerBtn} ${selectedDay===d.key?styles.dayPickerActive:''}`}
+              onClick={() => setSelectedDay(d.key)}
+            >
+              <span className={styles.dayPickerShort}>{d.short}</span>
+              {(fullSchedule[d.key]||[]).length > 0 && <span className={styles.dayPickerDot} />}
+            </button>
+          ))}
         </div>
-
         {FULL_SLOTS.map(slot => (
           <div key={slot.key} className={styles.daySlot}>
-            <div className={`${styles.daySlotLabel} ${slot.clubOnly ? styles.daySlotLabelClubOnly : ''}`}>
+            <div className={`${styles.daySlotLabel} ${slot.clubOnly?styles.daySlotClub:''}`}>
               {slot.label}
               <span className={styles.daySlotTime}>{slot.sublabel}</span>
-              {slot.clubOnly && <span className={styles.clubOnlyBadge}>俱乐部专用</span>}
+              {slot.clubOnly && <span className={styles.clubBadge}>俱乐部专用</span>}
             </div>
             <div className={styles.daySlotBody}>
-              {grouped[slot.key].map(s => (
-                <SessionChip key={s.id} session={s} onClick={handleSessionClick} />
-              ))}
+              {grouped[slot.key].map(s => <SessionChip key={s.id} session={s} onClick={handleClick} />)}
               {slot.key !== 'private' && (
-                <EmptySlot day={selectedDay} slot={slot.key} onClick={(day, sl) => setAddTarget({ day, slot: sl })} />
+                <EmptySlot day={selectedDay} slot={slot.key} onClick={(day,sl) => setAddTarget({day,slot:sl})} />
               )}
             </div>
           </div>
@@ -559,15 +473,14 @@ export default function SchedulePage() {
         <h1 className={styles.mobileTitle}>训练安排</h1>
         <span className={styles.mobileWeek}>第 1 周</span>
       </header>
-
       <div className={styles.inner}>
-        <WeekStats stats={stats} rentalInfo={rentalInfo} />
+        <WeekStats stats={stats} rentalIncome={rentalInfo.income} />
 
         <div className={styles.viewToggle}>
-          <button className={`${styles.viewBtn} ${view === 'day' ? styles.viewBtnActive : ''}`} onClick={() => setView('day')}>
+          <button className={`${styles.viewBtn} ${view==='day'?styles.viewBtnActive:''}`} onClick={() => setView('day')}>
             <i className="ti ti-calendar-day" /> 按天
           </button>
-          <button className={`${styles.viewBtn} ${view === 'week' ? styles.viewBtnActive : ''}`} onClick={() => setView('week')}>
+          <button className={`${styles.viewBtn} ${view==='week'?styles.viewBtnActive:''}`} onClick={() => setView('week')}>
             <i className="ti ti-calendar-week" /> 本周
           </button>
         </div>
@@ -575,45 +488,36 @@ export default function SchedulePage() {
         {players.some(p => p.fatigue >= 70) && (
           <div className={styles.warnBanner}>
             <i className="ti ti-flame" />
-            <span>{players.filter(p => p.fatigue >= 70).map(p => p.name).join('、')} 疲劳度偏高，建议安排休息</span>
+            <span>{players.filter(p=>p.fatigue>=70).map(p=>p.name).join('、')} 疲劳度偏高，建议安排休息</span>
           </div>
         )}
 
-        {/* 外租收入预览 */}
         <div className={styles.rentalBanner}>
           <i className="ti ti-home" />
-          <span>
-            本周场地外租预估收入 <strong>¥{rentalInfo.income.toLocaleString()}</strong>
-            （出租率 {rentalInfo.rentRate}% · {rentRateLabel(rentalInfo.rentRate)}）
-          </span>
+          <span>本周场地外租预估收入 <strong>¥{rentalInfo.income.toLocaleString()}</strong>（出租率 {rentalInfo.rentRate}% · {rentRateLabel(rentalInfo.rentRate)}）</span>
         </div>
 
         <div className={styles.legend}>
-          <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#9a6e0a' }} />私教（系统）</span>
-          {courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private').map(c => (
+          <span className={styles.legendItem}><span className={styles.legendDot} style={{background:'#9a6e0a'}} />私教（系统）</span>
+          {courseTypes.filter(c=>c.id!=='rest'&&c.id!=='private').map(c => (
             <span key={c.id} className={styles.legendItem}>
-              <span className={styles.legendDot} style={{ background: c.color }} />{c.label}
+              <span className={styles.legendDot} style={{background:c.color}} />{c.label}
             </span>
           ))}
         </div>
 
         <div className={styles.calendarWrap}>
           <div className={styles.desktopOnly}><WeekView /></div>
-          <div className={styles.mobileOnly}>{view === 'week' ? <WeekView /> : <DayView />}</div>
+          <div className={styles.mobileOnly}>{view==='week'?<WeekView />:<DayView />}</div>
         </div>
       </div>
 
-      {sessionDetail && (
-        <SessionDetail session={sessionDetail} onClose={() => setSessionDetail(null)} onDelete={handleDeleteSession} />
-      )}
-      {privateDetail && (
-        <PrivateDetailModal session={privateDetail} onClose={() => setPrivateDetail(null)} />
-      )}
+      {sessionDetail && <SessionDetail session={sessionDetail} onClose={()=>setSessionDetail(null)} onDelete={handleDelete} />}
+      {privateDetail && <PrivateDetailModal session={privateDetail} onClose={()=>setPrivateDetail(null)} />}
       {addTarget && (
-        <AddSessionModal
-          day={addTarget.day} slot={addTarget.slot}
-          onClose={() => setAddTarget(null)}
-          onAdd={(data) => handleAddSession(addTarget.day, addTarget.slot, data)}
+        <AddSessionModal day={addTarget.day} slot={addTarget.slot}
+          onClose={()=>setAddTarget(null)}
+          onAdd={(data)=>handleAdd(addTarget.day,addTarget.slot,data)}
         />
       )}
     </div>
