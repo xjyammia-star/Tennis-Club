@@ -1,16 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
-import { gameState, navItems, menuItems, formatCash, clubStats } from '../data/mockData'
+import { gameState } from '../data/mockData'
 
 const allNavItems = [
-  { id: 'home',      label: '主页总览',  icon: 'ti-home',             path: '/'          },
-  { id: 'players',   label: '球员管理',  icon: 'ti-users',            path: '/players'   },
-  { id: 'coaches',   label: '教练团队',  icon: 'ti-user-star',        path: '/coaches'   },
-  { id: 'recruit',   label: '招募市场',  icon: 'ti-user-plus',        path: '/recruit'   },
-  { id: 'schedule',  label: '训练安排',  icon: 'ti-calendar-week',    path: '/schedule'  },
-  { id: 'facilities',label: '俱乐部设施',icon: 'ti-building',         path: '/facilities'},
-  { id: 'events',    label: '赛事管理',  icon: 'ti-trophy',           path: '/events'    },
-  { id: 'finance',   label: '财务收支',  icon: 'ti-chart-bar',        path: '/finance'   },
-  { id: 'settings',  label: '设置',      icon: 'ti-settings',         path: '/settings'  },
+  { id: 'home',          label: '主页总览',   icon: 'ti-home',          path: '/home'          },
+  { id: 'players',       label: '球员管理',   icon: 'ti-users',         path: '/players'       },
+  { id: 'coaches',       label: '教练团队',   icon: 'ti-user-star',     path: '/coaches'       },
+  { id: 'recruit',       label: '招募市场',   icon: 'ti-user-plus',     path: '/recruit'       },
+  { id: 'schedule',      label: '训练安排',   icon: 'ti-calendar-week', path: '/schedule'      },
+  { id: 'facilities',    label: '俱乐部设施', icon: 'ti-building',      path: '/facilities'    },
+  { id: 'events',        label: '赛事管理',   icon: 'ti-trophy',        path: '/events'        },
+  { id: 'finance',       label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'       },
+  { id: 'club-settings', label: '俱乐部经营', icon: 'ti-adjustments',   path: '/club-settings' },
+  { id: 'settings',      label: '设置',       icon: 'ti-settings',      path: '/settings'      },
 ]
 
 export default function Sidebar() {
