@@ -119,7 +119,7 @@ function EmptySlot({ day, slot, onClick }) {
 }
 
 // ── 团课详情弹窗 ──────────────────────────────────────
-function SessionDetail({ session, onClose, onDelete }) {
+function SessionDetail({ session, onClose, onDelete, players }) {
   const ct = getCourseType(session.type)
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -188,7 +188,7 @@ function SessionDetail({ session, onClose, onDelete }) {
 }
 
 // ── 添加课程弹窗 ──────────────────────────────────────
-function AddSessionModal({ day, slot, onClose, onAdd }) {
+function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
   const [type, setType]       = useState('court_group')
   const [coachId, setCoachId] = useState(coaches[0]?.id)
   const [hours, setHours]     = useState(2)
@@ -517,12 +517,13 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {sessionDetail && <SessionDetail session={sessionDetail} onClose={()=>setSessionDetail(null)} onDelete={handleDelete} />}
+      {sessionDetail && <SessionDetail session={sessionDetail} onClose={()=>setSessionDetail(null)} onDelete={handleDelete} players={players} />}
       {privateDetail && <PrivateDetailModal session={privateDetail} onClose={()=>setPrivateDetail(null)} />}
       {addTarget && (
         <AddSessionModal day={addTarget.day} slot={addTarget.slot}
           onClose={()=>setAddTarget(null)}
           onAdd={(data)=>handleAdd(addTarget.day,addTarget.slot,data)}
+          players={players} coaches={coaches}
         />
       )}
     </div>
