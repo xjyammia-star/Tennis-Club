@@ -19,6 +19,12 @@ export default function Sidebar() {
   const { advanceWeek } = useGame()
   const gameState = useGameState()
 
+  function handleNextWeek() {
+    console.log('点击下一周，当前周:', gameState.week)
+    advanceWeek()
+    console.log('advanceWeek 已调用')
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
@@ -44,7 +50,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="sidebar-next-week-btn" onClick={advanceWeek}>
+        <button className="sidebar-next-week-btn" onClick={handleNextWeek}>
           <i className="ti ti-arrow-right" aria-hidden="true" />
           进入下一周
         </button>
