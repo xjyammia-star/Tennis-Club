@@ -18,8 +18,7 @@ import {
   upcomingEvents as initUpcoming,
 } from '../data/mockData'
 
-// ── 模块级状态 ────────────────────────────────────────
-let _state = {
+const INITIAL = {
   gameState:        { ...initGameState },
   clubStats:        { ...initClubStats },
   players:          [...initPlayers],
@@ -38,96 +37,65 @@ let _state = {
   upcomingEvents:   [...initUpcoming],
 }
 
-// 订阅者列表：每个元素是一个 React setState 函数
-const _setters = new Set()
+// 用 EventTarget 做事件总线，最原生的浏览器机制
+const bus = new EventTarget()
+let _state = { ...INITIAL }
+
+function _emit() {
+  bus.dispatchEvent(new CustomEvent('change', { detail: _state }))
+}
 
 function _update(updater) {
   _state = typeof updater === 'function' ? updater(_state) : { ..._state, ...updater }
-  // 通知所有订阅的组件重新渲染，传入新的 state 引用
-  _setters.forEach(set => set(_state))
+  _emit()
 }
 
-// ── Hook：订阅全局 state ──────────────────────────────
-export function useStore() {
-  const [localState, setLocalState] = useState(_state)
-
-  useEffect(() => {
-    // 组件挂载时：同步最新状态（防止挂载前有更新），并注册订阅
-    setLocalState(_state)
-    _setters.add(setLocalState)
-    return () => {
-      // 组件卸载时：取消订阅
-      _setters.delete(setLocalState)
-    }
-  }, []) // 空依赖，只在挂载/卸载时执行
-
-  return localState
-}
-
-// ── Actions ───────────────────────────────────────────
 export const gameActions = {
   advanceWeek() {
     _update(s => {
       const gs = s.gameState
-      let newWeek = gs.week + 1
-      let newYear = gs.year
-      if (newWeek > 52) { newWeek = 1; newYear++ }
-      return { ...s, gameState: { ...gs, week: newWeek, year: newYear } }
+      let w = gs.week + 1, y = gs.year
+      if (w > 52) { w = 1; y++ }
+      return { ...s, gameState: { ...gs, week: w, year: y } }
     })
   },
-  updatePlayer(player) {
-    _update(s => ({ ...s, players: s.players.map(p => p.id === player.id ? { ...p, ...player } : p) }))
-  },
-  addPlayer(player) {
-    _update(s => ({ ...s, players: [...s.players, player], clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount + 1 } }))
-  },
-  removePlayer(player) {
-    _update(s => ({ ...s, players: s.players.filter(p => p.id !== player.id), clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount - 1 } }))
-  },
-  updateCoach(coach) {
-    _update(s => ({ ...s, coaches: s.coaches.map(c => c.id === coach.id ? { ...c, ...coach } : c) }))
-  },
-  addCoach(coach) {
-    _update(s => ({ ...s, coaches: [...s.coaches, coach], clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount + 1 } }))
-  },
-  removeCoach(coach) {
-    _update(s => ({ ...s, coaches: s.coaches.filter(c => c.id !== coach.id), clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount - 1 } }))
-  },
-  addSession(day, session) {
-    _update(s => ({ ...s, schedule: { ...s.schedule, [day]: [...(s.schedule[day] || []), session] } }))
-  },
-  removeSession(sessionId) {
+  updatePlayer(p)    { _update(s => ({ ...s, players: s.players.map(x => x.id === p.id ? { ...x, ...p } : x) })) },
+  addPlayer(p)       { _update(s => ({ ...s, players: [...s.players, p], clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount + 1 } })) },
+  removePlayer(p)    { _update(s => ({ ...s, players: s.players.filter(x => x.id !== p.id), clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount - 1 } })) },
+  updateCoach(c)     { _update(s => ({ ...s, coaches: s.coaches.map(x => x.id === c.id ? { ...x, ...c } : x) })) },
+  addCoach(c)        { _update(s => ({ ...s, coaches: [...s.coaches, c], clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount + 1 } })) },
+  removeCoach(c)     { _update(s => ({ ...s, coaches: s.coaches.filter(x => x.id !== c.id), clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount - 1 } })) },
+  addSession(day, session) { _update(s => ({ ...s, schedule: { ...s.schedule, [day]: [...(s.schedule[day] || []), session] } })) },
+  removeSession(id)  {
     _update(s => {
-      const newSched = {}
-      Object.keys(s.schedule).forEach(d => {
-        newSched[d] = (s.schedule[d] || []).filter(ss => ss.id !== sessionId)
-      })
-      return { ...s, schedule: newSched }
+      const ns = {}
+      Object.keys(s.schedule).forEach(d => { ns[d] = (s.schedule[d] || []).filter(x => x.id !== id) })
+      return { ...s, schedule: ns }
     })
   },
-  updateFacility(facility) {
-    _update(s => ({ ...s, facilities: s.facilities.map(f => f.id === facility.id ? { ...f, ...facility } : f) }))
-  },
-  addFacility(facility) {
-    _update(s => ({ ...s, facilities: [...s.facilities, facility] }))
-  },
-  enterEvent(entry)      { _update(s => ({ ...s, myEntries: [...s.myEntries, entry] })) },
-  withdrawEvent(entry)   { _update(s => ({ ...s, myEntries: s.myEntries.filter(e => e.eventId !== entry.eventId) })) },
-  addTransaction(tx) {
-    _update(s => ({
-      ...s,
-      transactions: [...s.transactions, tx],
-      finance: { ...s.finance, cash: s.finance.cash + (tx.type === 'income' ? tx.amount : -tx.amount) },
-    }))
-  },
-  updateFinance(data)   { _update(s => ({ ...s, finance:    { ...s.finance,    ...data } })) },
-  updateGameState(data) { _update(s => ({ ...s, gameState:  { ...s.gameState,  ...data } })) },
-  updateClubStats(data) { _update(s => ({ ...s, clubStats:  { ...s.clubStats,  ...data } })) },
-  addNews(news)         { _update(s => ({ ...s, recentNews: [news, ...s.recentNews].slice(0, 10) })) },
-  loadSave(saveData)    { _update(saveData) },
+  updateFacility(f)  { _update(s => ({ ...s, facilities: s.facilities.map(x => x.id === f.id ? { ...x, ...f } : x) })) },
+  addFacility(f)     { _update(s => ({ ...s, facilities: [...s.facilities, f] })) },
+  enterEvent(e)      { _update(s => ({ ...s, myEntries: [...s.myEntries, e] })) },
+  withdrawEvent(e)   { _update(s => ({ ...s, myEntries: s.myEntries.filter(x => x.eventId !== e.eventId) })) },
+  addTransaction(tx) { _update(s => ({ ...s, transactions: [...s.transactions, tx], finance: { ...s.finance, cash: s.finance.cash + (tx.type === 'income' ? tx.amount : -tx.amount) } })) },
+  updateFinance(d)   { _update(s => ({ ...s, finance: { ...s.finance, ...d } })) },
+  updateGameState(d) { _update(s => ({ ...s, gameState: { ...s.gameState, ...d } })) },
+  updateClubStats(d) { _update(s => ({ ...s, clubStats: { ...s.clubStats, ...d } })) },
+  addNews(n)         { _update(s => ({ ...s, recentNews: [n, ...s.recentNews].slice(0, 10) })) },
+  loadSave(d)        { _update(d) },
 }
 
-// ── 便捷 hooks（从 useStore 解构）────────────────────
+// Hook：监听 EventTarget 上的 change 事件
+export function useStore() {
+  const [s, setS] = useState(_state)
+  useEffect(() => {
+    function handler(e) { setS(e.detail) }
+    bus.addEventListener('change', handler)
+    return () => bus.removeEventListener('change', handler)
+  }, [])
+  return s
+}
+
 export function useGameState()  { return useStore().gameState  }
 export function useClubStats()  { return useStore().clubStats  }
 export function usePlayers()    { return useStore().players    }
