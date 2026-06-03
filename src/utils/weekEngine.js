@@ -6,15 +6,18 @@
 import { getClubSettings } from './clubSettings'
 import { calcCourtRentalIncome } from './courtRental'
 import { generatePrivateLessons } from './privateLesson'
+import { SKILL_DEFS, SKILL_NAMES, getSelfLearnChance, canCoachTeach } from '../data/skillDefs'
+import { simulateTournament, applyMatchExp } from './matchEngine'
 
 // ── 随机事件库 ────────────────────────────────────────
 const RANDOM_EVENTS = [
   { type: 'skill', weight: 3, gen: (players) => {
+    // 随机事件版技能领悟：不检查属性，纯随机
     const p = players[Math.floor(Math.random() * players.length)]
-    const skills = ['上旋月亮','大力奇迹','侧旋发球','底线无敌','极限救球','网前幽灵']
-    const skill = skills[Math.floor(Math.random() * skills.length)]
-    if (p.skills.includes(skill)) return null
-    return { playerIds: [p.id], skill, text: `${p.name}在训练中领悟了「${skill}」技能，天赋潜力令人期待。` }
+    const available = SKILL_NAMES.filter(s => !p.skills?.includes(s))
+    if (!available.length) return null
+    const skill = available[Math.floor(Math.random() * available.length)]
+    return { playerIds: [p.id], skill, text: `${p.name}在训练中突然领悟了「${skill}」技能，令人惊喜！` }
   }},
   { type: 'finance', weight: 4, gen: () => {
     const bonus = Math.floor(Math.random() * 5000 + 1000)
@@ -58,6 +61,25 @@ function getFatiguePerHour(age) {
 
 const DAILY_FATIGUE_RECOVERY = 50
 
+// ── 抗伤病属性：根据年龄获取伤病概率 ────────────────
+// 伤病概率 = (100 - injuryResist) / 10，最低1%
+// 年龄加成：8-11岁下限80，12-14下限70，15-18下限60，18+下限30
+// 30岁以后每年减4-7
+function getInjuryResistFloor(age) {
+  if (age <= 11) return 80
+  if (age <= 14) return 70
+  if (age <= 18) return 60
+  if (age <= 30) return 30
+  return Math.max(5, 30 - (age - 30) * 5)
+}
+
+function calcInjuryChance(player) {
+  const base = player.injuryResist ?? 50
+  const floor = getInjuryResistFloor(player.age)
+  const effective = Math.max(floor, base)
+  return Math.max(0.01, (100 - effective) / 100)
+}
+
 // ── 按天模拟疲劳（7天滚动）────────────────────────────
 function simulateFatigueByDay(startFatigue, age, schedule) {
   const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
@@ -80,42 +102,26 @@ function simulateFatigueByDay(startFatigue, age, schedule) {
 }
 
 // ── 设施效果系数 ──────────────────────────────────────
-// 根据设施级别返回训练效果倍率（普通=1.0，高级=1.1，顶级=1.2，糟糕=0.8）
 const FACILITY_EFFECT_MULT = { 糟糕: 0.8, 普通: 1.0, 高级: 1.1, 顶级: 1.2 }
 
-// 获取当前设施的训练效果系数
-// techMult: 球场级别影响技术经验
-// physMult: 健身房级别影响身体经验
-// mentalMult: 会议室级别影响精神经验
 function getFacilityMultipliers(facilities) {
-  // 取所有球场的平均级别效果
   const courts = facilities.filter(f =>
     ['hard_court','clay_court','grass_court'].includes(f.type)
   )
   const techMult = courts.length > 0
     ? courts.reduce((sum, f) => sum + (FACILITY_EFFECT_MULT[f.level] || 1.0), 0) / courts.length
     : 1.0
-
-  // 健身房
   const gym = facilities.find(f => f.type === 'gym')
-  const physMult = gym ? (FACILITY_EFFECT_MULT[gym.level] || 1.0) : 0.8 // 没有健身房打8折
-
-  // 会议室
+  const physMult = gym ? (FACILITY_EFFECT_MULT[gym.level] || 1.0) : 0.8
   const meeting = facilities.find(f => f.type === 'meeting')
-  const mentalMult = meeting ? (FACILITY_EFFECT_MULT[meeting.level] || 1.0) : 0.8 // 没有会议室打8折
-
+  const mentalMult = meeting ? (FACILITY_EFFECT_MULT[meeting.level] || 1.0) : 0.8
   return { techMult, physMult, mentalMult }
 }
 
 // ── 经验获取规则 ──────────────────────────────────────
 const COURSE_EXP_PER_HOUR = {
-  court_group:   10,
-  fitness_group: 10,
-  tactics:       10,
-  private:       20,
-  rest:          0,
+  court_group: 10, fitness_group: 10, tactics: 10, private: 20, rest: 0,
 }
-
 const COURSE_ATTR_DIST = {
   court_group:   { tech: 2/3, phys: 1/3, mental: 0 },
   fitness_group: { tech: 0,   phys: 1,   mental: 0 },
@@ -130,15 +136,13 @@ const TECH_ATTRS   = ['serve','forehand','backhand','returnServe','volley','foot
 const PHYS_ATTRS   = ['strength','stamina','agility']
 const MENTAL_ATTRS = ['pressure','willpower','focus']
 
-// ── 属性升级阈值 ──────────────────────────────────────
-function getExpThreshold(currentValue) {
-  if (currentValue < 50) return 200
-  if (currentValue < 70) return 400
-  if (currentValue < 90) return 700
+function getExpThreshold(v) {
+  if (v < 50) return 200
+  if (v < 70) return 400
+  if (v < 90) return 700
   return 1000
 }
 
-// ── 年龄对经验的影响系数 ──────────────────────────────
 function getAgeMultiplier(age, attrType) {
   if (attrType === 'tech') return 1.0
   if (attrType === 'phys') {
@@ -154,10 +158,8 @@ function getAgeMultiplier(age, attrType) {
   return 1.0
 }
 
-// ── 计算单个球员本周训练经验（含设施系数）──────────────
 function calcPlayerExp(playerId, schedule, coaches, facilityMults) {
   let techExp = 0, physExp = 0, mentalExp = 0
-
   Object.values(schedule).forEach(sessions => {
     sessions.forEach(s => {
       if (!s.playerIds?.includes(playerId)) return
@@ -169,62 +171,196 @@ function calcPlayerExp(playerId, schedule, coaches, facilityMults) {
       const coachBonus = 1 + bonusNum / 100
       const totalExp = expPerHour * hours * coachBonus
       const dist = COURSE_ATTR_DIST[s.type] || { tech: 0.5, phys: 0.5, mental: 0 }
-
-      // 乘以对应设施系数
       techExp   += totalExp * dist.tech   * facilityMults.techMult
       physExp   += totalExp * dist.phys   * facilityMults.physMult
       mentalExp += totalExp * dist.mental * facilityMults.mentalMult
     })
   })
-
   return { techExp, physExp, mentalExp }
 }
 
-// ── 经验写入池 + 判断升级 ────────────────────────────
 function applyExpToPool(player, techExp, physExp, mentalExp) {
   const pool = { ...(player.expPool || {}) }
   const talentMult = 0.5 + (player.talent / 100) * 1.0
   const updatedAttrs = {}
   const newPool = { ...pool }
 
-  if (techExp > 0) {
-    const actualExp = techExp * talentMult * getAgeMultiplier(player.age, 'tech')
-    const targetAttr = TECH_ATTRS[Math.floor(Math.random() * TECH_ATTRS.length)]
-    newPool[targetAttr] = (newPool[targetAttr] || 0) + actualExp
-    const currentVal = player[targetAttr] || 0
-    if (newPool[targetAttr] >= getExpThreshold(currentVal)) {
-      newPool[targetAttr] -= getExpThreshold(currentVal)
-      updatedAttrs[targetAttr] = Math.min(99, currentVal + 1)
+  const applyOne = (exp, attrList, attrType) => {
+    if (exp <= 0) return
+    const actualExp = exp * talentMult * getAgeMultiplier(player.age, attrType)
+    const attr = attrList[Math.floor(Math.random() * attrList.length)]
+    newPool[attr] = (newPool[attr] || 0) + actualExp
+    const cur = player[attr] || 0
+    if (newPool[attr] >= getExpThreshold(cur)) {
+      newPool[attr] -= getExpThreshold(cur)
+      updatedAttrs[attr] = Math.min(99, cur + 1)
     }
   }
 
-  if (physExp > 0) {
-    const actualExp = physExp * talentMult * getAgeMultiplier(player.age, 'phys')
-    const targetAttr = PHYS_ATTRS[Math.floor(Math.random() * PHYS_ATTRS.length)]
-    newPool[targetAttr] = (newPool[targetAttr] || 0) + actualExp
-    const currentVal = player[targetAttr] || 0
-    if (newPool[targetAttr] >= getExpThreshold(currentVal)) {
-      newPool[targetAttr] -= getExpThreshold(currentVal)
-      updatedAttrs[targetAttr] = Math.min(99, currentVal + 1)
-    }
-  }
-
-  if (mentalExp > 0) {
-    const actualExp = mentalExp * talentMult * getAgeMultiplier(player.age, 'mental')
-    const targetAttr = MENTAL_ATTRS[Math.floor(Math.random() * MENTAL_ATTRS.length)]
-    newPool[targetAttr] = (newPool[targetAttr] || 0) + actualExp
-    const currentVal = player[targetAttr] || 0
-    if (newPool[targetAttr] >= getExpThreshold(currentVal)) {
-      newPool[targetAttr] -= getExpThreshold(currentVal)
-      updatedAttrs[targetAttr] = Math.min(99, currentVal + 1)
-    }
-  }
+  applyOne(techExp,   TECH_ATTRS,   'tech')
+  applyOne(physExp,   PHYS_ATTRS,   'phys')
+  applyOne(mentalExp, MENTAL_ATTRS, 'mental')
 
   return { updatedAttrs, newPool }
 }
 
+// ── 技能自主领悟（每周检测）──────────────────────────
+// 检查所有球员是否触发自主领悟
+function checkSelfLearnSkills(players, coaches, newWeek) {
+  const skillNews = []
+  const playerUpdates = {}  // { playerId: { skills: [...] } }
+
+  players.forEach(player => {
+    SKILL_NAMES.forEach(skillName => {
+      const chance = getSelfLearnChance(player, skillName)
+      if (chance <= 0) return
+      if (Math.random() < chance) {
+        // 领悟成功
+        if (!playerUpdates[player.id]) {
+          playerUpdates[player.id] = { skills: [...(player.skills || [])] }
+        }
+        if (!playerUpdates[player.id].skills.includes(skillName)) {
+          playerUpdates[player.id].skills.push(skillName)
+          skillNews.push({
+            id: Date.now() + Math.random(),
+            type: 'skill',
+            text: `${player.name}通过刻苦训练自主领悟了「${skillName}」技能！`,
+            week: newWeek,
+          })
+        }
+      }
+    })
+
+    // 教练传授：检查是否有教练拥有对应技能且球员满足条件
+    // （教练技能传授需要教练自己也有该技能，目前教练无技能字段，预留逻辑）
+    // TODO: 当教练数据中加入 skills 字段后启用
+  })
+
+  return { skillNews, playerUpdates }
+}
+
+// ── 比赛触发：检测本周是否有赛事开赛 ────────────────
+// 赛事第一周（event.week === currentWeek）：标记参赛球员，跳过训练
+// 赛事第二周（event.week + 1 === currentWeek）：结算比赛结果
+async function processMatchEvents(state, newWeek, currentPlayers) {
+  const { myEntries, allEvents, gameState } = state
+  const matchNews = []
+  const matchTransactions = []
+  let playerPointsUpdates = {}  // { playerId: { points: +N, ranking: N } }
+  let updatedPlayers = [...currentPlayers]
+
+  // 获取本周开赛的赛事（第一周）
+  const startingEvents = allEvents.filter(ev => ev.week === newWeek)
+  // 获取本周结束的赛事（第二周，即 ev.week + 1 === newWeek）
+  const endingEvents = allEvents.filter(ev => ev.week + 1 === newWeek)
+
+  // ── 第一周：标记参赛球员为「比赛中」状态 ────────────
+  startingEvents.forEach(event => {
+    const entry = myEntries.find(e => e.eventId === event.id)
+    if (!entry) return
+
+    entry.playerIds.forEach(pid => {
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== pid) return p
+        return { ...p, inMatch: true, matchEventId: event.id }
+      })
+    })
+
+    matchNews.push({
+      id: Date.now() + Math.random(),
+      type: 'event',
+      text: `【${event.name}】本周开赛，${entry.playerIds.length}名球员参赛，期待好成绩！`,
+      week: newWeek,
+    })
+  })
+
+  // ── 第二周：结算比赛结果 ──────────────────────────
+  for (const event of endingEvents) {
+    const entry = myEntries.find(e => e.eventId === event.id)
+    if (!entry) continue
+
+    // 从 API 拉取世界球员（对手池）
+    let worldPlayers = []
+    try {
+      // 取第一个参赛球员的性别作为对手筛选依据
+      const firstPlayer = updatedPlayers.find(p => entry.playerIds.includes(p.id))
+      const gender = firstPlayer?.gender || 'male'
+      const res = await fetch(`/api/worldplayers?level=${event.level}&gender=${gender}`)
+      const data = await res.json()
+      worldPlayers = data.players || []
+    } catch (err) {
+      console.warn('获取世界球员失败，使用虚拟对手:', err)
+    }
+
+    // 筛选本次参赛球员
+    const participatingPlayers = updatedPlayers.filter(p => entry.playerIds.includes(p.id))
+
+    // 模拟比赛
+    const results = simulateTournament(participatingPlayers, event, worldPlayers)
+
+    // 处理每名球员的比赛结果
+    let totalPrize = 0
+    const resultSummaries = []
+
+    results.forEach(result => {
+      totalPrize += result.prize
+
+      // 更新球员积分
+      const player = updatedPlayers.find(p => p.id === result.playerId)
+      if (player) {
+        const newPoints = (player.points || 0) + result.points
+        // 更新经验池（比赛获得经验）
+        const { updatedAttrs, newPool } = applyMatchExp(player, result.expGained)
+        updatedPlayers = updatedPlayers.map(p => {
+          if (p.id !== result.playerId) return p
+          return {
+            ...p,
+            ...updatedAttrs,
+            expPool: newPool,
+            points: newPoints,
+            inMatch: false,
+            matchEventId: null,
+          }
+        })
+      }
+
+      resultSummaries.push(`${result.playerName} ${result.finalRoundLabel}`)
+    })
+
+    // 财务结算
+    if (totalPrize > 0) {
+      matchTransactions.push({
+        id: `tx_match_${event.id}_${newWeek}`,
+        type: 'income',
+        category: 'prize',
+        label: `${event.name}奖金`,
+        amount: totalPrize,
+      })
+    }
+
+    // 生成比赛结果新闻
+    matchNews.push({
+      id: Date.now() + Math.random(),
+      type: 'event',
+      text: `【${event.name}】结果出炉：${resultSummaries.join('，')}。总奖金 ¥${totalPrize.toLocaleString()}。`,
+      week: newWeek,
+      matchResults: results,  // 存完整结果供 EventsPage 展示
+    })
+
+    // 恢复第二周比赛中的球员为正常状态
+    entry.playerIds.forEach(pid => {
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== pid) return p
+        return { ...p, inMatch: false, matchEventId: null }
+      })
+    })
+  }
+
+  return { updatedPlayers, matchNews, matchTransactions }
+}
+
 // ── 主函数 ────────────────────────────────────────────
-export function advanceWeekEngine(state) {
+export async function advanceWeekEngine(state) {
   const settings = getClubSettings()
   const { gameState, clubStats, players, coaches, facilities, schedule, finance } = state
 
@@ -249,44 +385,66 @@ export function advanceWeekEngine(state) {
     fullSchedule[day] = [...group, ...priv]
   })
 
-  // 3. 读取设施效果系数（新增）
   const facilityMults = getFacilityMultipliers(facilities || [])
 
+  // 3. 处理比赛事件（先跑，得到参赛状态和结算结果）
+  const {
+    updatedPlayers: playersAfterMatch,
+    matchNews,
+    matchTransactions,
+  } = await processMatchEvents(state, newWeek, players)
+
   // 4. 计算每个球员的疲劳、经验、属性、伤病
-  const updatedPlayers = players.map(player => {
+  // 参赛球员（inMatch=true）本周不参与训练计算
+  const updatedPlayers = playersAfterMatch.map(player => {
+    // 重伤球员
     if (player.health === 'major') {
       return { ...player, fatigue: Math.max(0, Math.round(player.fatigue - DAILY_FATIGUE_RECOVERY * 7)) }
+    }
+
+    // 本周正在参赛的球员：不训练（第一周开赛时标记为 inMatch）
+    // 注意：第二周结算后 inMatch 已清除，不影响下周
+    if (player.inMatch) {
+      // 比赛周疲劳：小幅增加（比赛消耗），但无训练恢复
+      const matchFatigue = Math.min(100, player.fatigue + 15)
+      return { ...player, fatigue: matchFatigue }
     }
 
     const newFatigue = simulateFatigueByDay(player.fatigue, player.age, fullSchedule)
     const { techExp, physExp, mentalExp } = calcPlayerExp(player.id, fullSchedule, coaches, facilityMults)
     const { updatedAttrs, newPool } = applyExpToPool(player, techExp, physExp, mentalExp)
 
+    // 伤病逻辑（使用 injuryResist）
     let newHealth = player.health
     if (player.health === 'minor' && Math.random() < 0.4) newHealth = 'healthy'
-    if (newHealth === 'healthy' && newFatigue >= 85 && Math.random() < 0.2) newHealth = 'minor'
+    if (newHealth === 'healthy' && newFatigue >= 85) {
+      const injuryChance = calcInjuryChance(player)
+      if (Math.random() < injuryChance) newHealth = 'minor'
+    }
 
     return { ...player, ...updatedAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth }
   })
 
-  // 5. 教练合同处理（新增：到期自动离队 + 新闻提醒）
+  // 5. 技能自主领悟检测
+  const { skillNews, playerUpdates } = checkSelfLearnSkills(updatedPlayers, coaches, newWeek)
+  const updatedPlayersWithSkills = updatedPlayers.map(p => {
+    if (!playerUpdates[p.id]) return p
+    return { ...p, skills: playerUpdates[p.id].skills }
+  })
+
+  // 6. 教练合同处理
   let contractNews = []
   const updatedCoaches = []
-
   coaches.forEach(c => {
     const newWeeksLeft = Math.max(0, c.contractWeeksLeft - 1)
-
     if (newWeeksLeft === 0) {
-      // 合同到期：教练自动离队，生成新闻
       contractNews.push({
         id: Date.now() + Math.random(),
         type: 'coach',
         text: `教练${c.name}的合同已到期，已自动离队。`,
         week: newWeek,
       })
-      // 不 push 到 updatedCoaches，相当于移除
     } else {
-      // 合同剩余8周时发出警告新闻
       if (newWeeksLeft === 8) {
         contractNews.push({
           id: Date.now() + Math.random(),
@@ -299,10 +457,7 @@ export function advanceWeekEngine(state) {
     }
   })
 
-  // 同步更新 clubStats 的 coachCount
-  const newCoachCount = updatedCoaches.length
-
-  // 6. 财务结算
+  // 7. 财务结算
   const weekPrivateCounts = {}
   DAYS_KEYS.forEach(day => {
     weekPrivateCounts[day] = (privateLessons[day] || []).reduce(
@@ -344,10 +499,11 @@ export function advanceWeekEngine(state) {
   })
 
   const coachSalary = updatedCoaches.reduce((sum, c) => sum + c.weeklySalary, 0)
-  const insurance   = (updatedPlayers.length + updatedCoaches.length) * 200
-  const subsidy     = updatedPlayers.filter(p => p.isSponsored).length * 500
+  const insurance   = (updatedPlayersWithSkills.length + updatedCoaches.length) * 200
+  const subsidy     = updatedPlayersWithSkills.filter(p => p.isSponsored).length * 500
+  const prizeIncome = matchTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
 
-  const weekIncome  = rentalInfo.income + privateIncome + groupIncome
+  const weekIncome  = rentalInfo.income + privateIncome + groupIncome + prizeIncome
   const weekExpense = coachSalary + insurance + subsidy
   const newCash     = finance.cash + weekIncome - weekExpense
 
@@ -358,20 +514,43 @@ export function advanceWeekEngine(state) {
     { id: `tx_${newWeek}_4`, type: 'expense', category: 'coach_salary', label: '教练薪资',     amount: coachSalary       },
     { id: `tx_${newWeek}_5`, type: 'expense', category: 'insurance',    label: '球员保险',     amount: insurance         },
     { id: `tx_${newWeek}_6`, type: 'expense', category: 'subsidy',      label: '赞助球员补助', amount: subsidy           },
+    ...matchTransactions,
   ].filter(t => t.amount > 0)
 
-  // 7. 随机事件
+  // 8. 随机事件
   let newRecentNews = state.recentNews || []
-
-  // 先加合同相关新闻
-  newRecentNews = [...contractNews, ...newRecentNews].slice(0, 10)
+  newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...newRecentNews].slice(0, 15)
 
   if (Math.random() < 0.3) {
-    const ev = randomEvent(updatedPlayers)
+    const ev = randomEvent(updatedPlayersWithSkills)
     if (ev) {
-      newRecentNews = [{ id: Date.now(), type: ev.type, text: ev.text, week: newWeek }, ...newRecentNews].slice(0, 10)
+      // 随机事件技能领悟：真正修改球员 skills
+      let finalPlayers = updatedPlayersWithSkills
+      if (ev.type === 'skill' && ev.skill && ev.playerIds?.length) {
+        finalPlayers = updatedPlayersWithSkills.map(p => {
+          if (!ev.playerIds.includes(p.id)) return p
+          if (p.skills?.includes(ev.skill)) return p
+          return { ...p, skills: [...(p.skills || []), ev.skill] }
+        })
+      }
+      newRecentNews = [{ id: Date.now(), type: ev.type, text: ev.text, week: newWeek }, ...newRecentNews].slice(0, 15)
       if (ev.type === 'finance' && ev.amount) {
         newTx.push({ id: `tx_${newWeek}_bonus`, type: 'income', category: 'other', label: '随机事件收入', amount: ev.amount })
+      }
+      // 更新最终球员列表
+      if (ev.type === 'skill') {
+        const totalIncomeTmp  = newTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+        const totalExpenseTmp = newTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+        return {
+          ...state,
+          gameState: { ...gameState, week: newWeek, year: newYear, cash: newCash, prestigeChange: Math.floor(Math.random() * 10 - 3) },
+          clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
+          players:  finalPlayers,
+          coaches:  updatedCoaches,
+          finance: { ...finance, cash: newCash, weekIncome: totalIncomeTmp, weekExpense: totalExpenseTmp, weekNet: totalIncomeTmp - totalExpenseTmp },
+          transactions: newTx,
+          recentNews: newRecentNews,
+        }
       }
     }
   }
@@ -382,8 +561,8 @@ export function advanceWeekEngine(state) {
   return {
     ...state,
     gameState: { ...gameState, week: newWeek, year: newYear, cash: newCash, prestigeChange: Math.floor(Math.random() * 10 - 3) },
-    clubStats: { ...state.clubStats, coachCount: newCoachCount },
-    players:  updatedPlayers,
+    clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
+    players:  updatedPlayersWithSkills,
     coaches:  updatedCoaches,
     finance: { ...finance, cash: newCash, weekIncome: totalIncome, weekExpense: totalExpense, weekNet: totalIncome - totalExpense },
     transactions: newTx,

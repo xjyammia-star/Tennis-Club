@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState } from 'react'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
 import Topbar from './components/Topbar'
@@ -30,37 +30,36 @@ import {
 export const GameCtx = createContext(null)
 export const useGameCtx = () => useContext(GameCtx)
 
-// ── 默认初始 state（用 mockData 填充）──────────────────
+// ── 默认初始 state ────────────────────────────────────
 const INIT = {
-  gameState:      { ...initGameState },
-  clubStats:      { ...initClubStats },
-  players:        [...initPlayers],
-  coaches:        [...initCoaches],
-  facilities:     [...initFacilities],
-  schedule:       { ...initSchedule },
-  allEvents:      [...allEvents],
-  myEntries:      [...initEntries],
-  eventHistory:   [...initHistory],
-  finance:        { ...initFinance },
-  transactions:   [...initTransactions],
-  weeklyTrend:    [...initTrend],
+  gameState:        { ...initGameState },
+  clubStats:        { ...initClubStats },
+  players:          [...initPlayers],
+  coaches:          [...initCoaches],
+  facilities:       [...initFacilities],
+  schedule:         { ...initSchedule },
+  allEvents:        [...allEvents],
+  myEntries:        [...initEntries],
+  eventHistory:     [...initHistory],
+  finance:          { ...initFinance },
+  transactions:     [...initTransactions],
+  weeklyTrend:      [...initTrend],
   incomeBreakdown:  [...initIncome],
   expenseBreakdown: [...initExpense],
-  recentNews:     [...initNews],
-  upcomingEvents: [...initUpcoming],
+  recentNews:       [...initNews],
+  upcomingEvents:   [...initUpcoming],
 }
 
+// ── reducer（不再处理 ADVANCE_WEEK，改由 async 函数处理）──
 function reducer(state, action) {
   switch (action.type) {
 
-    case 'ADVANCE_WEEK': {
-      const newState = advanceWeekEngine(state)
-      // 进入下一周后自动存档
-      autoSave(newState)
-      return newState
-    }
+    // ADVANCE_WEEK 现在由 GameProvider.advanceWeek() 处理
+    // reducer 里保留空 case 避免警告
+    case 'ADVANCE_WEEK':
+      return state
 
-    // 从存档加载完整 state
+    // 从存档加载完整 state（也用于 advanceWeek 写回结果）
     case 'LOAD_SAVE':
       return { ...INIT, ...action.data }
 
@@ -94,7 +93,10 @@ function reducer(state, action) {
         clubStats: { ...state.clubStats, playerCount: state.clubStats.playerCount - 1 },
       }
     case 'UPDATE_PLAYER':
-      return { ...state, players: state.players.map(p => p.id === action.player.id ? { ...p, ...action.player } : p) }
+      return {
+        ...state,
+        players: state.players.map(p => p.id === action.player.id ? { ...p, ...action.player } : p),
+      }
 
     case 'ADD_COACH':
       return {
@@ -109,10 +111,16 @@ function reducer(state, action) {
         clubStats: { ...state.clubStats, coachCount: state.clubStats.coachCount - 1 },
       }
     case 'UPDATE_COACH':
-      return { ...state, coaches: state.coaches.map(c => c.id === action.coach.id ? { ...c, ...action.coach } : c) }
+      return {
+        ...state,
+        coaches: state.coaches.map(c => c.id === action.coach.id ? { ...c, ...action.coach } : c),
+      }
 
     case 'UPDATE_FACILITY':
-      return { ...state, facilities: state.facilities.map(f => f.id === action.facility.id ? { ...f, ...action.facility } : f) }
+      return {
+        ...state,
+        facilities: state.facilities.map(f => f.id === action.facility.id ? { ...f, ...action.facility } : f),
+      }
     case 'ADD_FACILITY':
       return { ...state, facilities: [...state.facilities, action.facility] }
 
@@ -132,22 +140,18 @@ function reducer(state, action) {
       }
 
     case 'ADD_NEWS':
-      return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 10) }
+      return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 15) }
 
     default:
       return state
   }
 }
 
-// ── 自动存档：写入 localStorage（同时尝试写远程）────────
-// localStorage key: tcm_autosave
-// 远程需要用户已登录（从 localStorage tcm_user 读取）
+// ── 自动存档 ──────────────────────────────────────────
 function autoSave(state) {
   try {
-    // 本地存档（始终执行，作为兜底）
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
 
-    // 远程存档（仅在用户已登录时执行）
     const userStr = localStorage.getItem('tcm_user')
     const slotStr = localStorage.getItem('tcm_current_slot')
     if (!userStr || !slotStr) return
@@ -156,7 +160,6 @@ function autoSave(state) {
     const slot = parseInt(slotStr, 10)
     if (!user?.id || !slot) return
 
-    // 构造存档数据
     const saveData = {
       club_name:    state.gameState.clubName,
       current_year: state.gameState.year,
@@ -164,10 +167,9 @@ function autoSave(state) {
       funds:        state.finance.cash,
       reputation:   state.gameState.prestige,
       difficulty:   state.gameState.difficulty,
-      state_json:   JSON.stringify(state),  // 完整 state
+      state_json:   JSON.stringify(state),
     }
 
-    // 异步发送，不阻塞游戏主逻辑
     fetch('/api/saves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -179,7 +181,7 @@ function autoSave(state) {
   }
 }
 
-// ── 手动存档（供 SettingsPage 调用）────────────────────
+// ── 手动存档（供 SettingsPage 调用）──────────────────
 export async function manualSave(state, slot) {
   try {
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
@@ -211,8 +213,7 @@ export async function manualSave(state, slot) {
   }
 }
 
-// ── 加载存档（供 LandingPage 调用）────────────────────
-// 优先从远程加载，失败则从 localStorage 读取
+// ── 加载存档（供 LandingPage 调用）──────────────────
 export async function loadSave(userId, slot) {
   try {
     const res = await fetch(`/api/saves?userId=${userId}&slot=${slot}`)
@@ -223,19 +224,17 @@ export async function loadSave(userId, slot) {
   } catch (err) {
     console.warn('远程读档失败，尝试本地:', err)
   }
-
-  // 兜底：本地 autosave
   try {
     const local = localStorage.getItem('tcm_autosave')
     if (local) return JSON.parse(local)
   } catch {}
-
   return null
 }
 
 // ── GameProvider ──────────────────────────────────────
 function GameProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INIT)
+  const [advancing, setAdvancing] = useState(false)  // 「下一周」处理中标志
 
   // 进入游戏时：检查是否有存档需要加载
   useEffect(() => {
@@ -252,8 +251,27 @@ function GameProvider({ children }) {
     }
   }, [])
 
+  // ── 核心：async 版「进入下一周」────────────────────
+  // advanceWeekEngine 是 async（需要 fetch 世界球员），
+  // 不能放在 reducer 里，改为 Context 方法
+  async function advanceWeek() {
+    if (advancing) return   // 防止重复点击
+    setAdvancing(true)
+    try {
+      const newState = await advanceWeekEngine(state)
+      // 用 LOAD_SAVE 把整个 state 替换（最简单可靠的方式）
+      dispatch({ type: 'LOAD_SAVE', data: newState })
+      // 自动存档
+      autoSave(newState)
+    } catch (err) {
+      console.error('进入下一周失败:', err)
+    } finally {
+      setAdvancing(false)
+    }
+  }
+
   return (
-    <GameCtx.Provider value={{ state, dispatch }}>
+    <GameCtx.Provider value={{ state, dispatch, advanceWeek, advancing }}>
       {children}
     </GameCtx.Provider>
   )

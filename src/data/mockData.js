@@ -68,19 +68,18 @@ export const navItems = [
   { id: 'settings', label: '设置', icon: 'ti-settings',  path: '/settings' },
 ]
 
-// ── 球员数据 ─────────────────────────────────────────────────────────
-// 身高体重生成规律：
-//   男青少年基准身高 165-185cm，女 155-172cm，成年男 178-198cm，女 165-180cm
-//   体重与身高正相关，高水平球员体型更优（力量高→偏重，灵活高→偏轻）
-//   年龄越小，体型越小；优秀运动员发育往往更好
+// ── 球员数据 ──────────────────────────────────────────
+// injuryResist：隐藏属性，随机生成（30-100），越高越不易受伤
+// 年龄限制：8-11岁下限80，12-14岁下限70，15-18岁下限60，18岁以上下限30
+// 30岁以后每年额外减4-7，发生伤病概率 = (100 - injuryResist) / 10
 export const players = [
   {
     id: 1,
     name: '王小明',
     gender: 'male',
     age: 15,
-    height: 178,   // cm — 15岁男孩中偏高，天赋异禀早发育
-    weight: 66,    // kg
+    height: 178,
+    weight: 66,
     familyBg: '普通',
     isSponsored: false,
     health: 'healthy',
@@ -90,6 +89,7 @@ export const players = [
     points: 0,
     talent: 88,
     talentLabel: '天赋异禀',
+    injuryResist: 72,   // 15岁，下限60，体质不错
     strength: 62,
     stamina: 68,
     agility: 70,
@@ -104,13 +104,14 @@ export const players = [
     footwork: 66,
     skills: ['上旋月亮'],
     preferences: ['效率偏好', '教练偏好'],
+    expPool: {},
   },
   {
     id: 2,
     name: '陈晓雨',
     gender: 'female',
     age: 16,
-    height: 168,   // 16岁女生偏高，体能好
+    height: 168,
     weight: 58,
     familyBg: '小康',
     isSponsored: false,
@@ -121,6 +122,7 @@ export const players = [
     points: 0,
     talent: 74,
     talentLabel: '资质优良',
+    injuryResist: 68,   // 16岁，下限60
     strength: 52,
     stamina: 74,
     agility: 78,
@@ -135,13 +137,14 @@ export const players = [
     footwork: 75,
     skills: [],
     preferences: ['氛围偏好'],
+    expPool: {},
   },
   {
     id: 3,
     name: '李浩然',
     gender: 'male',
     age: 17,
-    height: 183,   // 17岁发球型球员，高大，力量72
+    height: 183,
     weight: 78,
     familyBg: '富裕',
     isSponsored: true,
@@ -152,6 +155,7 @@ export const players = [
     points: 120,
     talent: 65,
     talentLabel: '平平无奇',
+    injuryResist: 62,   // 17岁，下限60，偏低导致轻伤
     strength: 72,
     stamina: 65,
     agility: 60,
@@ -166,13 +170,14 @@ export const players = [
     footwork: 58,
     skills: ['侧旋发球'],
     preferences: ['环境偏好'],
+    expPool: {},
   },
   {
     id: 4,
     name: '张雪',
     gender: 'female',
     age: 14,
-    height: 163,   // 14岁女孩，天才型，发育中
+    height: 163,
     weight: 50,
     familyBg: '贫穷',
     isSponsored: true,
@@ -183,6 +188,7 @@ export const players = [
     points: 0,
     talent: 92,
     talentLabel: '万里挑一',
+    injuryResist: 78,   // 14岁，下限70，天才型体质好
     strength: 44,
     stamina: 58,
     agility: 65,
@@ -197,13 +203,14 @@ export const players = [
     footwork: 62,
     skills: [],
     preferences: ['效率偏好', '氛围偏好'],
+    expPool: {},
   },
   {
     id: 5,
     name: '刘宇',
     gender: 'male',
     age: 22,
-    height: 188,   // 成年男职业，力量型，排名412
+    height: 188,
     weight: 84,
     familyBg: '普通',
     isSponsored: false,
@@ -214,6 +221,7 @@ export const players = [
     points: 380,
     talent: 58,
     talentLabel: '平平无奇',
+    injuryResist: 55,   // 22岁，下限30，体质一般
     strength: 80,
     stamina: 75,
     agility: 68,
@@ -228,13 +236,14 @@ export const players = [
     footwork: 72,
     skills: ['大力奇迹'],
     preferences: ['教练偏好'],
+    expPool: {},
   },
   {
     id: 6,
     name: '赵敏',
     gender: 'female',
     age: 20,
-    height: 172,   // 成年女职业，灵活型，排名388，灵活80
+    height: 172,
     weight: 61,
     familyBg: '小康',
     isSponsored: false,
@@ -245,6 +254,7 @@ export const players = [
     points: 420,
     talent: 70,
     talentLabel: '资质优良',
+    injuryResist: 42,   // 20岁，下限30，抗伤病差导致重伤
     strength: 60,
     stamina: 68,
     agility: 80,
@@ -259,13 +269,14 @@ export const players = [
     footwork: 82,
     skills: ['极限救球', '底线无敌'],
     preferences: ['环境偏好', '效率偏好'],
+    expPool: {},
   },
   {
     id: 7,
     name: '孙博',
     gender: 'male',
     age: 13,
-    height: 158,   // 13岁少年，尚未发育
+    height: 158,
     weight: 46,
     familyBg: '普通',
     isSponsored: false,
@@ -276,6 +287,7 @@ export const players = [
     points: 0,
     talent: 80,
     talentLabel: '天赋异禀',
+    injuryResist: 82,   // 13岁，下限70，年轻体质好
     strength: 35,
     stamina: 42,
     agility: 50,
@@ -290,13 +302,14 @@ export const players = [
     footwork: 48,
     skills: [],
     preferences: ['氛围偏好'],
+    expPool: {},
   },
   {
     id: 8,
     name: '吴静怡',
     gender: 'female',
     age: 18,
-    height: 170,   // 18岁女生，资质优良，体型匀称
+    height: 170,
     weight: 59,
     familyBg: '小康',
     isSponsored: false,
@@ -307,6 +320,7 @@ export const players = [
     points: 85,
     talent: 68,
     talentLabel: '资质优良',
+    injuryResist: 70,   // 18岁，下限60，体质正常偏好
     strength: 55,
     stamina: 70,
     agility: 74,
@@ -321,13 +335,14 @@ export const players = [
     footwork: 70,
     skills: ['上旋月亮'],
     preferences: ['教练偏好'],
+    expPool: {},
   },
   {
     id: 9,
     name: '郑凯',
     gender: 'male',
     age: 11,
-    height: 148,   // 11岁少年，最小，体型偏小
+    height: 148,
     weight: 38,
     familyBg: '富裕',
     isSponsored: false,
@@ -338,6 +353,7 @@ export const players = [
     points: 0,
     talent: 55,
     talentLabel: '平平无奇',
+    injuryResist: 88,   // 11岁，下限80，小孩子恢复快
     strength: 28,
     stamina: 35,
     agility: 38,
@@ -352,13 +368,14 @@ export const players = [
     footwork: 36,
     skills: [],
     preferences: [],
+    expPool: {},
   },
   {
     id: 10,
     name: '林晨',
     gender: 'male',
     age: 25,
-    height: 192,   // 成年男，排名245，全面型，高大有优势
+    height: 192,
     weight: 88,
     familyBg: '普通',
     isSponsored: true,
@@ -369,6 +386,7 @@ export const players = [
     points: 750,
     talent: 76,
     talentLabel: '资质优良',
+    injuryResist: 60,   // 25岁，下限30，职业球员体质较好
     strength: 85,
     stamina: 82,
     agility: 75,
@@ -383,13 +401,14 @@ export const players = [
     footwork: 80,
     skills: ['侧旋发球', '底线无敌'],
     preferences: ['效率偏好'],
+    expPool: {},
   },
   {
     id: 11,
     name: '何美玲',
     gender: 'female',
     age: 17,
-    height: 166,   // 17岁女生，灵活型
+    height: 166,
     weight: 55,
     familyBg: '小康',
     isSponsored: false,
@@ -400,6 +419,7 @@ export const players = [
     points: 60,
     talent: 72,
     talentLabel: '资质优良',
+    injuryResist: 61,   // 17岁，下限60，轻微偏低导致轻伤
     strength: 50,
     stamina: 65,
     agility: 72,
@@ -414,13 +434,14 @@ export const players = [
     footwork: 70,
     skills: [],
     preferences: ['氛围偏好', '环境偏好'],
+    expPool: {},
   },
   {
     id: 12,
     name: '陈志远',
     gender: 'male',
     age: 19,
-    height: 180,   // 19岁男，普通职业起步
+    height: 180,
     weight: 74,
     familyBg: '普通',
     isSponsored: false,
@@ -431,6 +452,7 @@ export const players = [
     points: 200,
     talent: 62,
     talentLabel: '平平无奇',
+    injuryResist: 58,   // 19岁，下限30，体质中等
     strength: 70,
     stamina: 68,
     agility: 62,
@@ -445,27 +467,28 @@ export const players = [
     footwork: 62,
     skills: [],
     preferences: ['环境偏好'],
+    expPool: {},
   },
 ]
 
-// ── 教练数据 ─────────────────────────────────────────────────────────
+// ── 教练数据 ──────────────────────────────────────────
 export const coaches = [
   {
     id: 1,
     name: '张国强',
     gender: 'male',
     age: 48,
-    level: 'senior',        // assistant | normal | senior | elite
+    level: 'senior',
     levelLabel: '高级教练',
-    style: 'strict',        // strict | relaxed | free
+    style: 'strict',
     styleLabel: '一丝不苟',
     expBonus: '+10%',
     loyalty: 78,
     weeklySalary: 6000,
     contractWeeksLeft: 40,
     specialSkills: ['发球', '正手', '底线战术', '心理训练'],
-    studentCount: 3,        // 当前私教学员数
-    totalStudents: 8,       // 历史执教人数（体现经验）
+    studentCount: 3,
+    totalStudents: 8,
     careerHighlight: '前ATP巡回赛职业球员，最高排名 #288',
     bio: '执教风格严谨，擅长技术纠正与发球训练，曾培养多名青少年进入职业赛场。',
   },
@@ -528,7 +551,6 @@ export const coaches = [
   },
 ]
 
-// 格式化金额
 export function formatCash(amount) {
   if (amount >= 10000) {
     return `¥${(amount / 10000).toFixed(amount % 10000 === 0 ? 0 : 1)}万`
@@ -536,9 +558,7 @@ export function formatCash(amount) {
   return `¥${amount.toLocaleString()}`
 }
 
-// ── 招募市场数据 ──────────────────────────────────────────────────────
-
-// 待招募教练
+// ── 招募市场数据 ──────────────────────────────────────
 export const recruitCoaches = [
   {
     id: 101,
@@ -610,7 +630,6 @@ export const recruitCoaches = [
   },
 ]
 
-// 申请加入的球员
 export const recruitPlayers = [
   {
     id: 201,
@@ -626,7 +645,7 @@ export const recruitPlayers = [
     health: 'healthy',
     ranking: null,
     points: 0,
-    // 关键属性预览
+    injuryResist: 75,
     strength: 48,
     stamina: 55,
     agility: 62,
@@ -637,6 +656,7 @@ export const recruitPlayers = [
     skills: [],
     note: '家长主动来访，求学心切，训练刻苦。父亲曾是省级网球运动员。',
     joinFee: 0,
+    expPool: {},
   },
   {
     id: 202,
@@ -652,6 +672,7 @@ export const recruitPlayers = [
     health: 'healthy',
     ranking: null,
     points: 180,
+    injuryResist: 66,
     strength: 50,
     stamina: 68,
     agility: 74,
@@ -662,6 +683,7 @@ export const recruitPlayers = [
     skills: ['上旋月亮'],
     note: '从小型俱乐部转来，已有一定积分基础，脚步和底线能力突出。',
     joinFee: 0,
+    expPool: {},
   },
   {
     id: 203,
@@ -677,6 +699,7 @@ export const recruitPlayers = [
     health: 'healthy',
     ranking: null,
     points: 220,
+    injuryResist: 60,
     strength: 75,
     stamina: 68,
     agility: 58,
@@ -687,6 +710,7 @@ export const recruitPlayers = [
     skills: ['侧旋发球'],
     note: '自费球员，家庭富裕，不需要生活补助。发球是核心武器，底线偏弱。',
     joinFee: 0,
+    expPool: {},
   },
   {
     id: 204,
@@ -702,6 +726,7 @@ export const recruitPlayers = [
     health: 'healthy',
     ranking: null,
     points: 0,
+    injuryResist: 80,
     strength: 38,
     stamina: 50,
     agility: 58,
@@ -712,6 +737,7 @@ export const recruitPlayers = [
     skills: [],
     note: '极高天赋，家境贫困，需要生活补助（¥500/周）。发现于社区球场，属于毛坯级别潜力新星。',
     joinFee: 500,
+    expPool: {},
   },
   {
     id: 205,
@@ -727,6 +753,7 @@ export const recruitPlayers = [
     health: 'minor',
     ranking: 468,
     points: 310,
+    injuryResist: 45,
     strength: 78,
     stamina: 72,
     agility: 65,
@@ -737,12 +764,11 @@ export const recruitPlayers = [
     skills: ['大力奇迹'],
     note: '在职职业球员转会，目前轻伤状态。排名接近500，有望冲击更高级赛事资格。',
     joinFee: 0,
+    expPool: {},
   },
 ]
 
-// ── 训练安排数据 ──────────────────────────────────────────────────────
-
-// 课程类型定义
+// ── 训练安排数据 ──────────────────────────────────────
 export const courseTypes = [
   {
     id: 'court_group',
@@ -791,30 +817,18 @@ export const courseTypes = [
   },
 ]
 
-// 本周已排课程（模拟数据）
-// 每天最多可排 3 个时段：上午(am) / 下午(pm) / 晚上(eve)
 export const weekSchedule = {
   mon: [
     {
-      id: 's1',
-      slot: 'am',
-      type: 'court_group',
-      label: '球场团课',
-      hours: 2,
-      coachId: 1,
-      coachName: '张国强',
+      id: 's1', slot: 'am', type: 'court_group', label: '球场团课',
+      hours: 2, coachId: 1, coachName: '张国强',
       playerIds: [1, 2, 3, 4, 7, 9],
       playerNames: ['王小明', '陈晓雨', '李浩然', '张雪', '孙博', '郑凯'],
       color: '#1c3a1a',
     },
     {
-      id: 's2',
-      slot: 'pm',
-      type: 'fitness_group',
-      label: '体能团课',
-      hours: 1.5,
-      coachId: 4,
-      coachName: '陈文博',
+      id: 's2', slot: 'pm', type: 'fitness_group', label: '体能团课',
+      hours: 1.5, coachId: 4, coachName: '陈文博',
       playerIds: [5, 6, 10, 12],
       playerNames: ['刘宇', '赵敏', '林晨', '陈志远'],
       color: '#2a5fa8',
@@ -822,129 +836,63 @@ export const weekSchedule = {
   ],
   tue: [
     {
-      id: 's3',
-      slot: 'am',
-      type: 'private',
-      label: '私教课',
-      hours: 1,
-      coachId: 1,
-      coachName: '张国强',
-      playerIds: [10],
-      playerNames: ['林晨'],
-      color: '#9a6e0a',
+      id: 's3', slot: 'am', type: 'private', label: '私教课',
+      hours: 1, coachId: 1, coachName: '张国强',
+      playerIds: [10], playerNames: ['林晨'], color: '#9a6e0a',
     },
     {
-      id: 's4',
-      slot: 'am',
-      type: 'private',
-      label: '私教课',
-      hours: 1,
-      coachId: 2,
-      coachName: '李梅',
-      playerIds: [2],
-      playerNames: ['陈晓雨'],
-      color: '#9a6e0a',
+      id: 's4', slot: 'am', type: 'private', label: '私教课',
+      hours: 1, coachId: 2, coachName: '李梅',
+      playerIds: [2], playerNames: ['陈晓雨'], color: '#9a6e0a',
     },
     {
-      id: 's5',
-      slot: 'pm',
-      type: 'court_group',
-      label: '球场团课',
-      hours: 2,
-      coachId: 3,
-      coachName: '王志明',
-      playerIds: [7, 9, 11],
-      playerNames: ['孙博', '郑凯', '何美玲'],
-      color: '#1c3a1a',
+      id: 's5', slot: 'pm', type: 'court_group', label: '球场团课',
+      hours: 2, coachId: 3, coachName: '王志明',
+      playerIds: [7, 9, 11], playerNames: ['孙博', '郑凯', '何美玲'], color: '#1c3a1a',
     },
   ],
   wed: [
     {
-      id: 's6',
-      slot: 'am',
-      type: 'tactics',
-      label: '战术分析课',
-      hours: 1,
-      coachId: 1,
-      coachName: '张国强',
-      playerIds: [5, 6, 10],
-      playerNames: ['刘宇', '赵敏', '林晨'],
-      color: '#6a3a8a',
+      id: 's6', slot: 'am', type: 'tactics', label: '战术分析课',
+      hours: 1, coachId: 1, coachName: '张国强',
+      playerIds: [5, 6, 10], playerNames: ['刘宇', '赵敏', '林晨'], color: '#6a3a8a',
     },
     {
-      id: 's7',
-      slot: 'pm',
-      type: 'fitness_group',
-      label: '体能团课',
-      hours: 2,
-      coachId: 4,
-      coachName: '陈文博',
+      id: 's7', slot: 'pm', type: 'fitness_group', label: '体能团课',
+      hours: 2, coachId: 4, coachName: '陈文博',
       playerIds: [1, 2, 7, 8, 11],
-      playerNames: ['王小明', '陈晓雨', '孙博', '吴静怡', '何美玲'],
-      color: '#2a5fa8',
+      playerNames: ['王小明', '陈晓雨', '孙博', '吴静怡', '何美玲'], color: '#2a5fa8',
     },
   ],
   thu: [
     {
-      id: 's8',
-      slot: 'am',
-      type: 'court_group',
-      label: '球场团课',
-      hours: 2,
-      coachId: 2,
-      coachName: '李梅',
+      id: 's8', slot: 'am', type: 'court_group', label: '球场团课',
+      hours: 2, coachId: 2, coachName: '李梅',
       playerIds: [2, 4, 8, 11],
-      playerNames: ['陈晓雨', '张雪', '吴静怡', '何美玲'],
-      color: '#1c3a1a',
+      playerNames: ['陈晓雨', '张雪', '吴静怡', '何美玲'], color: '#1c3a1a',
     },
     {
-      id: 's9',
-      slot: 'pm',
-      type: 'private',
-      label: '私教课',
-      hours: 1,
-      coachId: 1,
-      coachName: '张国强',
-      playerIds: [1],
-      playerNames: ['王小明'],
-      color: '#9a6e0a',
+      id: 's9', slot: 'pm', type: 'private', label: '私教课',
+      hours: 1, coachId: 1, coachName: '张国强',
+      playerIds: [1], playerNames: ['王小明'], color: '#9a6e0a',
     },
   ],
   fri: [
     {
-      id: 's10',
-      slot: 'am',
-      type: 'court_group',
-      label: '球场团课',
-      hours: 2,
-      coachId: 3,
-      coachName: '王志明',
-      playerIds: [3, 5, 12],
-      playerNames: ['李浩然', '刘宇', '陈志远'],
-      color: '#1c3a1a',
+      id: 's10', slot: 'am', type: 'court_group', label: '球场团课',
+      hours: 2, coachId: 3, coachName: '王志明',
+      playerIds: [3, 5, 12], playerNames: ['李浩然', '刘宇', '陈志远'], color: '#1c3a1a',
     },
     {
-      id: 's11',
-      slot: 'pm',
-      type: 'tactics',
-      label: '战术分析课',
-      hours: 1,
-      coachId: 2,
-      coachName: '李梅',
-      playerIds: [2, 4, 8],
-      playerNames: ['陈晓雨', '张雪', '吴静怡'],
-      color: '#6a3a8a',
+      id: 's11', slot: 'pm', type: 'tactics', label: '战术分析课',
+      hours: 1, coachId: 2, coachName: '李梅',
+      playerIds: [2, 4, 8], playerNames: ['陈晓雨', '张雪', '吴静怡'], color: '#6a3a8a',
     },
   ],
   sat: [
     {
-      id: 's12',
-      slot: 'am',
-      type: 'court_group',
-      label: '球场团课',
-      hours: 3,
-      coachId: 1,
-      coachName: '张国强',
+      id: 's12', slot: 'am', type: 'court_group', label: '球场团课',
+      hours: 3, coachId: 1, coachName: '张国强',
       playerIds: [1, 2, 3, 4, 7, 8, 9, 11],
       playerNames: ['王小明', '陈晓雨', '李浩然', '张雪', '孙博', '吴静怡', '郑凯', '何美玲'],
       color: '#1c3a1a',
@@ -969,15 +917,10 @@ export const SLOTS = [
   { key: 'eve', label: '晚上' },
 ]
 
-// ── 设施数据 ──────────────────────────────────────────────────────────
-
-// 级别定义
+// ── 设施数据 ──────────────────────────────────────────
 export const FACILITY_LEVELS = ['糟糕', '普通', '高级', '顶级']
-
-// 级别对应训练效果
 export const LEVEL_TRAIN_EFFECT = { 糟糕: 80, 普通: 100, 高级: 110, 顶级: 120 }
 
-// 建设价格表（万元）
 export const FACILITY_PRICES = {
   hard_court:  { 糟糕: 10, 普通: 15, 高级: 25, 顶级: 40  },
   clay_court:  { 糟糕: 20, 普通: 25, 高级: 40, 顶级: 60  },
@@ -993,127 +936,42 @@ export const FACILITY_PRICES = {
   shop:        { 糟糕:  2, 普通:  5, 高级: 10, 顶级: 20  },
 }
 
-// 维护费率
 export const MAINTENANCE_RATE = {
   hard_court: 0.05, clay_court: 0.10, grass_court: 0.15,
   gym: 0.10, meeting: 0.10, locker: 0.10, lounge: 0.10,
   physio: 0.10, cafe: 0.10, restaurant: 0.10, dormitory: 0.10, shop: 0.10,
 }
 
-// 当前俱乐部设施（正常难度初始）
 export const facilities = [
-  // ─── 训练设施 ───
-  {
-    id: 'hard_1', type: 'hard_court', category: 'training',
-    name: '硬地球场 1', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'hard_2', type: 'hard_court', category: 'training',
-    name: '硬地球场 2', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'hard_3', type: 'hard_court', category: 'training',
-    name: '硬地球场 3', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'hard_4', type: 'hard_court', category: 'training',
-    name: '硬地球场 4', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'hard_5', type: 'hard_court', category: 'training',
-    name: '硬地球场 5', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'hard_6', type: 'hard_court', category: 'training',
-    name: '硬地球场 6', level: '普通', count: 1,
-    mainEffect: '技术 +100%，身体 +50%',
-    icon: 'ti-rectangle',
-    maintenancePaid: true,
-  },
-  {
-    id: 'gym_1', type: 'gym', category: 'training',
-    name: '健身房', level: '普通',
-    mainEffect: '身体 +100%，精神 +50%',
-    icon: 'ti-barbell',
-    maintenancePaid: true,
-  },
-  {
-    id: 'meeting_1', type: 'meeting', category: 'training',
-    name: '会议室', level: '普通',
-    mainEffect: '精神 +100%',
-    icon: 'ti-presentation',
-    maintenancePaid: true,
-  },
-  // ─── 服务设施 ───
-  {
-    id: 'locker_1', type: 'locker', category: 'service',
-    name: '更衣室', level: '普通',
-    mainEffect: '每天疲劳 -4',
-    icon: 'ti-door',
-    maintenancePaid: true,
-  },
-  {
-    id: 'lounge_1', type: 'lounge', category: 'service',
-    name: '休息室', level: '普通',
-    mainEffect: '每天疲劳 -5',
-    icon: 'ti-sofa',
-    maintenancePaid: true,
-  },
-  // ─── 空地槽（可建设）───
-  {
-    id: 'empty_1', type: 'empty', category: 'empty',
-    name: '空地 A', level: null,
-    mainEffect: '可建设新设施（¥10万开发费）',
-    icon: 'ti-square-plus',
-    maintenancePaid: null,
-  },
-  {
-    id: 'empty_2', type: 'empty', category: 'empty',
-    name: '空地 B', level: null,
-    mainEffect: '可建设新设施（¥10万开发费）',
-    icon: 'ti-square-plus',
-    maintenancePaid: null,
-  },
-  {
-    id: 'empty_3', type: 'empty', category: 'empty',
-    name: '空地 C', level: null,
-    mainEffect: '可建设新设施（¥10万开发费）',
-    icon: 'ti-square-plus',
-    maintenancePaid: null,
-  },
+  { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_5', type: 'hard_court', category: 'training', name: '硬地球场 5', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_6', type: 'hard_court', category: 'training', name: '硬地球场 6', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'gym_1',     type: 'gym',     category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell',      maintenancePaid: true },
+  { id: 'meeting_1', type: 'meeting', category: 'training', name: '会议室', level: '普通', mainEffect: '精神 +100%',            icon: 'ti-presentation', maintenancePaid: true },
+  { id: 'locker_1',  type: 'locker',  category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4',           icon: 'ti-door',         maintenancePaid: true },
+  { id: 'lounge_1',  type: 'lounge',  category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5',           icon: 'ti-sofa',         maintenancePaid: true },
+  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
+  { id: 'empty_2', type: 'empty', category: 'empty', name: '空地 B', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
+  { id: 'empty_3', type: 'empty', category: 'empty', name: '空地 C', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
-// 可新建的设施类型（用于空地建设选择）
 export const buildableTypes = [
-  { type: 'hard_court',  name: '硬地球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
-  { type: 'clay_court',  name: '红土球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
-  { type: 'grass_court', name: '草地球场', category: 'training', icon: 'ti-rectangle',   desc: '技术 +100%，身体 +50%' },
-  { type: 'gym',         name: '健身房',   category: 'training', icon: 'ti-barbell',     desc: '身体 +100%，精神 +50%' },
-  { type: 'meeting',     name: '会议室',   category: 'training', icon: 'ti-presentation',desc: '精神 +100%' },
-  { type: 'physio',      name: '理疗室',   category: 'service',  icon: 'ti-first-aid-kit',desc: '加快伤病恢复 + 创收' },
-  { type: 'cafe',        name: '咖啡馆',   category: 'service',  icon: 'ti-coffee',      desc: '每周创收' },
-  { type: 'restaurant',  name: '餐厅',     category: 'service',  icon: 'ti-tools-kitchen-2', desc: '每周创收（较高）' },
-  { type: 'dormitory',   name: '宿舍',     category: 'service',  icon: 'ti-bed',         desc: '每天疲劳减少 + 创收' },
-  { type: 'shop',        name: '装备店',   category: 'service',  icon: 'ti-shopping-bag',desc: '球员购物 + 创收' },
+  { type: 'hard_court',  name: '硬地球场', category: 'training', icon: 'ti-rectangle',        desc: '技术 +100%，身体 +50%' },
+  { type: 'clay_court',  name: '红土球场', category: 'training', icon: 'ti-rectangle',        desc: '技术 +100%，身体 +50%' },
+  { type: 'grass_court', name: '草地球场', category: 'training', icon: 'ti-rectangle',        desc: '技术 +100%，身体 +50%' },
+  { type: 'gym',         name: '健身房',   category: 'training', icon: 'ti-barbell',          desc: '身体 +100%，精神 +50%' },
+  { type: 'meeting',     name: '会议室',   category: 'training', icon: 'ti-presentation',     desc: '精神 +100%' },
+  { type: 'physio',      name: '理疗室',   category: 'service',  icon: 'ti-first-aid-kit',    desc: '加快伤病恢复 + 创收' },
+  { type: 'cafe',        name: '咖啡馆',   category: 'service',  icon: 'ti-coffee',           desc: '每周创收' },
+  { type: 'restaurant',  name: '餐厅',     category: 'service',  icon: 'ti-tools-kitchen-2',  desc: '每周创收（较高）' },
+  { type: 'dormitory',   name: '宿舍',     category: 'service',  icon: 'ti-bed',              desc: '每天疲劳减少 + 创收' },
+  { type: 'shop',        name: '装备店',   category: 'service',  icon: 'ti-shopping-bag',     desc: '球员购物 + 创收' },
 ]
 
-// ── 赛事数据 ──────────────────────────────────────────────────────────
-
+// ── 赛事数据 ──────────────────────────────────────────
 export const allEvents = [
   { id:  1, name: '澳大利亚网球公开赛', level: 'slam', levelLabel: '大满贯', week:  3, duration: 2, qualify: '排名150内',   surface: '硬地' },
   { id:  2, name: 'ITF青少年赛（一）',  level: 'itf',  levelLabel: 'ITF',    week:  5, duration: 2, qualify: '14-18岁',     surface: '硬地' },
@@ -1133,21 +991,11 @@ export const allEvents = [
   { id: 16, name: 'ITF青少年赛（六）',  level: 'itf',  levelLabel: 'ITF',    week: 45, duration: 2, qualify: '14-18岁',     surface: '硬地' },
 ]
 
-// 本周 = 第1周，已报名赛事
 export const myEntries = [
-  {
-    eventId: 2,
-    playerIds: [1, 4, 7],   // 王小明、张雪、孙博
-    status: 'upcoming',      // upcoming | ongoing | done
-  },
-  {
-    eventId: 3,
-    playerIds: [5, 12],      // 刘宇、陈志远
-    status: 'upcoming',
-  },
+  { eventId: 2, playerIds: [1, 4, 7], status: 'upcoming' },
+  { eventId: 3, playerIds: [5, 12],   status: 'upcoming' },
 ]
 
-// 历史战绩
 export const eventHistory = [
   {
     id: 'h1',
@@ -1163,16 +1011,13 @@ export const eventHistory = [
   },
 ]
 
-// 承办赛事配置
 export const hostEventConfig = {
   small:  { cost: 30000,  regFee: 200, regMax: 100,  ticketFee: 50,  ticketMax: 200,  prestige: 50  },
   medium: { cost: 70000,  regFee: 500, regMax: 200,  ticketFee: 100, ticketMax: 500,  prestige: 100 },
   large:  { cost: 150000, regFee: 800, regMax: 500,  ticketFee: 200, ticketMax: 1000, prestige: 200 },
 }
 
-// ── 财务数据 ──────────────────────────────────────────────────────────
-
-// 本周收支汇总
+// ── 财务数据 ──────────────────────────────────────────
 export const financeSummary = {
   cash: 200000,
   weekIncome: 18400,
@@ -1182,24 +1027,20 @@ export const financeSummary = {
   yearExpense: 22000,
 }
 
-// 本周明细
 export const weekTransactions = [
-  // 收入
-  { id: 't1',  type: 'income',  category: 'court_rent',   label: '场地外租',     amount:  3200 },
-  { id: 't2',  type: 'income',  category: 'group_class',  label: '球员团课费',   amount:  4800 },
-  { id: 't3',  type: 'income',  category: 'private_cut',  label: '私教分成（40%）', amount: 2400 },
-  { id: 't4',  type: 'income',  category: 'cafe',         label: '咖啡馆收入',   amount:  1600 },
-  { id: 't5',  type: 'income',  category: 'physio',       label: '理疗室收入',   amount:  2400 },
-  { id: 't6',  type: 'income',  category: 'sponsor',      label: '赞助收入',     amount:  4000 },
-  // 支出
-  { id: 't7',  type: 'expense', category: 'coach_salary', label: '教练周薪',     amount: 16000 },
-  { id: 't8',  type: 'expense', category: 'staff',        label: '固定员工成本', amount:  2000 },  // 中型
-  { id: 't9',  type: 'expense', category: 'insurance',    label: '球员+教练保险（16人）', amount: 3200 },
-  { id: 't10', type: 'expense', category: 'subsidy',      label: '赞助球员补助（张雪）', amount: 500 },
-  { id: 't11', type: 'expense', category: 'ad',           label: '广告投放（初级）', amount: 300 },
+  { id: 't1',  type: 'income',  category: 'court_rent',   label: '场地外租',             amount:  3200 },
+  { id: 't2',  type: 'income',  category: 'group_class',  label: '球员团课费',           amount:  4800 },
+  { id: 't3',  type: 'income',  category: 'private_cut',  label: '私教分成（40%）',      amount:  2400 },
+  { id: 't4',  type: 'income',  category: 'cafe',         label: '咖啡馆收入',           amount:  1600 },
+  { id: 't5',  type: 'income',  category: 'physio',       label: '理疗室收入',           amount:  2400 },
+  { id: 't6',  type: 'income',  category: 'sponsor',      label: '赞助收入',             amount:  4000 },
+  { id: 't7',  type: 'expense', category: 'coach_salary', label: '教练周薪',             amount: 16000 },
+  { id: 't8',  type: 'expense', category: 'staff',        label: '固定员工成本',         amount:  2000 },
+  { id: 't9',  type: 'expense', category: 'insurance',    label: '球员+教练保险（16人）', amount:  3200 },
+  { id: 't10', type: 'expense', category: 'subsidy',      label: '赞助球员补助（张雪）', amount:   500 },
+  { id: 't11', type: 'expense', category: 'ad',           label: '广告投放（初级）',     amount:   300 },
 ]
 
-// 月度收支趋势（近6周）
 export const weeklyTrend = [
   { week: '第-5周', income: 15200, expense: 20800 },
   { week: '第-4周', income: 16800, expense: 21200 },
@@ -1209,19 +1050,17 @@ export const weeklyTrend = [
   { week: '本周',   income: 18400, expense: 22000 },
 ]
 
-// 收入分类汇总
 export const incomeBreakdown = [
-  { category: '场地外租',   amount:  3200, pct: 17 },
-  { category: '团课费',     amount:  4800, pct: 26 },
-  { category: '私教分成',   amount:  2400, pct: 13 },
-  { category: '设施营收',   amount:  4000, pct: 22 },
-  { category: '赞助收入',   amount:  4000, pct: 22 },
+  { category: '场地外租', amount:  3200, pct: 17 },
+  { category: '团课费',   amount:  4800, pct: 26 },
+  { category: '私教分成', amount:  2400, pct: 13 },
+  { category: '设施营收', amount:  4000, pct: 22 },
+  { category: '赞助收入', amount:  4000, pct: 22 },
 ]
 
-// 支出分类汇总
 export const expenseBreakdown = [
-  { category: '教练薪资',   amount: 16000, pct: 73 },
-  { category: '员工成本',   amount:  2000, pct:  9 },
-  { category: '保险',       amount:  3200, pct: 15 },
-  { category: '其他',       amount:   800, pct:  3 },
+  { category: '教练薪资', amount: 16000, pct: 73 },
+  { category: '员工成本', amount:  2000, pct:  9 },
+  { category: '保险',     amount:  3200, pct: 15 },
+  { category: '其他',     amount:   800, pct:  3 },
 ]
