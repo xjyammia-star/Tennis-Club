@@ -69,9 +69,6 @@ export const navItems = [
 ]
 
 // ── 球员数据 ──────────────────────────────────────────
-// injuryResist：隐藏属性，随机生成（30-100），越高越不易受伤
-// 年龄限制：8-11岁下限80，12-14岁下限70，15-18岁下限60，18岁以上下限30
-// 30岁以后每年额外减4-7，发生伤病概率 = (100 - injuryResist) / 10
 export const players = [
   {
     id: 1,
@@ -89,7 +86,7 @@ export const players = [
     points: 0,
     talent: 88,
     talentLabel: '天赋异禀',
-    injuryResist: 72,   // 15岁，下限60，体质不错
+    injuryResist: 72,
     strength: 62,
     stamina: 68,
     agility: 70,
@@ -105,6 +102,8 @@ export const players = [
     skills: ['上旋月亮'],
     preferences: ['效率偏好', '教练偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 2,
@@ -122,7 +121,7 @@ export const players = [
     points: 0,
     talent: 74,
     talentLabel: '资质优良',
-    injuryResist: 68,   // 16岁，下限60
+    injuryResist: 68,
     strength: 52,
     stamina: 74,
     agility: 78,
@@ -138,6 +137,8 @@ export const players = [
     skills: [],
     preferences: ['氛围偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 3,
@@ -155,7 +156,7 @@ export const players = [
     points: 120,
     talent: 65,
     talentLabel: '平平无奇',
-    injuryResist: 62,   // 17岁，下限60，偏低导致轻伤
+    injuryResist: 62,
     strength: 72,
     stamina: 65,
     agility: 60,
@@ -171,6 +172,8 @@ export const players = [
     skills: ['侧旋发球'],
     preferences: ['环境偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 4,
@@ -188,7 +191,7 @@ export const players = [
     points: 0,
     talent: 92,
     talentLabel: '万里挑一',
-    injuryResist: 78,   // 14岁，下限70，天才型体质好
+    injuryResist: 78,
     strength: 44,
     stamina: 58,
     agility: 65,
@@ -204,6 +207,8 @@ export const players = [
     skills: [],
     preferences: ['效率偏好', '氛围偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 5,
@@ -221,7 +226,7 @@ export const players = [
     points: 380,
     talent: 58,
     talentLabel: '平平无奇',
-    injuryResist: 55,   // 22岁，下限30，体质一般
+    injuryResist: 55,
     strength: 80,
     stamina: 75,
     agility: 68,
@@ -237,6 +242,8 @@ export const players = [
     skills: ['大力奇迹'],
     preferences: ['教练偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 6,
@@ -254,7 +261,7 @@ export const players = [
     points: 420,
     talent: 70,
     talentLabel: '资质优良',
-    injuryResist: 42,   // 20岁，下限30，抗伤病差导致重伤
+    injuryResist: 42,
     strength: 60,
     stamina: 68,
     agility: 80,
@@ -270,6 +277,8 @@ export const players = [
     skills: ['极限救球', '底线无敌'],
     preferences: ['环境偏好', '效率偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 7,
@@ -287,7 +296,7 @@ export const players = [
     points: 0,
     talent: 80,
     talentLabel: '天赋异禀',
-    injuryResist: 82,   // 13岁，下限70，年轻体质好
+    injuryResist: 82,
     strength: 35,
     stamina: 42,
     agility: 50,
@@ -303,6 +312,8 @@ export const players = [
     skills: [],
     preferences: ['氛围偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 8,
@@ -320,7 +331,7 @@ export const players = [
     points: 85,
     talent: 68,
     talentLabel: '资质优良',
-    injuryResist: 70,   // 18岁，下限60，体质正常偏好
+    injuryResist: 70,
     strength: 55,
     stamina: 70,
     agility: 74,
@@ -336,6 +347,8 @@ export const players = [
     skills: ['上旋月亮'],
     preferences: ['教练偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 9,
@@ -353,7 +366,7 @@ export const players = [
     points: 0,
     talent: 55,
     talentLabel: '平平无奇',
-    injuryResist: 88,   // 11岁，下限80，小孩子恢复快
+    injuryResist: 88,
     strength: 28,
     stamina: 35,
     agility: 38,
@@ -369,6 +382,8 @@ export const players = [
     skills: [],
     preferences: [],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 10,
@@ -386,7 +401,7 @@ export const players = [
     points: 750,
     talent: 76,
     talentLabel: '资质优良',
-    injuryResist: 60,   // 25岁，下限30，职业球员体质较好
+    injuryResist: 60,
     strength: 85,
     stamina: 82,
     agility: 75,
@@ -402,6 +417,8 @@ export const players = [
     skills: ['侧旋发球', '底线无敌'],
     preferences: ['效率偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 11,
@@ -419,7 +436,7 @@ export const players = [
     points: 60,
     talent: 72,
     talentLabel: '资质优良',
-    injuryResist: 61,   // 17岁，下限60，轻微偏低导致轻伤
+    injuryResist: 61,
     strength: 50,
     stamina: 65,
     agility: 72,
@@ -435,6 +452,8 @@ export const players = [
     skills: [],
     preferences: ['氛围偏好', '环境偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 12,
@@ -452,7 +471,7 @@ export const players = [
     points: 200,
     talent: 62,
     talentLabel: '平平无奇',
-    injuryResist: 58,   // 19岁，下限30，体质中等
+    injuryResist: 58,
     strength: 70,
     stamina: 68,
     agility: 62,
@@ -468,10 +487,14 @@ export const players = [
     skills: [],
     preferences: ['环境偏好'],
     expPool: {},
+    inMatch: false,
+    matchEventId: null,
   },
 ]
 
 // ── 教练数据 ──────────────────────────────────────────
+// ✅ 新增 skills 字段：教练可传授给球员的技能列表
+// weekEngine 的 checkSkills() 会检测教练技能并在训练中传授
 export const coaches = [
   {
     id: 1,
@@ -487,6 +510,7 @@ export const coaches = [
     weeklySalary: 6000,
     contractWeeksLeft: 40,
     specialSkills: ['发球', '正手', '底线战术', '心理训练'],
+    skills: ['侧旋发球', '底线无敌'],  // ✅ 可传授技能：有丰富发球和底线经验
     studentCount: 3,
     totalStudents: 8,
     careerHighlight: '前ATP巡回赛职业球员，最高排名 #288',
@@ -506,6 +530,7 @@ export const coaches = [
     weeklySalary: 4000,
     contractWeeksLeft: 28,
     specialSkills: ['正手', '脚步移动'],
+    skills: ['上旋月亮'],  // ✅ 可传授技能：擅长底线旋转球
     studentCount: 2,
     totalStudents: 15,
     careerHighlight: '前WTA资深球员，最高排名 #412',
@@ -525,6 +550,7 @@ export const coaches = [
     weeklySalary: 4000,
     contractWeeksLeft: 12,
     specialSkills: ['截击', '体能训练'],
+    skills: [],  // ✅ 暂无可传授技能（年轻教练，经验尚浅）
     studentCount: 1,
     totalStudents: 6,
     careerHighlight: '体育学院网球专业，持有 ITF Level 2 教练证书',
@@ -544,6 +570,7 @@ export const coaches = [
     weeklySalary: 2000,
     contractWeeksLeft: 48,
     specialSkills: [],
+    skills: [],  // ✅ 助教无可传授技能
     studentCount: 0,
     totalStudents: 2,
     careerHighlight: '体育学院应届毕业，执教满 2 年可晋升普通教练',
@@ -559,6 +586,7 @@ export function formatCash(amount) {
 }
 
 // ── 招募市场数据 ──────────────────────────────────────
+// ✅ 新增 skills 字段（初始静态数据，进入下一周后会被 weekEngine 动态生成替换）
 export const recruitCoaches = [
   {
     id: 101,
@@ -573,6 +601,7 @@ export const recruitCoaches = [
     weeklySalary: 6000,
     contractYears: 1,
     specialSkills: ['接发球', '反手', '战术分析'],
+    skills: ['极限救球', '底线无敌'],  // ✅ 可传授技能
     careerHighlight: '前ATP资深球员，最高排名 #195，退役后执教10年',
     bio: '擅长底线防守体系训练，有丰富大赛经验。要求高级或以上设施。',
     requiresFacility: '高级健身房',
@@ -590,6 +619,7 @@ export const recruitCoaches = [
     weeklySalary: 4000,
     contractYears: 1,
     specialSkills: ['正手', '脚步移动'],
+    skills: ['小球突袭'],  // ✅ 可传授技能
     careerHighlight: '前WTA球员，最高排名 #280，专注青少年培养',
     bio: '性格温和，善于激发青少年潜能，对14-18岁球员尤为有效。',
     requiresFacility: null,
@@ -607,6 +637,7 @@ export const recruitCoaches = [
     weeklySalary: 2000,
     contractYears: 1,
     specialSkills: [],
+    skills: [],  // ✅ 助教无可传授技能
     careerHighlight: '体育学院网球专业硕士，持 ITF Level 1 证书',
     bio: '年轻有冲劲，执行力强，适合协助高级教练开展团课。',
     requiresFacility: null,
@@ -624,6 +655,7 @@ export const recruitCoaches = [
     weeklySalary: 7000,
     contractYears: 2,
     specialSkills: ['发球', '截击', '网前技术', '心理训练'],
+    skills: ['侧旋发球', '小球突袭'],  // ✅ 可传授技能：网前技术专家
     careerHighlight: '前ATP球员，最高排名 #142，曾执教多名进入前100球员',
     bio: '资历深厚，要求高薪但物有所值。心理训练是其最大亮点。',
     requiresFacility: '高级休息室',
@@ -649,14 +681,24 @@ export const recruitPlayers = [
     strength: 48,
     stamina: 55,
     agility: 62,
+    pressure: 40,
+    willpower: 52,
+    focus: 45,
     serve: 45,
     forehand: 52,
     backhand: 48,
+    returnServe: 44,
+    volley: 35,
     footwork: 60,
     skills: [],
     note: '家长主动来访，求学心切，训练刻苦。父亲曾是省级网球运动员。',
     joinFee: 0,
     expPool: {},
+    fatigue: 20,
+    loyalty: 75,
+    isSponsored: false,
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 202,
@@ -676,14 +718,24 @@ export const recruitPlayers = [
     strength: 50,
     stamina: 68,
     agility: 74,
+    pressure: 60,
+    willpower: 65,
+    focus: 62,
     serve: 55,
     forehand: 62,
     backhand: 66,
+    returnServe: 58,
+    volley: 42,
     footwork: 70,
     skills: ['上旋月亮'],
     note: '从小型俱乐部转来，已有一定积分基础，脚步和底线能力突出。',
     joinFee: 0,
     expPool: {},
+    fatigue: 25,
+    loyalty: 70,
+    isSponsored: false,
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 203,
@@ -703,14 +755,24 @@ export const recruitPlayers = [
     strength: 75,
     stamina: 68,
     agility: 58,
+    pressure: 55,
+    willpower: 58,
+    focus: 52,
     serve: 72,
     forehand: 65,
     backhand: 58,
+    returnServe: 55,
+    volley: 48,
     footwork: 55,
     skills: ['侧旋发球'],
     note: '自费球员，家庭富裕，不需要生活补助。发球是核心武器，底线偏弱。',
     joinFee: 0,
     expPool: {},
+    fatigue: 30,
+    loyalty: 65,
+    isSponsored: false,
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 204,
@@ -730,14 +792,24 @@ export const recruitPlayers = [
     strength: 38,
     stamina: 50,
     agility: 58,
+    pressure: 42,
+    willpower: 60,
+    focus: 50,
     serve: 40,
     forehand: 50,
     backhand: 46,
+    returnServe: 42,
+    volley: 30,
     footwork: 55,
     skills: [],
     note: '极高天赋，家境贫困，需要生活补助（¥500/周）。发现于社区球场，属于毛坯级别潜力新星。',
     joinFee: 500,
     expPool: {},
+    fatigue: 15,
+    loyalty: 80,
+    isSponsored: false,
+    inMatch: false,
+    matchEventId: null,
   },
   {
     id: 205,
@@ -757,14 +829,24 @@ export const recruitPlayers = [
     strength: 78,
     stamina: 72,
     agility: 65,
+    pressure: 65,
+    willpower: 68,
+    focus: 62,
     serve: 75,
     forehand: 70,
     backhand: 65,
+    returnServe: 62,
+    volley: 55,
     footwork: 68,
     skills: ['大力奇迹'],
     note: '在职职业球员转会，目前轻伤状态。排名接近500，有望冲击更高级赛事资格。',
     joinFee: 0,
     expPool: {},
+    fatigue: 35,
+    loyalty: 60,
+    isSponsored: false,
+    inMatch: false,
+    matchEventId: null,
   },
 ]
 
