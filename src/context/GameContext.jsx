@@ -192,10 +192,8 @@ export function GameProvider({ children }) {
     setError:        (err)          => dispatch({ type: ACTIONS.SET_ERROR,         payload: err           }),
   }), [dispatch])
 
-  const value = useMemo(() => ({ state, dispatch, ...actions }), [state, actions])
-
   return (
-    <GameContext.Provider value={value}>
+    <GameContext.Provider value={{ state, dispatch, ...actions }}>
       {children}
     </GameContext.Provider>
   )
