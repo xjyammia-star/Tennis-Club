@@ -498,9 +498,40 @@ export async function advanceWeekEngine(state) {
     })
   })
 
+  // 问题6：团课收费越高，贫困球员忠诚度下降
+  // 基准费率：团课80元/小时以内不影响；超出部分按比例扣忠诚度
+  // 家境系数：贫穷×2，普通×1.2，小康×0.8，富裕×0.4
+  const FAMILY_LOYALTY_MULT = { 贫穷: 2.0, 普通: 1.2, 小康: 0.8, 富裕: 0.4 }
+  const BASE_GROUP_FEE = 80  // 基准费率（元/小时）
+
+  const playersAfterLoyalty = updatedPlayersWithSkills.map(player => {
+    // 统计该球员本周参与的团课总小时数
+    let groupHours = 0
+    DAYS_KEYS.forEach(day => {
+      ;(schedule[day] || []).forEach(s => {
+        if (s.type === 'court_group' || s.type === 'fitness_group' || s.type === 'tactics') {
+          if (s.playerIds?.includes(player.id)) groupHours += s.hours || 0
+        }
+      })
+    })
+    if (groupHours <= 0) return player
+
+    // 实际收费（取最高的团课费）
+    const actualFee = Math.max(settings.groupClassFee, settings.fitnessClassFee, settings.tacticsClassFee)
+    const overcharge = Math.max(0, actualFee - BASE_GROUP_FEE)
+    if (overcharge <= 0) return player
+
+    // 忠诚度扣减：超出基准的部分 × 课时 × 家境系数 / 100
+    const familyMult = FAMILY_LOYALTY_MULT[player.familyBg] || 1.0
+    const loyaltyDrop = Math.round(overcharge * groupHours * familyMult / 100)
+    if (loyaltyDrop <= 0) return player
+
+    return { ...player, loyalty: Math.max(0, player.loyalty - loyaltyDrop) }
+  })
+
   const coachSalary = updatedCoaches.reduce((sum, c) => sum + c.weeklySalary, 0)
-  const insurance   = (updatedPlayersWithSkills.length + updatedCoaches.length) * 200
-  const subsidy     = updatedPlayersWithSkills.filter(p => p.isSponsored).length * 500
+  const insurance   = (playersAfterLoyalty.length + updatedCoaches.length) * 200
+  const subsidy     = playersAfterLoyalty.filter(p => p.isSponsored).length * 500
   const prizeIncome = matchTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
 
   const weekIncome  = rentalInfo.income + privateIncome + groupIncome + prizeIncome
@@ -522,12 +553,12 @@ export async function advanceWeekEngine(state) {
   newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...newRecentNews].slice(0, 15)
 
   if (Math.random() < 0.3) {
-    const ev = randomEvent(updatedPlayersWithSkills)
+    const ev = randomEvent(playersAfterLoyalty)
     if (ev) {
       // 随机事件技能领悟：真正修改球员 skills
-      let finalPlayers = updatedPlayersWithSkills
+      let finalPlayers = playersAfterLoyalty
       if (ev.type === 'skill' && ev.skill && ev.playerIds?.length) {
-        finalPlayers = updatedPlayersWithSkills.map(p => {
+        finalPlayers = playersAfterLoyalty.map(p => {
           if (!ev.playerIds.includes(p.id)) return p
           if (p.skills?.includes(ev.skill)) return p
           return { ...p, skills: [...(p.skills || []), ev.skill] }
@@ -537,7 +568,6 @@ export async function advanceWeekEngine(state) {
       if (ev.type === 'finance' && ev.amount) {
         newTx.push({ id: `tx_${newWeek}_bonus`, type: 'income', category: 'other', label: '随机事件收入', amount: ev.amount })
       }
-      // 更新最终球员列表
       if (ev.type === 'skill') {
         const totalIncomeTmp  = newTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
         const totalExpenseTmp = newTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
@@ -562,7 +592,7 @@ export async function advanceWeekEngine(state) {
     ...state,
     gameState: { ...gameState, week: newWeek, year: newYear, cash: newCash, prestigeChange: Math.floor(Math.random() * 10 - 3) },
     clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
-    players:  updatedPlayersWithSkills,
+    players:  playersAfterLoyalty,
     coaches:  updatedCoaches,
     finance: { ...finance, cash: newCash, weekIncome: totalIncome, weekExpense: totalExpense, weekNet: totalIncome - totalExpense },
     transactions: newTx,

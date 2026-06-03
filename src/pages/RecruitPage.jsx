@@ -14,6 +14,33 @@ const TALENT_CLASS = {
 const HEALTH_LABEL = { healthy: '健康', minor: '轻伤', major: '重伤' }
 const HEALTH_CLASS  = { healthy: styles.tagHealthy, minor: styles.tagMinor, major: styles.tagMajor }
 
+// 教练设施要求 → 匹配俱乐部设施类型
+// requiresFacility 是中文描述，需要映射到 facility.level 和 type
+const FACILITY_REQUIRE_MAP = {
+  '高级健身房':  { type: 'gym',    minLevel: '高级' },
+  '高级休息室':  { type: 'lounge', minLevel: '高级' },
+  '顶级健身房':  { type: 'gym',    minLevel: '顶级' },
+  '顶级休息室':  { type: 'lounge', minLevel: '顶级' },
+}
+const LEVEL_ORDER = { 糟糕: 0, 普通: 1, 高级: 2, 顶级: 3 }
+
+// 检查俱乐部是否满足教练的设施要求
+function checkFacilityRequirement(requiresFacility, facilities) {
+  if (!requiresFacility) return { met: true, reason: '' }
+  const req = FACILITY_REQUIRE_MAP[requiresFacility]
+  if (!req) return { met: true, reason: '' }  // 未知要求默认通过
+
+  const found = facilities.find(f => f.type === req.type)
+  if (!found) return { met: false, reason: `需要建设${requiresFacility}` }
+
+  const facilityLevelNum = LEVEL_ORDER[found.level] ?? 0
+  const requiredLevelNum = LEVEL_ORDER[req.minLevel] ?? 0
+  if (facilityLevelNum < requiredLevelNum) {
+    return { met: false, reason: `${found.name}需升级至${req.minLevel}（当前${found.level}）` }
+  }
+  return { met: true, reason: '' }
+}
+
 function MiniBar({ value, color = 'forest' }) {
   return (
     <div className={styles.barWrap}>
@@ -23,7 +50,7 @@ function MiniBar({ value, color = 'forest' }) {
 }
 
 // ── 确认弹窗 ──────────────────────────────────────────
-function ConfirmModal({ type, item, onConfirm, onCancel }) {
+function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
   const isCoach  = type === 'coach'
   const isPlayer = type === 'player'
 
@@ -49,11 +76,19 @@ function ConfirmModal({ type, item, onConfirm, onCancel }) {
                 <span>训练加成</span>
                 <strong>{item.expBonus}</strong>
               </div>
-              {item.requiresFacility && (
-                <div className={`${styles.modalRow} ${styles.modalWarn}`}>
-                  <i className="ti ti-alert-triangle" aria-hidden="true" />
-                  <span>需要设施：{item.requiresFacility}</span>
-                </div>
+              {/* 设施要求满足与否 */}
+              {item.requiresFacility && facilityCheck && (
+                facilityCheck.met ? (
+                  <div className={`${styles.modalRow} ${styles.modalOk}`}>
+                    <i className="ti ti-check" aria-hidden="true" />
+                    <span>设施要求已满足：{item.requiresFacility}</span>
+                  </div>
+                ) : (
+                  <div className={`${styles.modalRow} ${styles.modalWarn}`}>
+                    <i className="ti ti-alert-triangle" aria-hidden="true" />
+                    <span>⚠️ {facilityCheck.reason}</span>
+                  </div>
+                )
               )}
             </>
           )}
@@ -84,6 +119,7 @@ function ConfirmModal({ type, item, onConfirm, onCancel }) {
         </div>
         <div className={styles.modalActions}>
           <button className={styles.btnCancel} onClick={onCancel}>取消</button>
+          {/* 设施不满足时仍允许聘用，但提示警告 */}
           <button className={styles.btnConfirm} onClick={() => onConfirm(item)}>
             确认{isCoach ? '聘用' : '招募'}
           </button>
@@ -94,7 +130,7 @@ function ConfirmModal({ type, item, onConfirm, onCancel }) {
 }
 
 // ── 教练招募卡片 ──────────────────────────────────────
-function CoachRecruitCard({ coach, onRecruit }) {
+function CoachRecruitCard({ coach, onRecruit, facilityCheck }) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -127,12 +163,17 @@ function CoachRecruitCard({ coach, onRecruit }) {
         </div>
       )}
       <p className={styles.bio}>{coach.bio}</p>
+
+      {/* 设施要求：满足显示绿色，不满足显示红色警告 */}
       {coach.requiresFacility && (
-        <div className={styles.requireBanner}>
-          <i className="ti ti-alert-triangle" aria-hidden="true" />
-          需要设施：{coach.requiresFacility}
+        <div className={facilityCheck?.met ? styles.requireBannerOk : styles.requireBanner}>
+          <i className={`ti ${facilityCheck?.met ? 'ti-check' : 'ti-alert-triangle'}`} aria-hidden="true" />
+          {facilityCheck?.met
+            ? `设施要求已满足：${coach.requiresFacility}`
+            : `⚠️ ${facilityCheck?.reason || `需要设施：${coach.requiresFacility}`}`}
         </div>
       )}
+
       <button className={styles.recruitBtn} onClick={() => onRecruit(coach)}>
         <i className="ti ti-user-plus" aria-hidden="true" /> 聘用教练
       </button>
@@ -161,14 +202,10 @@ function PlayerRecruitCard({ player, onRecruit }) {
             <span className={`${styles.healthTag} ${HEALTH_CLASS[player.health]}`}>{HEALTH_LABEL[player.health]}</span>
             {player.ranking && <span className={styles.rankTag}>#{player.ranking}</span>}
             {player.joinFee > 0 && (
-              <span className={styles.feeTag}>
-                <i className="ti ti-coin-yuan" aria-hidden="true" /> 需补助
-              </span>
+              <span className={styles.feeTag}><i className="ti ti-coin-yuan" aria-hidden="true" /> 需补助</span>
             )}
             {player.currentClub !== '无' && (
-              <span className={styles.clubTag}>
-                <i className="ti ti-building" aria-hidden="true" /> {player.currentClub}
-              </span>
+              <span className={styles.clubTag}><i className="ti ti-building" aria-hidden="true" /> {player.currentClub}</span>
             )}
           </div>
         </div>
@@ -185,7 +222,7 @@ function PlayerRecruitCard({ player, onRecruit }) {
           <span className={styles.statVal}>{physAvg}</span>
         </div>
       </div>
-      {player.skills.length > 0 && (
+      {player.skills?.length > 0 && (
         <div className={styles.skillRow}>
           {player.skills.map(s => <span key={s} className={styles.skillBadge}>{s}</span>)}
         </div>
@@ -201,9 +238,11 @@ function PlayerRecruitCard({ player, onRecruit }) {
 // ── 主页面 ────────────────────────────────────────────
 export default function RecruitPage() {
   const { state, dispatch } = useGameCtx()
-  const [tab, setTab]         = useState('players')
-  const [pending, setPending] = useState(null)
-  const [accepted, setAccepted] = useState([])  // 本周已处理的 id
+  const [tab, setTab]           = useState('players')
+  const [pending, setPending]   = useState(null)
+  const [accepted, setAccepted] = useState([])
+
+  const facilities = state.facilities || []
 
   const available = tab === 'coaches'
     ? recruitCoaches.filter(c => !accepted.includes(`coach-${c.id}`))
@@ -219,7 +258,6 @@ export default function RecruitPage() {
     setPending(null)
 
     if (tab === 'coaches') {
-      // 聘用教练：加入 state.coaches
       const newCoach = {
         ...item,
         contractWeeksLeft: item.contractYears * 52,
@@ -231,31 +269,44 @@ export default function RecruitPage() {
       dispatch({
         type: 'ADD_NEWS',
         news: {
-          id: Date.now(),
-          type: 'coach',
+          id: Date.now(), type: 'coach',
           text: `成功聘用教练${item.name}（${item.levelLabel}），合同 ${item.contractYears} 年。`,
           week: state.gameState.week,
         },
       })
     } else {
-      // 招募球员：加入 state.players，若有补助费则登记
+      // 问题1：确保完整属性，包括 mockData 里可能缺少的字段
       const newPlayer = {
+        pressure:    50,   // 补全 mockData 里招募球员可能缺的精神属性
+        willpower:   50,
+        focus:       50,
+        returnServe: 45,
+        volley:      35,
+        loyalty:     65,
+        ranking:     null,
+        points:      0,
+        injuryResist: 65,
+        expPool:     {},
         ...item,
-        isSponsored: item.joinFee > 0,  // 需要生活补助的视为赞助球员
-        expPool: {},
+        // isSponsored：有补助费的视为赞助球员
+        isSponsored: item.joinFee > 0,
       }
       dispatch({ type: 'ADD_PLAYER', player: newPlayer })
       dispatch({
         type: 'ADD_NEWS',
         news: {
-          id: Date.now(),
-          type: 'player',
+          id: Date.now(), type: 'player',
           text: `成功招募球员${item.name}（${item.talentLabel}，${item.age}岁），加入俱乐部。`,
           week: state.gameState.week,
         },
       })
     }
   }
+
+  // 当前弹窗中教练的设施检查结果
+  const pendingFacilityCheck = pending?.type === 'coach'
+    ? checkFacilityRequirement(pending.item.requiresFacility, facilities)
+    : null
 
   return (
     <div className={styles.page}>
@@ -274,16 +325,14 @@ export default function RecruitPage() {
             className={`${styles.tab} ${tab === 'players' ? styles.tabActive : ''}`}
             onClick={() => setTab('players')}
           >
-            <i className="ti ti-users" aria-hidden="true" />
-            申请球员
+            <i className="ti ti-users" aria-hidden="true" /> 申请球员
             <span className={styles.tabCount}>{recruitPlayers.length}</span>
           </button>
           <button
             className={`${styles.tab} ${tab === 'coaches' ? styles.tabActive : ''}`}
             onClick={() => setTab('coaches')}
           >
-            <i className="ti ti-user-star" aria-hidden="true" />
-            待招教练
+            <i className="ti ti-user-star" aria-hidden="true" /> 待招教练
             <span className={styles.tabCount}>{recruitCoaches.length}</span>
           </button>
         </div>
@@ -291,8 +340,15 @@ export default function RecruitPage() {
         {available.length > 0 ? (
           <div className={styles.list}>
             {tab === 'coaches'
-              ? available.map(c => <CoachRecruitCard key={c.id} coach={c} onRecruit={handleRecruit} />)
-              : available.map(p => <PlayerRecruitCard key={p.id} player={p} onRecruit={handleRecruit} />)
+              ? available.map(c => (
+                  <CoachRecruitCard
+                    key={c.id} coach={c} onRecruit={handleRecruit}
+                    facilityCheck={checkFacilityRequirement(c.requiresFacility, facilities)}
+                  />
+                ))
+              : available.map(p => (
+                  <PlayerRecruitCard key={p.id} player={p} onRecruit={handleRecruit} />
+                ))
             }
           </div>
         ) : (
@@ -310,6 +366,7 @@ export default function RecruitPage() {
           item={pending.item}
           onConfirm={handleConfirm}
           onCancel={() => setPending(null)}
+          facilityCheck={pendingFacilityCheck}
         />
       )}
     </div>

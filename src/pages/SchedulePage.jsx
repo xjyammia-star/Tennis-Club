@@ -6,7 +6,6 @@ import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
 import { getClubSettings } from '../utils/clubSettings'
 import styles from './SchedulePage.module.css'
 
-// ── 时段定义 ─────────────────────────────────────────
 const FULL_SLOTS = [
   { key: 'private', label: '私教',  sublabel: '06–10点', clubOnly: false, rentable: true  },
   { key: 'am',      label: '上午',  sublabel: '10–12点', clubOnly: true,  rentable: false },
@@ -14,7 +13,6 @@ const FULL_SLOTS = [
   { key: 'eve',     label: '晚上',  sublabel: '19–22点', clubOnly: false, rentable: true  },
 ]
 
-// ── 工具 ──────────────────────────────────────────────
 function getCourseType(id) {
   return courseTypes.find(c => c.id === id) || courseTypes[0]
 }
@@ -79,7 +77,6 @@ function PrivateDetailModal({ session, onClose }) {
   )
 }
 
-// ── 课程卡片 ──────────────────────────────────────────
 function SessionChip({ session, onClick }) {
   const isMergedPrivate = session.type === 'private' && session.isMerged
   const ct = getCourseType(session.type)
@@ -118,9 +115,131 @@ function EmptySlot({ day, slot, onClick }) {
   )
 }
 
-// ── 团课详情弹窗 ──────────────────────────────────────
-function SessionDetail({ session, onClose, onDelete, players }) {
+// ── 团课详情/编辑弹窗（问题3：编辑按钮生效）────────────
+function SessionDetail({ session, onClose, onDelete, onEdit, players, coaches }) {
+  const [editing, setEditing] = useState(false)
+
+  // 编辑状态
+  const [editHours,    setEditHours]    = useState(session.hours)
+  const [editCoachIds, setEditCoachIds] = useState(
+    session.coachIds || (session.coachId ? [session.coachId] : [])
+  )
+  const [editPlayerIds, setEditPlayerIds] = useState(session.playerIds || [])
+
   const ct = getCourseType(session.type)
+
+  function toggleCoach(id) {
+    setEditCoachIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+  }
+  function togglePlayer(id) {
+    setEditPlayerIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  }
+
+  function handleSave() {
+    if (!editCoachIds.length)  { alert('请至少选择一名教练'); return }
+    if (!editPlayerIds.length) { alert('请至少选择一名球员'); return }
+
+    // 取最高经验加成的教练名字显示
+    const bestCoach = coaches
+      .filter(c => editCoachIds.includes(c.id))
+      .sort((a, b) => {
+        const aB = parseFloat((a.expBonus || '0%').replace('%','')) || 0
+        const bB = parseFloat((b.expBonus || '0%').replace('%','')) || 0
+        return bB - aB
+      })[0]
+
+    const updatedSession = {
+      ...session,
+      hours:        editHours,
+      coachIds:     editCoachIds,
+      coachId:      bestCoach?.id,     // 主教练（经验最高）
+      coachName:    editCoachIds.length === 1
+                      ? coaches.find(c => c.id === editCoachIds[0])?.name
+                      : `${editCoachIds.length}名教练`,
+      playerIds:    editPlayerIds,
+      playerNames:  editPlayerIds.map(id => players.find(p => p.id === id)?.name || ''),
+    }
+    onEdit(updatedSession)
+    onClose()
+  }
+
+  if (editing) {
+    // ── 编辑模式 ──────────────────────────────────
+    return (
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.addPanel} onClick={e => e.stopPropagation()}>
+          <div className={styles.addHeader}>
+            <div>
+              <div className={styles.addTitle}>编辑课程：{session.label}</div>
+              <div className={styles.addSubtitle}>{ct.effect}</div>
+            </div>
+            <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
+          </div>
+          <div className={styles.addBody}>
+
+            {/* 课时 */}
+            <div className={styles.addField}>
+              <label className={styles.addLabel}>课时时长</label>
+              <div className={styles.hoursRow}>
+                {[0.5,1,1.5,2,2.5,3].map(h => (
+                  <button key={h} className={`${styles.hourBtn} ${editHours===h?styles.hourBtnActive:''}`} onClick={() => setEditHours(h)}>{h}h</button>
+                ))}
+              </div>
+            </div>
+
+            {/* 教练（多选，问题4）*/}
+            <div className={styles.addField}>
+              <label className={styles.addLabel}>
+                负责教练（可多选，经验加成取最高）已选 {editCoachIds.length} 名
+              </label>
+              <div className={styles.coachSelect}>
+                {coaches.map(c => (
+                  <button key={c.id}
+                    className={`${styles.coachBtn} ${editCoachIds.includes(c.id)?styles.coachBtnActive:''}`}
+                    onClick={() => toggleCoach(c.id)}
+                  >
+                    <span className={styles.coachBtnAvatar}>{c.name.charAt(0)}</span>
+                    <div>
+                      <div className={styles.coachBtnName}>{c.name}</div>
+                      <div className={styles.coachBtnLevel}>{c.levelLabel} · {c.expBonus}</div>
+                    </div>
+                    {editCoachIds.includes(c.id) && <i className="ti ti-check" style={{color:'var(--gold)'}} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 球员（多选）*/}
+            <div className={styles.addField}>
+              <label className={styles.addLabel}>参与球员（已选 {editPlayerIds.length} 人）</label>
+              <div className={styles.playerSelect}>
+                {players.map(p => {
+                  const isSelected = editPlayerIds.includes(p.id)
+                  const hi = p.fatigue >= 70
+                  return (
+                    <button key={p.id}
+                      className={`${styles.playerBtn} ${isSelected?styles.playerBtnActive:''} ${hi?styles.playerBtnWarn:''}`}
+                      onClick={() => togglePlayer(p.id)}
+                    >
+                      <span>{p.name}</span>
+                      <span className={styles.playerBtnAge}>{p.age}岁</span>
+                      {hi && <i className="ti ti-flame" style={{color:'#c0392b',fontSize:11}} />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+          <div className={styles.addFooter}>
+            <button className={styles.btnCancel} onClick={() => setEditing(false)}>返回</button>
+            <button className={styles.btnAdd} onClick={handleSave}><i className="ti ti-device-floppy" /> 保存修改</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 查看模式 ──────────────────────────────────────
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.detailPanel} onClick={e => e.stopPropagation()}>
@@ -139,10 +258,10 @@ function SessionDetail({ session, onClose, onDelete, players }) {
         <div className={styles.detailBody}>
           <div className={styles.detailGrid}>
             {[
-              { val: `${session.hours}h`,                    lbl: '课时' },
-              { val: session.hours * ct.expPerHour,          lbl: '经验/人' },
-              { val: (session.playerIds || []).length,       lbl: '参与球员' },
-              { val: `+${session.hours * 10}`,               lbl: '疲劳/人' },
+              { val: `${session.hours}h`,                     lbl: '课时' },
+              { val: session.hours * ct.expPerHour,           lbl: '经验/人' },
+              { val: (session.playerIds || []).length,        lbl: '参与球员' },
+              { val: `+${session.hours * 10}`,                lbl: '疲劳/人' },
             ].map((b, i) => (
               <div key={i} className={styles.detailBox}>
                 <span className={styles.detailBoxVal}>{b.val}</span>
@@ -150,20 +269,30 @@ function SessionDetail({ session, onClose, onDelete, players }) {
               </div>
             ))}
           </div>
+
+          {/* 教练区：支持多教练显示 */}
           <div className={styles.detailSection}>
             <div className={styles.detailSectionTitle}><i className="ti ti-user-star" /> 负责教练</div>
-            <div className={styles.coachRow}>
-              <div className={styles.coachAvatar}>{session.coachName?.charAt(0)}</div>
-              <span className={styles.coachName}>{session.coachName}</span>
-            </div>
+            {(session.coachIds && session.coachIds.length > 1 ? session.coachIds : [session.coachId]).map(cid => {
+              const coach = coaches?.find(c => c.id === cid)
+              const name  = coach?.name || session.coachName || '未知'
+              return (
+                <div key={cid} className={styles.coachRow}>
+                  <div className={styles.coachAvatar}>{name.charAt(0)}</div>
+                  <span className={styles.coachName}>{name}</span>
+                  {coach && <span className={styles.coachBonusTag}>{coach.expBonus}</span>}
+                </div>
+              )
+            })}
           </div>
+
           <div className={styles.detailSection}>
             <div className={styles.detailSectionTitle}>
               <i className="ti ti-users" /> 参与球员（{(session.playerNames || []).length}人）
             </div>
             <div className={styles.playerChips}>
               {(session.playerNames || []).map((name, i) => {
-                const p = players.find(pl => pl.id === session.playerIds?.[i])
+                const p  = players.find(pl => pl.id === session.playerIds?.[i])
                 const hi = (p?.fatigue || 0) >= 70
                 return (
                   <span key={i} className={`${styles.playerChip} ${hi ? styles.playerChipWarn : ''}`}>
@@ -173,8 +302,9 @@ function SessionDetail({ session, onClose, onDelete, players }) {
               })}
             </div>
           </div>
+
           <div className={styles.detailActions}>
-            <button className={styles.btnEdit} onClick={() => { alert('编辑功能开发中'); onClose() }}>
+            <button className={styles.btnEdit} onClick={() => setEditing(true)}>
               <i className="ti ti-edit" /> 编辑
             </button>
             <button className={styles.btnDelete} onClick={() => onDelete(session)}>
@@ -187,30 +317,58 @@ function SessionDetail({ session, onClose, onDelete, players }) {
   )
 }
 
-// ── 添加课程弹窗 ──────────────────────────────────────
-function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
-  const [type, setType]       = useState('court_group')
-  const [coachId, setCoachId] = useState(coaches[0]?.id)
-  const [hours, setHours]     = useState(2)
+// ── 添加课程弹窗（问题4：多教练多球员）───────────────
+function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCount }) {
+  const [type, setType]         = useState('court_group')
+  const [coachIds, setCoachIds] = useState([coaches[0]?.id].filter(Boolean))
+  const [hours, setHours]       = useState(2)
   const [selected, setSelected] = useState([])
-  const allowedTypes = courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private')
-  const slotInfo = FULL_SLOTS.find(s => s.key === slot)
 
+  const allowedTypes = courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private')
+  const slotInfo     = FULL_SLOTS.find(s => s.key === slot)
+
+  // 最大球员数 = 球场数 × 4
+  const maxPlayers = (courtCount || 6) * 4
+
+  function toggleCoach(id) {
+    setCoachIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+  }
   function togglePlayer(pid) {
-    setSelected(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])
+    setSelected(prev => {
+      if (prev.includes(pid)) return prev.filter(id => id !== pid)
+      if (prev.length >= maxPlayers) { alert(`团课最多 ${maxPlayers} 名球员（球场数×4）`); return prev }
+      return [...prev, pid]
+    })
   }
 
   function handleAdd() {
-    if (!selected.length) { alert('请至少选择一名球员'); return }
-    const coach = coaches.find(c => c.id === coachId)
+    if (!coachIds.length)  { alert('请至少选择一名教练'); return }
+    if (!selected.length)  { alert('请至少选择一名球员'); return }
+
+    // 取经验加成最高的教练作为主教练（问题4）
+    const bestCoach = coaches
+      .filter(c => coachIds.includes(c.id))
+      .sort((a, b) => {
+        const aB = parseFloat((a.expBonus || '0%').replace('%','')) || 0
+        const bB = parseFloat((b.expBonus || '0%').replace('%','')) || 0
+        return bB - aB
+      })[0]
+
     const ct = getCourseType(type)
     onAdd({
-      id: `s_${Date.now()}`,
-      slot, type, label: ct.label, hours, coachId,
-      coachName: coach?.name || '',
-      playerIds: selected,
+      id:          `s_${Date.now()}`,
+      slot,
+      type,
+      label:       ct.label,
+      hours,
+      coachIds,                         // 所有选中教练
+      coachId:     bestCoach?.id,       // 主教练（经验最高）
+      coachName:   coachIds.length === 1
+                     ? coaches.find(c => c.id === coachIds[0])?.name
+                     : `${coachIds.length}名教练`,
+      playerIds:   selected,
       playerNames: selected.map(id => players.find(p => p.id === id)?.name || ''),
-      color: ct.color,
+      color:       ct.color,
     })
   }
 
@@ -225,12 +383,13 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
           <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
         <div className={styles.addBody}>
+
+          {/* 课程类型 */}
           <div className={styles.addField}>
             <label className={styles.addLabel}>课程类型</label>
             <div className={styles.typeGrid}>
               {allowedTypes.map(c => (
-                <button
-                  key={c.id}
+                <button key={c.id}
                   className={`${styles.typeBtn} ${type === c.id ? styles.typeBtnActive : ''}`}
                   style={type === c.id ? { borderColor: c.color, background: `${c.color}12` } : {}}
                   onClick={() => setType(c.id)}
@@ -242,6 +401,8 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
               ))}
             </div>
           </div>
+
+          {/* 课时 */}
           <div className={styles.addField}>
             <label className={styles.addLabel}>课时时长</label>
             <div className={styles.hoursRow}>
@@ -250,27 +411,50 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
               ))}
             </div>
           </div>
+
+          {/* 教练（多选，不超过球场数量）*/}
           <div className={styles.addField}>
-            <label className={styles.addLabel}>负责教练</label>
+            <label className={styles.addLabel}>
+              负责教练（可多选，不超过 {courtCount} 名；经验加成取最高）
+              已选 {coachIds.length} 名
+            </label>
             <div className={styles.coachSelect}>
-              {coaches.map(c => (
-                <button key={c.id} className={`${styles.coachBtn} ${coachId===c.id?styles.coachBtnActive:''}`} onClick={() => setCoachId(c.id)}>
-                  <span className={styles.coachBtnAvatar}>{c.name.charAt(0)}</span>
-                  <div><div className={styles.coachBtnName}>{c.name}</div><div className={styles.coachBtnLevel}>{c.levelLabel}</div></div>
-                </button>
-              ))}
+              {coaches.map(c => {
+                const isSelected = coachIds.includes(c.id)
+                const disabled   = !isSelected && coachIds.length >= (courtCount || 6)
+                return (
+                  <button key={c.id}
+                    className={`${styles.coachBtn} ${isSelected?styles.coachBtnActive:''} ${disabled?styles.coachBtnDisabled:''}`}
+                    onClick={() => !disabled && toggleCoach(c.id)}
+                    disabled={disabled}
+                  >
+                    <span className={styles.coachBtnAvatar}>{c.name.charAt(0)}</span>
+                    <div>
+                      <div className={styles.coachBtnName}>{c.name}</div>
+                      <div className={styles.coachBtnLevel}>{c.levelLabel} · {c.expBonus}</div>
+                    </div>
+                    {isSelected && <i className="ti ti-check" style={{color:'var(--gold)'}} />}
+                  </button>
+                )
+              })}
             </div>
           </div>
+
+          {/* 球员（多选，不超过球场数×4）*/}
           <div className={styles.addField}>
-            <label className={styles.addLabel}>参与球员（已选 {selected.length} 人）</label>
+            <label className={styles.addLabel}>
+              参与球员（已选 {selected.length} / 最多 {maxPlayers} 人）
+            </label>
             <div className={styles.playerSelect}>
               {players.map(p => {
                 const isSelected = selected.includes(p.id)
-                const hi = p.fatigue >= 70
+                const hi         = p.fatigue >= 70
+                const disabled   = !isSelected && selected.length >= maxPlayers
                 return (
                   <button key={p.id}
-                    className={`${styles.playerBtn} ${isSelected?styles.playerBtnActive:''} ${hi?styles.playerBtnWarn:''}`}
+                    className={`${styles.playerBtn} ${isSelected?styles.playerBtnActive:''} ${hi?styles.playerBtnWarn:''} ${disabled?styles.playerBtnDisabled:''}`}
                     onClick={() => togglePlayer(p.id)}
+                    disabled={disabled}
                   >
                     <span>{p.name}</span>
                     <span className={styles.playerBtnAge}>{p.age}岁</span>
@@ -290,7 +474,6 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches }) {
   )
 }
 
-// ── 周统计 ────────────────────────────────────────────
 function WeekStats({ stats, rentalIncome }) {
   return (
     <div className={styles.statsRow}>
@@ -326,11 +509,11 @@ function WeekStats({ stats, rentalIncome }) {
 export default function SchedulePage() {
   const settings = getClubSettings()
   const { state, dispatch } = useGameCtx()
-  
-  const players    = state.players
-  const coaches    = state.coaches
-  const schedule   = state.schedule
-  const clubStats  = state.clubStats
+
+  const players   = state.players
+  const coaches   = state.coaches
+  const schedule  = state.schedule
+  const clubStats = state.clubStats
 
   const privateLessons = useMemo(() => generatePrivateLessons({
     players, coaches,
@@ -361,7 +544,7 @@ export default function SchedulePage() {
 
   const rentalInfo = useMemo(() => calcCourtRentalIncome({
     courtCount: clubStats.courtCount,
-    prestige:   1000,
+    prestige:   state.gameState.prestige || 1000,
     hourlyRate: settings.courtHourlyRate,
     weekPrivateCounts,
     eventModifier: 0,
@@ -390,17 +573,34 @@ export default function SchedulePage() {
     setSessionDetail(null)
   }
 
+  // 问题3：编辑课程
+  function handleEdit(updatedSession) {
+    setGroupSchedule(prev => {
+      const u = { ...prev }
+      DAYS.forEach(({ key }) => {
+        u[key] = (u[key] || []).map(s => s.id === updatedSession.id ? updatedSession : s)
+      })
+      return u
+    })
+    // 先删后加（App reducer 没有 UPDATE_SESSION，用这个方案）
+    dispatch({ type: 'REMOVE_SESSION', id: updatedSession.id })
+    // 找到原来在哪天
+    const dayKey = DAYS.find(d =>
+      (schedule[d.key] || []).some(s => s.id === updatedSession.id) ||
+      (groupSchedule[d.key] || []).some(s => s.id === updatedSession.id)
+    )?.key || 'mon'
+    dispatch({ type: 'ADD_SESSION', day: dayKey, session: updatedSession })
+  }
+
   function handleAdd(dayKey, slot, data) {
     setGroupSchedule(prev => ({ ...prev, [dayKey]: [...(prev[dayKey] || []), data] }))
     dispatch({ type: 'ADD_SESSION', day: dayKey, session: data })
     setAddTarget(null)
   }
 
-  // ── 周视图 ──────────────────────────────────────────
   function WeekView() {
     return (
       <div className={styles.weekGrid}>
-        {/* 表头 */}
         <div className={styles.slotLabelCell} />
         {DAYS.map(d => {
           const h = dayTotalHours(fullSchedule[d.key] || [])
@@ -411,7 +611,6 @@ export default function SchedulePage() {
             </div>
           )
         })}
-        {/* 时段行 */}
         {FULL_SLOTS.map(slot => (
           <>
             <div key={`lbl-${slot.key}`} className={`${styles.slotLabelCell} ${slot.clubOnly?styles.slotClubOnly:''}`}>
@@ -435,7 +634,6 @@ export default function SchedulePage() {
     )
   }
 
-  // ── 日视图 ──────────────────────────────────────────
   function DayView() {
     const grouped = {}
     FULL_SLOTS.forEach(s => { grouped[s.key] = [] })
@@ -477,7 +675,7 @@ export default function SchedulePage() {
     <div className={styles.page}>
       <header className={styles.mobileHeader}>
         <h1 className={styles.mobileTitle}>训练安排</h1>
-        <span className={styles.mobileWeek}>第 1 周</span>
+        <span className={styles.mobileWeek}>第 {state.gameState.week} 周</span>
       </header>
       <div className={styles.inner}>
         <WeekStats stats={stats} rentalIncome={rentalInfo.income} />
@@ -518,13 +716,24 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {sessionDetail && <SessionDetail session={sessionDetail} onClose={()=>setSessionDetail(null)} onDelete={handleDelete} players={players} />}
-      {privateDetail && <PrivateDetailModal session={privateDetail} onClose={()=>setPrivateDetail(null)} />}
+      {sessionDetail && (
+        <SessionDetail
+          session={sessionDetail}
+          onClose={() => setSessionDetail(null)}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          players={players}
+          coaches={coaches}
+        />
+      )}
+      {privateDetail && <PrivateDetailModal session={privateDetail} onClose={() => setPrivateDetail(null)} />}
       {addTarget && (
-        <AddSessionModal day={addTarget.day} slot={addTarget.slot}
-          onClose={()=>setAddTarget(null)}
-          onAdd={(data)=>handleAdd(addTarget.day,addTarget.slot,data)}
+        <AddSessionModal
+          day={addTarget.day} slot={addTarget.slot}
+          onClose={() => setAddTarget(null)}
+          onAdd={(data) => handleAdd(addTarget.day, addTarget.slot, data)}
           players={players} coaches={coaches}
+          courtCount={clubStats.courtCount}
         />
       )}
     </div>
