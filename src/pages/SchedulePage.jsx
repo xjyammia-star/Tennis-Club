@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { DAYS, courseTypes } from '../data/mockData'
-import { useGame, usePlayers, useCoaches, useSchedule, useClubStats } from '../context/GameContext'
+import { usePlayers, useCoaches, useSchedule, useClubStats, gameActions } from '../context/gameStore'
 import { generatePrivateLessons } from '../utils/privateLesson'
 import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
 import { getClubSettings } from '../utils/clubSettings'
@@ -325,7 +325,7 @@ function WeekStats({ stats, rentalIncome }) {
 // ── 主页面 ────────────────────────────────────────────
 export default function SchedulePage() {
   const settings = getClubSettings()
-  const { addSession, removeSession } = useGame()
+  
   const players    = usePlayers()
   const coaches    = useCoaches()
   const schedule   = useSchedule()
@@ -385,13 +385,13 @@ export default function SchedulePage() {
       DAYS.forEach(({ key }) => { u[key] = (u[key] || []).filter(s => s.id !== session.id) })
       return u
     })
-    removeSession(session.id)
+    gameActions.removeSession(session.id)
     setSessionDetail(null)
   }
 
   function handleAdd(dayKey, slot, data) {
     setGroupSchedule(prev => ({ ...prev, [dayKey]: [...(prev[dayKey] || []), data] }))
-    addSession(dayKey, data)
+    gameActions.addSession(dayKey, data)
     setAddTarget(null)
   }
 

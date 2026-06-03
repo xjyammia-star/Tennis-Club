@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { useGameState, useClubStats } from '../context/GameContext'
+import { useGameState, useClubStats } from '../context/gameStore'
 import { formatCash } from '../data/mockData'
 
 const pageTitles = {

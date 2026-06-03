@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useContext, useState, useEffect } from 'react'
-import { GameContext } from '../context/GameContext'
+import { useGameState, gameActions } from '../context/gameStore'
 
 const allNavItems = [
   { id: 'home',          label: '主页总览',   icon: 'ti-home',          path: '/home'          },
@@ -17,15 +16,7 @@ const allNavItems = [
 
 export default function Sidebar() {
   const { pathname } = useLocation()
-  const ctx = useContext(GameContext)
-
-  // 强制订阅：每次 ctx.state 变化时触发重渲染
-  const [, forceUpdate] = useState(0)
-  useEffect(() => {
-    forceUpdate(n => n + 1)
-  }, [ctx.state])
-
-  const gameState = ctx.state.gameState
+  const gameState = useGameState()
 
   return (
     <aside className="sidebar">
@@ -36,13 +27,10 @@ export default function Sidebar() {
           第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}
         </div>
       </div>
-
       <nav className="sidebar-nav">
         <div className="sidebar-section-label">导航</div>
         {allNavItems.map(item => (
-          <Link
-            key={item.id}
-            to={item.path}
+          <Link key={item.id} to={item.path}
             className={`sidebar-nav-item ${pathname === item.path ? 'active' : ''}`}
           >
             <i className={`ti ${item.icon}`} aria-hidden="true" />
@@ -50,9 +38,8 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
-
       <div className="sidebar-footer">
-        <button className="sidebar-next-week-btn" onClick={() => ctx.advanceWeek()}>
+        <button className="sidebar-next-week-btn" onClick={gameActions.advanceWeek}>
           <i className="ti ti-arrow-right" aria-hidden="true" />
           进入下一周
         </button>

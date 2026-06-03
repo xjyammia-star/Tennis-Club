@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useGame, useGameState, useClubStats } from '../context/GameContext'
+import { useFullState, useGameState, useClubStats, gameActions } from '../context/gameStore'
 import { menuItems, formatCash } from '../data/mockData'
 import styles from './HomePage.module.css'
 
@@ -13,19 +13,17 @@ const newsIcons = {
 }
 
 export default function HomePage() {
-  const { state, advanceWeek } = useGame()
   const gameState    = useGameState()
   const clubStats    = useClubStats()
-  const recentNews   = state.recentNews
-  const upcomingEvts = state.upcomingEvents
+  const fullState    = useFullState()
+  const recentNews   = fullState.recentNews
+  const upcomingEvts = fullState.upcomingEvents
 
   const [newsIndex, setNewsIndex] = useState(0)
   const news = recentNews[newsIndex] || recentNews[0]
 
   return (
     <div className={styles.page}>
-
-      {/* ── 移动端 Header ── */}
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.eyebrow}>Tennis Club Manager</div>
@@ -36,13 +34,12 @@ export default function HomePage() {
           <span className={styles.roundText}>
             第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}
           </span>
-          <button className={styles.nextWeekBtn} onClick={advanceWeek}>
+          <button className={styles.nextWeekBtn} onClick={gameActions.advanceWeek}>
             下一周 <i className="ti ti-arrow-right" aria-hidden="true" />
           </button>
         </div>
       </header>
 
-      {/* ── 移动端 KPI ── */}
       <div className={styles.kpiBand}>
         <div className={styles.kpiItem}>
           <span className={styles.kpiVal}>{formatCash(gameState.cash)}</span>
@@ -70,14 +67,11 @@ export default function HomePage() {
       </div>
 
       <div className={styles.body}>
-
-        {/* ── 桌面端声望 ── */}
         <div className={styles.desktopPrestigeBadge}>
-          <i className="ti ti-star" aria-hidden="true" />
+          <i className="ti ti-star" />
           声望 {gameState.prestige.toLocaleString()} · {gameState.prestigeTitle}
         </div>
 
-        {/* ── 桌面端 KPI 卡片 ── */}
         <div className={styles.desktopKpiGrid}>
           <div className={styles.desktopKpiCard}>
             <div className={styles.dkLabel}><i className="ti ti-currency-yen" />资金</div>
@@ -102,13 +96,8 @@ export default function HomePage() {
         </div>
 
         <div className={styles.desktopGrid}>
-
-          {/* 左列 */}
           <div>
-            <div className={styles.sectionLabel}>
-              <span>本周动态</span>
-              <div className={styles.sectionLine} />
-            </div>
+            <div className={styles.sectionLabel}><span>本周动态</span><div className={styles.sectionLine} /></div>
             <div className={styles.newsCard}>
               <div className={styles.newsIconWrap}>
                 <i className={`ti ${newsIcons[news?.type] || newsIcons.default}`} />
@@ -121,43 +110,25 @@ export default function HomePage() {
             {recentNews.length > 1 && (
               <div className={styles.newsDots}>
                 {recentNews.map((_, i) => (
-                  <button
-                    key={i}
-                    className={`${styles.dot} ${i === newsIndex ? styles.dotActive : ''}`}
-                    onClick={() => setNewsIndex(i)}
-                  />
+                  <button key={i} className={`${styles.dot} ${i === newsIndex ? styles.dotActive : ''}`} onClick={() => setNewsIndex(i)} />
                 ))}
               </div>
             )}
-
-            <div className={styles.sectionLabel}>
-              <span>功能菜单</span>
-              <div className={styles.sectionLine} />
-            </div>
+            <div className={styles.sectionLabel}><span>功能菜单</span><div className={styles.sectionLine} /></div>
             <div className={styles.menuGrid}>
               {menuItems.map(item => (
                 <Link key={item.id} to={item.path} className={styles.menuBtn}>
-                  <div className={styles.menuIcon}>
-                    <i className={`ti ${item.icon}`} />
-                  </div>
+                  <div className={styles.menuIcon}><i className={`ti ${item.icon}`} /></div>
                   <span className={styles.menuLabel}>{item.label}</span>
                 </Link>
               ))}
             </div>
           </div>
-
-          {/* 右列 */}
           <div>
-            <div className={styles.sectionLabel}>
-              <span>近期赛事</span>
-              <div className={styles.sectionLine} />
-            </div>
+            <div className={styles.sectionLabel}><span>近期赛事</span><div className={styles.sectionLine} /></div>
             <div className={styles.eventsCard}>
               {upcomingEvts.map((ev, idx) => (
-                <div
-                  key={ev.id}
-                  className={`${styles.eventRow} ${idx < upcomingEvts.length - 1 ? styles.eventBorder : ''}`}
-                >
+                <div key={ev.id} className={`${styles.eventRow} ${idx < upcomingEvts.length - 1 ? styles.eventBorder : ''}`}>
                   <span className={`badge ${ev.badgeClass}`}>{ev.level}</span>
                   <span className={styles.eventName}>{ev.name}</span>
                   <span className={styles.eventWeek}>第 {ev.week} 周</span>
@@ -165,7 +136,6 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </div>
