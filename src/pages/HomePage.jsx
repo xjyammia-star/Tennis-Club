@@ -7,7 +7,7 @@ import styles from './HomePage.module.css'
 const newsIcons = { skill: 'ti-star', finance: 'ti-currency-yen', player: 'ti-user', event: 'ti-trophy', default: 'ti-bell' }
 
 export default function HomePage() {
-  const { state, dispatch } = useGameCtx()
+  const { state, advanceWeek, advancing } = useGameCtx()
   const { gameState, clubStats, recentNews, upcomingEvents } = state
   const [newsIndex, setNewsIndex] = useState(0)
   const news = recentNews[newsIndex] || recentNews[0]
@@ -22,8 +22,12 @@ export default function HomePage() {
         <h1 className={styles.clubName}>{gameState.clubName}</h1>
         <div className={styles.roundRow}>
           <span className={styles.roundText}>第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}</span>
-          <button className={styles.nextWeekBtn} onClick={() => dispatch({ type: 'ADVANCE_WEEK' })}>
-            下一周 <i className="ti ti-arrow-right" aria-hidden="true" />
+          <button
+            className={styles.nextWeekBtn}
+            onClick={advanceWeek}
+            disabled={advancing}
+          >
+            {advancing ? '结算中...' : '下一周'} <i className="ti ti-arrow-right" aria-hidden="true" />
           </button>
         </div>
       </header>

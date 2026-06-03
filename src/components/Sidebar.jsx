@@ -16,7 +16,7 @@ const allNavItems = [
 
 export default function Sidebar() {
   const { pathname } = useLocation()
-  const { state, dispatch } = useGameCtx()
+  const { state, advanceWeek, advancing } = useGameCtx()
   const { gameState } = state
 
   return (
@@ -28,10 +28,14 @@ export default function Sidebar() {
           第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}
         </div>
       </div>
+
       <nav className="sidebar-nav">
         <div className="sidebar-section-label">导航</div>
+
         {allNavItems.map(item => (
-          <Link key={item.id} to={item.path}
+          <Link
+            key={item.id}
+            to={item.path}
             className={`sidebar-nav-item ${pathname === item.path ? 'active' : ''}`}
           >
             <i className={`ti ${item.icon}`} aria-hidden="true" />
@@ -39,13 +43,15 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+
       <div className="sidebar-footer">
         <button
           className="sidebar-next-week-btn"
-          onClick={() => dispatch({ type: 'ADVANCE_WEEK' })}
+          onClick={advanceWeek}
+          disabled={advancing}
         >
           <i className="ti ti-arrow-right" aria-hidden="true" />
-          进入下一周
+          {advancing ? '结算中...' : '进入下一周'}
         </button>
       </div>
     </aside>
