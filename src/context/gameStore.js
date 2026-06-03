@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import {
   gameState as initGameState,
   clubStats as initClubStats,
@@ -17,10 +18,8 @@ import {
   upcomingEvents as initUpcoming,
 } from '../data/mockData'
 
-import { useSyncExternalStore } from 'react'
-
-// ── Store ─────────────────────────────────────────────
-let state = {
+// ── 模块级状态 ────────────────────────────────────────
+let _state = {
   gameState:        { ...initGameState },
   clubStats:        { ...initClubStats },
   players:          [...initPlayers],
@@ -39,26 +38,36 @@ let state = {
   upcomingEvents:   [...initUpcoming],
 }
 
-const listeners = new Set()
+// 订阅者列表：每个元素是一个 React setState 函数
+const _setters = new Set()
 
-function setState(updater) {
-  state = typeof updater === 'function' ? updater(state) : { ...state, ...updater }
-  listeners.forEach(fn => fn())
+function _update(updater) {
+  _state = typeof updater === 'function' ? updater(_state) : { ..._state, ...updater }
+  // 通知所有订阅的组件重新渲染，传入新的 state 引用
+  _setters.forEach(set => set(_state))
 }
 
-function subscribe(fn) {
-  listeners.add(fn)
-  return () => listeners.delete(fn)
-}
+// ── Hook：订阅全局 state ──────────────────────────────
+export function useStore() {
+  const [localState, setLocalState] = useState(_state)
 
-function getSnapshot() {
-  return state
+  useEffect(() => {
+    // 组件挂载时：同步最新状态（防止挂载前有更新），并注册订阅
+    setLocalState(_state)
+    _setters.add(setLocalState)
+    return () => {
+      // 组件卸载时：取消订阅
+      _setters.delete(setLocalState)
+    }
+  }, []) // 空依赖，只在挂载/卸载时执行
+
+  return localState
 }
 
 // ── Actions ───────────────────────────────────────────
 export const gameActions = {
   advanceWeek() {
-    setState(s => {
+    _update(s => {
       const gs = s.gameState
       let newWeek = gs.week + 1
       let newYear = gs.year
@@ -67,82 +76,63 @@ export const gameActions = {
     })
   },
   updatePlayer(player) {
-    setState(s => ({ ...s, players: s.players.map(p => p.id === player.id ? { ...p, ...player } : p) }))
+    _update(s => ({ ...s, players: s.players.map(p => p.id === player.id ? { ...p, ...player } : p) }))
   },
   addPlayer(player) {
-    setState(s => ({ ...s, players: [...s.players, player], clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount + 1 } }))
+    _update(s => ({ ...s, players: [...s.players, player], clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount + 1 } }))
   },
   removePlayer(player) {
-    setState(s => ({ ...s, players: s.players.filter(p => p.id !== player.id), clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount - 1 } }))
+    _update(s => ({ ...s, players: s.players.filter(p => p.id !== player.id), clubStats: { ...s.clubStats, playerCount: s.clubStats.playerCount - 1 } }))
   },
   updateCoach(coach) {
-    setState(s => ({ ...s, coaches: s.coaches.map(c => c.id === coach.id ? { ...c, ...coach } : c) }))
+    _update(s => ({ ...s, coaches: s.coaches.map(c => c.id === coach.id ? { ...c, ...coach } : c) }))
   },
   addCoach(coach) {
-    setState(s => ({ ...s, coaches: [...s.coaches, coach], clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount + 1 } }))
+    _update(s => ({ ...s, coaches: [...s.coaches, coach], clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount + 1 } }))
   },
   removeCoach(coach) {
-    setState(s => ({ ...s, coaches: s.coaches.filter(c => c.id !== coach.id), clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount - 1 } }))
+    _update(s => ({ ...s, coaches: s.coaches.filter(c => c.id !== coach.id), clubStats: { ...s.clubStats, coachCount: s.clubStats.coachCount - 1 } }))
   },
   addSession(day, session) {
-    setState(s => ({ ...s, schedule: { ...s.schedule, [day]: [...(s.schedule[day] || []), session] } }))
+    _update(s => ({ ...s, schedule: { ...s.schedule, [day]: [...(s.schedule[day] || []), session] } }))
   },
   removeSession(sessionId) {
-    setState(s => {
-      const newSchedule = {}
-      Object.keys(s.schedule).forEach(day => {
-        newSchedule[day] = (s.schedule[day] || []).filter(ss => ss.id !== sessionId)
+    _update(s => {
+      const newSched = {}
+      Object.keys(s.schedule).forEach(d => {
+        newSched[d] = (s.schedule[d] || []).filter(ss => ss.id !== sessionId)
       })
-      return { ...s, schedule: newSchedule }
+      return { ...s, schedule: newSched }
     })
   },
   updateFacility(facility) {
-    setState(s => ({ ...s, facilities: s.facilities.map(f => f.id === facility.id ? { ...f, ...facility } : f) }))
+    _update(s => ({ ...s, facilities: s.facilities.map(f => f.id === facility.id ? { ...f, ...facility } : f) }))
   },
   addFacility(facility) {
-    setState(s => ({ ...s, facilities: [...s.facilities, facility] }))
+    _update(s => ({ ...s, facilities: [...s.facilities, facility] }))
   },
-  enterEvent(entry) {
-    setState(s => ({ ...s, myEntries: [...s.myEntries, entry] }))
-  },
-  withdrawEvent(entry) {
-    setState(s => ({ ...s, myEntries: s.myEntries.filter(e => e.eventId !== entry.eventId) }))
-  },
+  enterEvent(entry)      { _update(s => ({ ...s, myEntries: [...s.myEntries, entry] })) },
+  withdrawEvent(entry)   { _update(s => ({ ...s, myEntries: s.myEntries.filter(e => e.eventId !== entry.eventId) })) },
   addTransaction(tx) {
-    setState(s => ({
+    _update(s => ({
       ...s,
       transactions: [...s.transactions, tx],
       finance: { ...s.finance, cash: s.finance.cash + (tx.type === 'income' ? tx.amount : -tx.amount) },
     }))
   },
-  updateFinance(data) {
-    setState(s => ({ ...s, finance: { ...s.finance, ...data } }))
-  },
-  updateGameState(data) {
-    setState(s => ({ ...s, gameState: { ...s.gameState, ...data } }))
-  },
-  updateClubStats(data) {
-    setState(s => ({ ...s, clubStats: { ...s.clubStats, ...data } }))
-  },
-  addNews(news) {
-    setState(s => ({ ...s, recentNews: [news, ...s.recentNews].slice(0, 10) }))
-  },
-  loadSave(saveData) {
-    setState(saveData)
-  },
+  updateFinance(data)   { _update(s => ({ ...s, finance:    { ...s.finance,    ...data } })) },
+  updateGameState(data) { _update(s => ({ ...s, gameState:  { ...s.gameState,  ...data } })) },
+  updateClubStats(data) { _update(s => ({ ...s, clubStats:  { ...s.clubStats,  ...data } })) },
+  addNews(news)         { _update(s => ({ ...s, recentNews: [news, ...s.recentNews].slice(0, 10) })) },
+  loadSave(saveData)    { _update(saveData) },
 }
 
-// ── Hook：用 React 18 的 useSyncExternalStore ─────────
-// 这是 React 官方推荐的订阅外部 store 的方式，100% 可靠
-export function useGameStore(selector) {
-  return useSyncExternalStore(subscribe, () => selector(getSnapshot()))
-}
-
-export function useGameState()  { return useGameStore(s => s.gameState)  }
-export function useClubStats()  { return useGameStore(s => s.clubStats)  }
-export function usePlayers()    { return useGameStore(s => s.players)    }
-export function useCoaches()    { return useGameStore(s => s.coaches)    }
-export function useFacilities() { return useGameStore(s => s.facilities) }
-export function useSchedule()   { return useGameStore(s => s.schedule)   }
-export function useFinance()    { return useGameStore(s => s.finance)    }
-export function useFullState()  { return useGameStore(s => s)            }
+// ── 便捷 hooks（从 useStore 解构）────────────────────
+export function useGameState()  { return useStore().gameState  }
+export function useClubStats()  { return useStore().clubStats  }
+export function usePlayers()    { return useStore().players    }
+export function useCoaches()    { return useStore().coaches    }
+export function useFacilities() { return useStore().facilities }
+export function useSchedule()   { return useStore().schedule   }
+export function useFinance()    { return useStore().finance    }
+export function useFullState()  { return useStore()            }
