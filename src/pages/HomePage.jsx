@@ -1,24 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useFullState, useGameState, useClubStats, gameActions } from '../context/gameStore'
+import { useGameCtx } from '../App'
 import { menuItems, formatCash } from '../data/mockData'
 import styles from './HomePage.module.css'
 
-const newsIcons = {
-  skill:   'ti-star',
-  finance: 'ti-currency-yen',
-  player:  'ti-user',
-  event:   'ti-trophy',
-  default: 'ti-bell',
-}
+const newsIcons = { skill: 'ti-star', finance: 'ti-currency-yen', player: 'ti-user', event: 'ti-trophy', default: 'ti-bell' }
 
 export default function HomePage() {
-  const gameState    = useGameState()
-  const clubStats    = useClubStats()
-  const fullState    = useFullState()
-  const recentNews   = fullState.recentNews
-  const upcomingEvts = fullState.upcomingEvents
-
+  const { state, dispatch } = useGameCtx()
+  const { gameState, clubStats, recentNews, upcomingEvents } = state
   const [newsIndex, setNewsIndex] = useState(0)
   const news = recentNews[newsIndex] || recentNews[0]
 
@@ -31,10 +21,8 @@ export default function HomePage() {
         </div>
         <h1 className={styles.clubName}>{gameState.clubName}</h1>
         <div className={styles.roundRow}>
-          <span className={styles.roundText}>
-            第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}
-          </span>
-          <button className={styles.nextWeekBtn} onClick={gameActions.advanceWeek}>
+          <span className={styles.roundText}>第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}</span>
+          <button className={styles.nextWeekBtn} onClick={() => dispatch({ type: 'ADVANCE_WEEK' })}>
             下一周 <i className="ti ti-arrow-right" aria-hidden="true" />
           </button>
         </div>
@@ -68,40 +56,19 @@ export default function HomePage() {
 
       <div className={styles.body}>
         <div className={styles.desktopPrestigeBadge}>
-          <i className="ti ti-star" />
-          声望 {gameState.prestige.toLocaleString()} · {gameState.prestigeTitle}
+          <i className="ti ti-star" />声望 {gameState.prestige.toLocaleString()} · {gameState.prestigeTitle}
         </div>
-
         <div className={styles.desktopKpiGrid}>
-          <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-currency-yen" />资金</div>
-            <div className={styles.dkVal}>{formatCash(gameState.cash)}</div>
-            <div className={styles.dkSub}>{gameState.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</div>
-          </div>
-          <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-users" />球员</div>
-            <div className={styles.dkVal}>{clubStats.playerCount}</div>
-            <div className={styles.dkSub}>{clubStats.playerCapacity - clubStats.playerCount} 个空位</div>
-          </div>
-          <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-user" />教练</div>
-            <div className={styles.dkVal}>{clubStats.coachCount}</div>
-            <div className={styles.dkSub}>管理 {clubStats.coachCount} 名</div>
-          </div>
-          <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-building" />球场</div>
-            <div className={styles.dkVal}>{clubStats.courtCount} 片</div>
-            <div className={styles.dkSub}>{clubStats.courtTypes}</div>
-          </div>
+          <div className={styles.desktopKpiCard}><div className={styles.dkLabel}><i className="ti ti-currency-yen" />资金</div><div className={styles.dkVal}>{formatCash(gameState.cash)}</div><div className={styles.dkSub}>{gameState.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</div></div>
+          <div className={styles.desktopKpiCard}><div className={styles.dkLabel}><i className="ti ti-users" />球员</div><div className={styles.dkVal}>{clubStats.playerCount}</div><div className={styles.dkSub}>{clubStats.playerCapacity - clubStats.playerCount} 个空位</div></div>
+          <div className={styles.desktopKpiCard}><div className={styles.dkLabel}><i className="ti ti-user" />教练</div><div className={styles.dkVal}>{clubStats.coachCount}</div><div className={styles.dkSub}>管理 {clubStats.coachCount} 名</div></div>
+          <div className={styles.desktopKpiCard}><div className={styles.dkLabel}><i className="ti ti-building" />球场</div><div className={styles.dkVal}>{clubStats.courtCount} 片</div><div className={styles.dkSub}>{clubStats.courtTypes}</div></div>
         </div>
-
         <div className={styles.desktopGrid}>
           <div>
             <div className={styles.sectionLabel}><span>本周动态</span><div className={styles.sectionLine} /></div>
             <div className={styles.newsCard}>
-              <div className={styles.newsIconWrap}>
-                <i className={`ti ${newsIcons[news?.type] || newsIcons.default}`} />
-              </div>
+              <div className={styles.newsIconWrap}><i className={`ti ${newsIcons[news?.type] || newsIcons.default}`} /></div>
               <div className={styles.newsContent}>
                 <div className={styles.newsTag}>最新消息</div>
                 <p className={styles.newsText}>{news?.text}</p>
@@ -127,8 +94,8 @@ export default function HomePage() {
           <div>
             <div className={styles.sectionLabel}><span>近期赛事</span><div className={styles.sectionLine} /></div>
             <div className={styles.eventsCard}>
-              {upcomingEvts.map((ev, idx) => (
-                <div key={ev.id} className={`${styles.eventRow} ${idx < upcomingEvts.length - 1 ? styles.eventBorder : ''}`}>
+              {upcomingEvents.map((ev, idx) => (
+                <div key={ev.id} className={`${styles.eventRow} ${idx < upcomingEvents.length - 1 ? styles.eventBorder : ''}`}>
                   <span className={`badge ${ev.badgeClass}`}>{ev.level}</span>
                   <span className={styles.eventName}>{ev.name}</span>
                   <span className={styles.eventWeek}>第 {ev.week} 周</span>

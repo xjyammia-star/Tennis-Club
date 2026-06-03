@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { DAYS, courseTypes } from '../data/mockData'
-import { usePlayers, useCoaches, useSchedule, useClubStats, gameActions } from '../context/gameStore'
+import { useGameCtx } from '../App'
 import { generatePrivateLessons } from '../utils/privateLesson'
 import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
 import { getClubSettings } from '../utils/clubSettings'
@@ -325,11 +325,12 @@ function WeekStats({ stats, rentalIncome }) {
 // ── 主页面 ────────────────────────────────────────────
 export default function SchedulePage() {
   const settings = getClubSettings()
+  const { state, dispatch } = useGameCtx()
   
-  const players    = usePlayers()
-  const coaches    = useCoaches()
-  const schedule   = useSchedule()
-  const clubStats  = useClubStats()
+  const players    = state.players
+  const coaches    = state.coaches
+  const schedule   = state.schedule
+  const clubStats  = state.clubStats
 
   const privateLessons = useMemo(() => generatePrivateLessons({
     players, coaches,
@@ -385,13 +386,13 @@ export default function SchedulePage() {
       DAYS.forEach(({ key }) => { u[key] = (u[key] || []).filter(s => s.id !== session.id) })
       return u
     })
-    gameActions.removeSession(session.id)
+    dispatch({ type: 'REMOVE_SESSION', id: session.id })
     setSessionDetail(null)
   }
 
   function handleAdd(dayKey, slot, data) {
     setGroupSchedule(prev => ({ ...prev, [dayKey]: [...(prev[dayKey] || []), data] }))
-    gameActions.addSession(dayKey, data)
+    dispatch({ type: 'ADD_SESSION', day: dayKey, session: data })
     setAddTarget(null)
   }
 
