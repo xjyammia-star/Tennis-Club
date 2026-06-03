@@ -8,30 +8,46 @@ export default async function handler(req, res) {
 
   const sql = getDb()
 
-  // ── GET: 读取用户所有存档 ──
+  // ── GET: 读取用户存档 ──────────────────────────────
+  // 两种用途：
+  //   1. ?userId=xxx           → 读取该用户所有槽位（用于存档选择界面）
+  //   2. ?userId=xxx&slot=1    → 读取指定槽位完整 state（用于加载游戏）
   if (req.method === 'GET') {
-    const { userId } = req.query
+    const { userId, slot } = req.query
     if (!userId) return res.status(400).json({ error: '缺少 userId' })
 
     try {
-      const saves = await sql`
-        SELECT id, user_id, club_name, current_year, current_week,
-               funds, reputation, difficulty, slot, updated_at
-        FROM game_saves
-        WHERE user_id = ${userId}
-        ORDER BY slot ASC
-      `
-      return res.status(200).json({ saves })
+      if (slot) {
+        // 读取指定槽位（含完整 state_json）
+        const saves = await sql`
+          SELECT id, user_id, club_name, current_year, current_week,
+                 funds, reputation, difficulty, slot, state_json, updated_at
+          FROM game_saves
+          WHERE user_id = ${userId} AND slot = ${parseInt(slot, 10)}
+          LIMIT 1
+        `
+        return res.status(200).json({ save: saves[0] || null })
+      } else {
+        // 读取全部槽位（不含 state_json，只用于界面展示）
+        const saves = await sql`
+          SELECT id, user_id, club_name, current_year, current_week,
+                 funds, reputation, difficulty, slot, updated_at
+          FROM game_saves
+          WHERE user_id = ${userId}
+          ORDER BY slot ASC
+        `
+        return res.status(200).json({ saves })
+      }
     } catch (err) {
       return res.status(500).json({ error: err.message })
     }
   }
 
-  // ── POST: 保存/覆盖存档 ──
+  // ── POST: 存档操作 ──────────────────────────────────
   if (req.method === 'POST') {
     const { action, userId, slot, saveData } = req.body
 
-    // 写入存档（新建或覆盖）
+    // save：写入或覆盖存档
     if (action === 'save') {
       if (!userId || !slot || !saveData) {
         return res.status(400).json({ error: '缺少参数' })
@@ -41,13 +57,12 @@ export default async function handler(req, res) {
       }
 
       try {
-        // 检查该槽位是否已有存档
         const existing = await sql`
           SELECT id FROM game_saves WHERE user_id = ${userId} AND slot = ${slot}
         `
 
         if (existing.length > 0) {
-          // 覆盖
+          // 覆盖已有存档
           await sql`
             UPDATE game_saves SET
               club_name     = ${saveData.club_name},
@@ -56,18 +71,22 @@ export default async function handler(req, res) {
               funds         = ${saveData.funds},
               reputation    = ${saveData.reputation},
               difficulty    = ${saveData.difficulty},
+              state_json    = ${saveData.state_json || null},
               updated_at    = NOW()
             WHERE user_id = ${userId} AND slot = ${slot}
           `
           return res.status(200).json({ success: true, action: 'overwritten' })
         } else {
-          // 新建
+          // 新建存档
           await sql`
             INSERT INTO game_saves
-              (user_id, slot, club_name, current_year, current_week, funds, reputation, difficulty)
+              (user_id, slot, club_name, current_year, current_week,
+               funds, reputation, difficulty, state_json)
             VALUES
-              (${userId}, ${slot}, ${saveData.club_name}, ${saveData.current_year},
-               ${saveData.current_week}, ${saveData.funds}, ${saveData.reputation}, ${saveData.difficulty})
+              (${userId}, ${slot},
+               ${saveData.club_name}, ${saveData.current_year}, ${saveData.current_week},
+               ${saveData.funds}, ${saveData.reputation}, ${saveData.difficulty},
+               ${saveData.state_json || null})
           `
           return res.status(200).json({ success: true, action: 'created' })
         }
@@ -76,15 +95,25 @@ export default async function handler(req, res) {
       }
     }
 
-    // 检查槽位是否有存档（用于覆盖提示）
+    // check：检查槽位是否有存档（用于覆盖提示）
     if (action === 'check') {
-      const { userId, slot } = req.body
       try {
         const existing = await sql`
           SELECT id, club_name, current_year, current_week, updated_at
           FROM game_saves WHERE user_id = ${userId} AND slot = ${slot}
         `
         return res.status(200).json({ exists: existing.length > 0, save: existing[0] || null })
+      } catch (err) {
+        return res.status(500).json({ error: err.message })
+      }
+    }
+
+    // delete：删除指定槽位存档
+    if (action === 'delete') {
+      if (!userId || !slot) return res.status(400).json({ error: '缺少参数' })
+      try {
+        await sql`DELETE FROM game_saves WHERE user_id = ${userId} AND slot = ${slot}`
+        return res.status(200).json({ success: true })
       } catch (err) {
         return res.status(500).json({ error: err.message })
       }

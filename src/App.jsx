@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { createContext, useContext, useReducer } from 'react'
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
 import Topbar from './components/Topbar'
@@ -30,59 +30,233 @@ import {
 export const GameCtx = createContext(null)
 export const useGameCtx = () => useContext(GameCtx)
 
+// ── 默认初始 state（用 mockData 填充）──────────────────
 const INIT = {
-  gameState: { ...initGameState },
-  clubStats: { ...initClubStats },
-  players: [...initPlayers],
-  coaches: [...initCoaches],
-  facilities: [...initFacilities],
-  schedule: { ...initSchedule },
-  allEvents: [...allEvents],
-  myEntries: [...initEntries],
-  eventHistory: [...initHistory],
-  finance: { ...initFinance },
-  transactions: [...initTransactions],
-  weeklyTrend: [...initTrend],
-  incomeBreakdown: [...initIncome],
+  gameState:      { ...initGameState },
+  clubStats:      { ...initClubStats },
+  players:        [...initPlayers],
+  coaches:        [...initCoaches],
+  facilities:     [...initFacilities],
+  schedule:       { ...initSchedule },
+  allEvents:      [...allEvents],
+  myEntries:      [...initEntries],
+  eventHistory:   [...initHistory],
+  finance:        { ...initFinance },
+  transactions:   [...initTransactions],
+  weeklyTrend:    [...initTrend],
+  incomeBreakdown:  [...initIncome],
   expenseBreakdown: [...initExpense],
-  recentNews: [...initNews],
+  recentNews:     [...initNews],
   upcomingEvents: [...initUpcoming],
 }
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'ADVANCE_WEEK':
-      return advanceWeekEngine(state)
+
+    case 'ADVANCE_WEEK': {
+      const newState = advanceWeekEngine(state)
+      // 进入下一周后自动存档
+      autoSave(newState)
+      return newState
+    }
+
+    // 从存档加载完整 state
+    case 'LOAD_SAVE':
+      return { ...INIT, ...action.data }
+
     case 'ADD_SESSION': {
       const { day, session } = action
       return { ...state, schedule: { ...state.schedule, [day]: [...(state.schedule[day] || []), session] } }
     }
     case 'REMOVE_SESSION': {
       const ns = {}
-      Object.keys(state.schedule).forEach(d => { ns[d] = (state.schedule[d] || []).filter(s => s.id !== action.id) })
+      Object.keys(state.schedule).forEach(d => {
+        ns[d] = (state.schedule[d] || []).filter(s => s.id !== action.id)
+      })
       return { ...state, schedule: ns }
     }
-    case 'UPDATE_GAME_STATE': return { ...state, gameState: { ...state.gameState, ...action.data } }
-    case 'UPDATE_CLUB_STATS': return { ...state, clubStats: { ...state.clubStats, ...action.data } }
-    case 'ADD_PLAYER': return { ...state, players: [...state.players, action.player], clubStats: { ...state.clubStats, playerCount: state.clubStats.playerCount + 1 } }
-    case 'REMOVE_PLAYER': return { ...state, players: state.players.filter(p => p.id !== action.player.id), clubStats: { ...state.clubStats, playerCount: state.clubStats.playerCount - 1 } }
-    case 'UPDATE_PLAYER': return { ...state, players: state.players.map(p => p.id === action.player.id ? { ...p, ...action.player } : p) }
-    case 'ADD_COACH': return { ...state, coaches: [...state.coaches, action.coach], clubStats: { ...state.clubStats, coachCount: state.clubStats.coachCount + 1 } }
-    case 'REMOVE_COACH': return { ...state, coaches: state.coaches.filter(c => c.id !== action.coach.id), clubStats: { ...state.clubStats, coachCount: state.clubStats.coachCount - 1 } }
-    case 'UPDATE_COACH': return { ...state, coaches: state.coaches.map(c => c.id === action.coach.id ? { ...c, ...action.coach } : c) }
-    case 'UPDATE_FACILITY': return { ...state, facilities: state.facilities.map(f => f.id === action.facility.id ? { ...f, ...action.facility } : f) }
-    case 'ADD_FACILITY': return { ...state, facilities: [...state.facilities, action.facility] }
-    case 'ENTER_EVENT': return { ...state, myEntries: [...state.myEntries, action.entry] }
-    case 'WITHDRAW_EVENT': return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== action.entry.eventId) }
-    case 'ADD_TRANSACTION': return { ...state, transactions: [...state.transactions, action.tx], finance: { ...state.finance, cash: state.finance.cash + (action.tx.type === 'income' ? action.tx.amount : -action.tx.amount) } }
-    case 'ADD_NEWS': return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 10) }
-    default: return state
+
+    case 'UPDATE_GAME_STATE':
+      return { ...state, gameState: { ...state.gameState, ...action.data } }
+    case 'UPDATE_CLUB_STATS':
+      return { ...state, clubStats: { ...state.clubStats, ...action.data } }
+
+    case 'ADD_PLAYER':
+      return {
+        ...state,
+        players: [...state.players, action.player],
+        clubStats: { ...state.clubStats, playerCount: state.clubStats.playerCount + 1 },
+      }
+    case 'REMOVE_PLAYER':
+      return {
+        ...state,
+        players: state.players.filter(p => p.id !== action.player.id),
+        clubStats: { ...state.clubStats, playerCount: state.clubStats.playerCount - 1 },
+      }
+    case 'UPDATE_PLAYER':
+      return { ...state, players: state.players.map(p => p.id === action.player.id ? { ...p, ...action.player } : p) }
+
+    case 'ADD_COACH':
+      return {
+        ...state,
+        coaches: [...state.coaches, action.coach],
+        clubStats: { ...state.clubStats, coachCount: state.clubStats.coachCount + 1 },
+      }
+    case 'REMOVE_COACH':
+      return {
+        ...state,
+        coaches: state.coaches.filter(c => c.id !== action.coach.id),
+        clubStats: { ...state.clubStats, coachCount: state.clubStats.coachCount - 1 },
+      }
+    case 'UPDATE_COACH':
+      return { ...state, coaches: state.coaches.map(c => c.id === action.coach.id ? { ...c, ...action.coach } : c) }
+
+    case 'UPDATE_FACILITY':
+      return { ...state, facilities: state.facilities.map(f => f.id === action.facility.id ? { ...f, ...action.facility } : f) }
+    case 'ADD_FACILITY':
+      return { ...state, facilities: [...state.facilities, action.facility] }
+
+    case 'ENTER_EVENT':
+      return { ...state, myEntries: [...state.myEntries, action.entry] }
+    case 'WITHDRAW_EVENT':
+      return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== action.entry.eventId) }
+
+    case 'ADD_TRANSACTION':
+      return {
+        ...state,
+        transactions: [...state.transactions, action.tx],
+        finance: {
+          ...state.finance,
+          cash: state.finance.cash + (action.tx.type === 'income' ? action.tx.amount : -action.tx.amount),
+        },
+      }
+
+    case 'ADD_NEWS':
+      return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 10) }
+
+    default:
+      return state
   }
 }
 
+// ── 自动存档：写入 localStorage（同时尝试写远程）────────
+// localStorage key: tcm_autosave
+// 远程需要用户已登录（从 localStorage tcm_user 读取）
+function autoSave(state) {
+  try {
+    // 本地存档（始终执行，作为兜底）
+    localStorage.setItem('tcm_autosave', JSON.stringify(state))
+
+    // 远程存档（仅在用户已登录时执行）
+    const userStr = localStorage.getItem('tcm_user')
+    const slotStr = localStorage.getItem('tcm_current_slot')
+    if (!userStr || !slotStr) return
+
+    const user = JSON.parse(userStr)
+    const slot = parseInt(slotStr, 10)
+    if (!user?.id || !slot) return
+
+    // 构造存档数据
+    const saveData = {
+      club_name:    state.gameState.clubName,
+      current_year: state.gameState.year,
+      current_week: state.gameState.week,
+      funds:        state.finance.cash,
+      reputation:   state.gameState.prestige,
+      difficulty:   state.gameState.difficulty,
+      state_json:   JSON.stringify(state),  // 完整 state
+    }
+
+    // 异步发送，不阻塞游戏主逻辑
+    fetch('/api/saves', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', userId: user.id, slot, saveData }),
+    }).catch(err => console.warn('自动存档远程失败（不影响游戏）:', err))
+
+  } catch (err) {
+    console.warn('自动存档失败:', err)
+  }
+}
+
+// ── 手动存档（供 SettingsPage 调用）────────────────────
+export async function manualSave(state, slot) {
+  try {
+    localStorage.setItem('tcm_autosave', JSON.stringify(state))
+
+    const userStr = localStorage.getItem('tcm_user')
+    const user = userStr ? JSON.parse(userStr) : null
+    if (!user?.id) return { success: true, remote: false }
+
+    const saveData = {
+      club_name:    state.gameState.clubName,
+      current_year: state.gameState.year,
+      current_week: state.gameState.week,
+      funds:        state.finance.cash,
+      reputation:   state.gameState.prestige,
+      difficulty:   state.gameState.difficulty,
+      state_json:   JSON.stringify(state),
+    }
+
+    const res = await fetch('/api/saves', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', userId: user.id, slot, saveData }),
+    })
+    const data = await res.json()
+    return { success: true, remote: data.success }
+  } catch (err) {
+    console.warn('手动存档失败:', err)
+    return { success: false, error: err.message }
+  }
+}
+
+// ── 加载存档（供 LandingPage 调用）────────────────────
+// 优先从远程加载，失败则从 localStorage 读取
+export async function loadSave(userId, slot) {
+  try {
+    const res = await fetch(`/api/saves?userId=${userId}&slot=${slot}`)
+    const data = await res.json()
+    if (data.save?.state_json) {
+      return JSON.parse(data.save.state_json)
+    }
+  } catch (err) {
+    console.warn('远程读档失败，尝试本地:', err)
+  }
+
+  // 兜底：本地 autosave
+  try {
+    const local = localStorage.getItem('tcm_autosave')
+    if (local) return JSON.parse(local)
+  } catch {}
+
+  return null
+}
+
+// ── GameProvider ──────────────────────────────────────
 function GameProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INIT)
-  return <GameCtx.Provider value={{ state, dispatch }}>{children}</GameCtx.Provider>
+
+  // 进入游戏时：检查是否有存档需要加载
+  useEffect(() => {
+    const pendingLoad = localStorage.getItem('tcm_pending_load')
+    if (pendingLoad) {
+      try {
+        const savedState = JSON.parse(pendingLoad)
+        dispatch({ type: 'LOAD_SAVE', data: savedState })
+      } catch (err) {
+        console.warn('读取存档数据失败:', err)
+      } finally {
+        localStorage.removeItem('tcm_pending_load')
+      }
+    }
+  }, [])
+
+  return (
+    <GameCtx.Provider value={{ state, dispatch }}>
+      {children}
+    </GameCtx.Provider>
+  )
 }
 
 function GameLayout() {
