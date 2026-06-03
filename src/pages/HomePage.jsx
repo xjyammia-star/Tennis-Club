@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  gameState,
-  clubStats,
-  recentNews,
-  upcomingEvents,
-  menuItems,
-  formatCash,
-} from '../data/mockData'
+import { useGame, useGameState, useClubStats } from '../context/GameContext'
+import { menuItems, formatCash } from '../data/mockData'
 import styles from './HomePage.module.css'
 
 const newsIcons = {
@@ -19,13 +13,19 @@ const newsIcons = {
 }
 
 export default function HomePage() {
+  const { state, advanceWeek } = useGame()
+  const gameState    = useGameState()
+  const clubStats    = useClubStats()
+  const recentNews   = state.recentNews
+  const upcomingEvts = state.upcomingEvents
+
   const [newsIndex, setNewsIndex] = useState(0)
   const news = recentNews[newsIndex] || recentNews[0]
 
   return (
     <div className={styles.page}>
 
-      {/* ── Mobile-only header ───────────────────── */}
+      {/* ── 移动端 Header ── */}
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.eyebrow}>Tennis Club Manager</div>
@@ -36,13 +36,13 @@ export default function HomePage() {
           <span className={styles.roundText}>
             第 {gameState.year} 年 · 第 {gameState.week} 周 · {gameState.dayOfWeek}
           </span>
-          <button className={styles.nextWeekBtn} onClick={() => alert('下一周功能开发中…')}>
+          <button className={styles.nextWeekBtn} onClick={advanceWeek}>
             下一周 <i className="ti ti-arrow-right" aria-hidden="true" />
           </button>
         </div>
       </header>
 
-      {/* ── Mobile-only KPI strip ────────────────── */}
+      {/* ── 移动端 KPI ── */}
       <div className={styles.kpiBand}>
         <div className={styles.kpiItem}>
           <span className={styles.kpiVal}>{formatCash(gameState.cash)}</span>
@@ -71,56 +71,53 @@ export default function HomePage() {
 
       <div className={styles.body}>
 
-        {/* ── Desktop-only prestige badge ──────────── */}
+        {/* ── 桌面端声望 ── */}
         <div className={styles.desktopPrestigeBadge}>
           <i className="ti ti-star" aria-hidden="true" />
           声望 {gameState.prestige.toLocaleString()} · {gameState.prestigeTitle}
         </div>
 
-        {/* ── Desktop-only KPI cards ───────────────── */}
+        {/* ── 桌面端 KPI 卡片 ── */}
         <div className={styles.desktopKpiGrid}>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-currency-yen" aria-hidden="true" />资金</div>
+            <div className={styles.dkLabel}><i className="ti ti-currency-yen" />资金</div>
             <div className={styles.dkVal}>{formatCash(gameState.cash)}</div>
             <div className={styles.dkSub}>{gameState.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</div>
           </div>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-users" aria-hidden="true" />球员</div>
+            <div className={styles.dkLabel}><i className="ti ti-users" />球员</div>
             <div className={styles.dkVal}>{clubStats.playerCount}</div>
             <div className={styles.dkSub}>{clubStats.playerCapacity - clubStats.playerCount} 个空位</div>
           </div>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-user" aria-hidden="true" />教练</div>
+            <div className={styles.dkLabel}><i className="ti ti-user" />教练</div>
             <div className={styles.dkVal}>{clubStats.coachCount}</div>
-            <div className={styles.dkSub}>普通2 · 助教2</div>
+            <div className={styles.dkSub}>管理 {clubStats.coachCount} 名</div>
           </div>
           <div className={styles.desktopKpiCard}>
-            <div className={styles.dkLabel}><i className="ti ti-building" aria-hidden="true" />球场</div>
+            <div className={styles.dkLabel}><i className="ti ti-building" />球场</div>
             <div className={styles.dkVal}>{clubStats.courtCount} 片</div>
             <div className={styles.dkSub}>{clubStats.courtTypes}</div>
           </div>
         </div>
 
-        {/* ── Two-column grid on desktop ───────────── */}
         <div className={styles.desktopGrid}>
 
-          {/* Left column: news + menu */}
+          {/* 左列 */}
           <div>
             <div className={styles.sectionLabel}>
               <span>本周动态</span>
               <div className={styles.sectionLine} />
             </div>
-
             <div className={styles.newsCard}>
               <div className={styles.newsIconWrap}>
-                <i className={`ti ${newsIcons[news.type] || newsIcons.default}`} aria-hidden="true" />
+                <i className={`ti ${newsIcons[news?.type] || newsIcons.default}`} />
               </div>
               <div className={styles.newsContent}>
                 <div className={styles.newsTag}>最新消息</div>
-                <p className={styles.newsText}>{news.text}</p>
+                <p className={styles.newsText}>{news?.text}</p>
               </div>
             </div>
-
             {recentNews.length > 1 && (
               <div className={styles.newsDots}>
                 {recentNews.map((_, i) => (
@@ -128,7 +125,6 @@ export default function HomePage() {
                     key={i}
                     className={`${styles.dot} ${i === newsIndex ? styles.dotActive : ''}`}
                     onClick={() => setNewsIndex(i)}
-                    aria-label={`动态 ${i + 1}`}
                   />
                 ))}
               </div>
@@ -138,16 +134,11 @@ export default function HomePage() {
               <span>功能菜单</span>
               <div className={styles.sectionLine} />
             </div>
-
             <div className={styles.menuGrid}>
               {menuItems.map(item => (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  className={styles.menuBtn}
-                >
+                <Link key={item.id} to={item.path} className={styles.menuBtn}>
                   <div className={styles.menuIcon}>
-                    <i className={`ti ${item.icon}`} aria-hidden="true" />
+                    <i className={`ti ${item.icon}`} />
                   </div>
                   <span className={styles.menuLabel}>{item.label}</span>
                 </Link>
@@ -155,18 +146,17 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right column: events */}
+          {/* 右列 */}
           <div>
             <div className={styles.sectionLabel}>
               <span>近期赛事</span>
               <div className={styles.sectionLine} />
             </div>
-
             <div className={styles.eventsCard}>
-              {upcomingEvents.map((ev, idx) => (
+              {upcomingEvts.map((ev, idx) => (
                 <div
                   key={ev.id}
-                  className={`${styles.eventRow} ${idx < upcomingEvents.length - 1 ? styles.eventBorder : ''}`}
+                  className={`${styles.eventRow} ${idx < upcomingEvts.length - 1 ? styles.eventBorder : ''}`}
                 >
                   <span className={`badge ${ev.badgeClass}`}>{ev.level}</span>
                   <span className={styles.eventName}>{ev.name}</span>

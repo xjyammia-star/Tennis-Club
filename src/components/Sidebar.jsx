@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { gameState } from '../data/mockData'
+import { useGame, useGameState } from '../context/GameContext'
 
 const allNavItems = [
   { id: 'home',          label: '主页总览',   icon: 'ti-home',          path: '/home'          },
@@ -16,6 +16,8 @@ const allNavItems = [
 
 export default function Sidebar() {
   const { pathname } = useLocation()
+  const { advanceWeek } = useGame()
+  const gameState = useGameState()
 
   return (
     <aside className="sidebar">
@@ -42,10 +44,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button
-          className="sidebar-next-week-btn"
-          onClick={() => alert('下一周功能开发中…')}
-        >
+        <button className="sidebar-next-week-btn" onClick={advanceWeek}>
           <i className="ti ti-arrow-right" aria-hidden="true" />
           进入下一周
         </button>
