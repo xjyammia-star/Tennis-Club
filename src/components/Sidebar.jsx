@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useContext } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { GameContext } from '../context/GameContext'
 
 const allNavItems = [
@@ -17,13 +17,15 @@ const allNavItems = [
 
 export default function Sidebar() {
   const { pathname } = useLocation()
-  // 直接用 useContext 而不是自定义 hook，排除 hook 层的问题
   const ctx = useContext(GameContext)
-  const gameState = ctx.state.gameState
 
-  function handleNextWeek() {
-    ctx.advanceWeek()
-  }
+  // 强制订阅：每次 ctx.state 变化时触发重渲染
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    forceUpdate(n => n + 1)
+  }, [ctx.state])
+
+  const gameState = ctx.state.gameState
 
   return (
     <aside className="sidebar">
@@ -50,7 +52,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="sidebar-next-week-btn" onClick={handleNextWeek}>
+        <button className="sidebar-next-week-btn" onClick={() => ctx.advanceWeek()}>
           <i className="ti ti-arrow-right" aria-hidden="true" />
           进入下一周
         </button>
