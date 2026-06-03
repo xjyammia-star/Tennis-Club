@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { createContext, useContext, useReducer, useCallback } from 'react'
+import { createContext, useContext, useReducer } from 'react'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
 import Topbar from './components/Topbar'
@@ -14,27 +14,19 @@ import EventsPage from './pages/EventsPage'
 import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
+import { advanceWeekEngine } from './utils/weekEngine'
 
 import {
-  gameState as initGameState,
-  clubStats as initClubStats,
-  players as initPlayers,
-  coaches as initCoaches,
-  facilities as initFacilities,
-  weekSchedule as initSchedule,
-  allEvents,
-  myEntries as initEntries,
-  eventHistory as initHistory,
-  financeSummary as initFinance,
-  weekTransactions as initTransactions,
-  weeklyTrend as initTrend,
-  incomeBreakdown as initIncome,
-  expenseBreakdown as initExpense,
-  recentNews as initNews,
+  gameState as initGameState, clubStats as initClubStats,
+  players as initPlayers, coaches as initCoaches,
+  facilities as initFacilities, weekSchedule as initSchedule,
+  allEvents, myEntries as initEntries, eventHistory as initHistory,
+  financeSummary as initFinance, weekTransactions as initTransactions,
+  weeklyTrend as initTrend, incomeBreakdown as initIncome,
+  expenseBreakdown as initExpense, recentNews as initNews,
   upcomingEvents as initUpcoming,
 } from './data/mockData'
 
-// ─── Context ─────────────────────────────────────────
 export const GameCtx = createContext(null)
 export const useGameCtx = () => useContext(GameCtx)
 
@@ -59,12 +51,8 @@ const INIT = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'ADVANCE_WEEK': {
-      const gs = state.gameState
-      let w = gs.week + 1, y = gs.year
-      if (w > 52) { w = 1; y++ }
-      return { ...state, gameState: { ...gs, week: w, year: y } }
-    }
+    case 'ADVANCE_WEEK':
+      return advanceWeekEngine(state)
     case 'ADD_SESSION': {
       const { day, session } = action
       return { ...state, schedule: { ...state.schedule, [day]: [...(state.schedule[day] || []), session] } }
@@ -92,18 +80,11 @@ function reducer(state, action) {
   }
 }
 
-// ─── Provider ─────────────────────────────────────────
 function GameProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INIT)
-
-  return (
-    <GameCtx.Provider value={{ state, dispatch }}>
-      {children}
-    </GameCtx.Provider>
-  )
+  return <GameCtx.Provider value={{ state, dispatch }}>{children}</GameCtx.Provider>
 }
 
-// ─── Layout ───────────────────────────────────────────
 function GameLayout() {
   return (
     <GameProvider>
