@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
+import { useGameCtx } from '../App'
 import {
-  allEvents, myEntries, eventHistory,
-  hostEventConfig, players,
+  allEvents, eventHistory,
+  hostEventConfig,
 } from '../data/mockData'
 import styles from './EventsPage.module.css'
 
@@ -17,21 +18,19 @@ const LEVEL_META = {
 const SURFACE_ICON = { 硬地: 'ti-rectangle', 红土: 'ti-circle', 草地: 'ti-leaf' }
 const SURFACE_COLOR = { 硬地: '#2a5fa8', 红土: '#b8562a', 草地: '#2a7a3a' }
 
-const CURRENT_WEEK = 1
-
-function weeksUntil(week) {
-  return week - CURRENT_WEEK
+function weeksUntil(week, currentWeek) {
+  return week - currentWeek
 }
 
-function getStatus(event) {
-  const diff = weeksUntil(event.week)
+function getStatus(event, currentWeek) {
+  const diff = weeksUntil(event.week, currentWeek)
   if (diff < 0) return 'past'
   if (diff === 0 || diff === 1) return 'ongoing'
   if (diff <= 4) return 'soon'
   return 'upcoming'
 }
 
-function getEligiblePlayers(event) {
+function getEligiblePlayers(event, players) {
   return players.filter(p => {
     if (event.level === 'itf') return p.age >= 14 && p.age < 18
     if (event.level === 'slam') return p.ranking && p.ranking <= 150
@@ -49,11 +48,11 @@ function LevelBadge({ level, label }) {
 }
 
 // ── 赛事详情弹窗 ──────────────────────────────────────
-function EventDetail({ event, entry, onClose, onEnter, onWithdraw }) {
-  const eligible = getEligiblePlayers(event)
+function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, currentWeek }) {
+  const eligible = getEligiblePlayers(event, players)
   const isEntered = !!entry
-  const weeksAway = weeksUntil(event.week)
-  const status = getStatus(event)
+  const weeksAway = weeksUntil(event.week, currentWeek)
+  const status = getStatus(event, currentWeek)
   const [selectedPlayers, setSelectedPlayers] = useState(entry?.playerIds || [])
 
   function togglePlayer(id) {
@@ -259,10 +258,9 @@ function HostModal({ onClose }) {
 }
 
 // ── 赛事行 ────────────────────────────────────────────
-function EventRow({ event, entry, onClick }) {
-  const status = getStatus(event)
-  const weeksAway = weeksUntil(event.week)
-  const eligible = getEligiblePlayers(event)
+function EventRow({ event, entry, onClick, currentWeek }) {
+  const status = getStatus(event, currentWeek)
+  const weeksAway = weeksUntil(event.week, currentWeek)
 
   return (
     <div
@@ -309,39 +307,43 @@ function EventRow({ event, entry, onClick }) {
 
 // ── 主页面 ────────────────────────────────────────────
 export default function EventsPage() {
-  const [entries, setEntries]         = useState(myEntries)
+  // ✅ 改动：从 GameCtx 读取全局状态和 dispatch
+  const { state, dispatch } = useGameCtx()
+  const { players, myEntries, gameState } = state
+  const currentWeek = gameState.week
+
   const [selected, setSelected]       = useState(null)
   const [showHost, setShowHost]       = useState(false)
-  const [filter, setFilter]           = useState('all') // all | entered | upcoming | itf | pro
+  const [filter, setFilter]           = useState('all')
   const [showHistory, setShowHistory] = useState(false)
 
   const filtered = useMemo(() => {
     return allEvents.filter(ev => {
-      if (filter === 'entered') return entries.some(e => e.eventId === ev.id)
+      if (filter === 'entered') return myEntries.some(e => e.eventId === ev.id)
       if (filter === 'itf')     return ev.level === 'itf'
       if (filter === 'pro')     return ev.level !== 'itf'
-      if (filter === 'upcoming') return getStatus(ev) !== 'past'
+      if (filter === 'upcoming') return getStatus(ev, currentWeek) !== 'past'
       return true
     })
-  }, [filter, entries])
+  }, [filter, myEntries, currentWeek])
 
-  const enteredCount = entries.length
+  const enteredCount = myEntries.length
   const soonCount = allEvents.filter(ev => {
-    const diff = weeksUntil(ev.week)
+    const diff = weeksUntil(ev.week, currentWeek)
     return diff >= 0 && diff <= 4
   }).length
 
+  // ✅ 改动：用 dispatch 代替本地 setEntries
   function handleEnter(eventId, playerIds) {
-    setEntries(prev => {
-      const exists = prev.find(e => e.eventId === eventId)
-      if (exists) return prev.map(e => e.eventId === eventId ? { ...e, playerIds } : e)
-      return [...prev, { eventId, playerIds, status: 'upcoming' }]
-    })
+    dispatch({ type: 'ENTER_EVENT', eventId, playerIds })
   }
 
   function handleWithdraw(eventId) {
-    setEntries(prev => prev.filter(e => e.eventId !== eventId))
+    dispatch({ type: 'WITHDRAW_EVENT', eventId })
   }
+
+  // 历史战绩从全局 state 读取（若有），否则 fallback 到 mockData
+  const history = state.eventHistory ?? eventHistory
 
   return (
     <div className={styles.page}>
@@ -374,7 +376,7 @@ export default function EventsPage() {
           </div>
           <div className={styles.summaryDiv} />
           <div className={styles.summaryItem}>
-            <span className={styles.summaryVal}>{eventHistory.length}</span>
+            <span className={styles.summaryVal}>{history.length}</span>
             <span className={styles.summaryLabel}>历史战绩</span>
           </div>
         </div>
@@ -396,7 +398,7 @@ export default function EventsPage() {
         {showHistory && (
           <div className={styles.historyCard}>
             <div className={styles.historyTitle}>历史战绩</div>
-            {eventHistory.length > 0 ? eventHistory.map(h => (
+            {history.length > 0 ? history.map(h => (
               <div key={h.id} className={styles.historyRow}>
                 <div className={styles.historyLeft}>
                   <LevelBadge level={h.level} label={h.levelLabel} />
@@ -440,8 +442,9 @@ export default function EventsPage() {
             <EventRow
               key={ev.id}
               event={ev}
-              entry={entries.find(e => e.eventId === ev.id)}
+              entry={myEntries.find(e => e.eventId === ev.id)}
               onClick={setSelected}
+              currentWeek={currentWeek}
             />
           ))}
         </div>
@@ -452,10 +455,12 @@ export default function EventsPage() {
       {selected && (
         <EventDetail
           event={selected}
-          entry={entries.find(e => e.eventId === selected.id)}
+          entry={myEntries.find(e => e.eventId === selected.id)}
           onClose={() => setSelected(null)}
           onEnter={handleEnter}
           onWithdraw={handleWithdraw}
+          players={players}
+          currentWeek={currentWeek}
         />
       )}
 
