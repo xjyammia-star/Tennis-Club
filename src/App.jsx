@@ -14,13 +14,28 @@ import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
 
-function GameShell({ children }) {
+// GameShell 移到组件外部定义，避免每次渲染重新创建导致子组件重新挂载
+// 这样 Sidebar 始终是同一个实例，context 变化能正确触发重渲染
+function GameLayout() {
   return (
     <div className="app-shell">
       <Sidebar />
       <div className="main-area">
         <Topbar />
-        <main className="page-content">{children}</main>
+        <main className="page-content">
+          <Routes>
+            <Route path="/home"          element={<HomePage />}        />
+            <Route path="/players"       element={<PlayersPage />}     />
+            <Route path="/coaches"       element={<CoachesPage />}     />
+            <Route path="/recruit"       element={<RecruitPage />}     />
+            <Route path="/schedule"      element={<SchedulePage />}    />
+            <Route path="/facilities"    element={<FacilitiesPage />}  />
+            <Route path="/events"        element={<EventsPage />}      />
+            <Route path="/finance"       element={<FinancePage />}     />
+            <Route path="/settings"      element={<SettingsPage />}    />
+            <Route path="/club-settings" element={<ClubSettingsPage />}/>
+          </Routes>
+        </main>
       </div>
       <BottomNav />
     </div>
@@ -31,18 +46,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/landing" replace />} />
+        <Route path="/"        element={<Navigate to="/landing" replace />} />
         <Route path="/landing" element={<LandingPage />} />
-        <Route path="/home"         element={<GameShell><HomePage /></GameShell>} />
-        <Route path="/players"      element={<GameShell><PlayersPage /></GameShell>} />
-        <Route path="/coaches"      element={<GameShell><CoachesPage /></GameShell>} />
-        <Route path="/recruit"      element={<GameShell><RecruitPage /></GameShell>} />
-        <Route path="/schedule"     element={<GameShell><SchedulePage /></GameShell>} />
-        <Route path="/facilities"   element={<GameShell><FacilitiesPage /></GameShell>} />
-        <Route path="/events"       element={<GameShell><EventsPage /></GameShell>} />
-        <Route path="/finance"      element={<GameShell><FinancePage /></GameShell>} />
-        <Route path="/settings"     element={<GameShell><SettingsPage /></GameShell>} />
-        <Route path="/club-settings" element={<GameShell><ClubSettingsPage /></GameShell>} />
+        <Route path="/*"       element={<GameLayout />} />
       </Routes>
     </BrowserRouter>
   )
