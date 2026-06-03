@@ -160,7 +160,7 @@ function gameReducer(state, action) {
 }
 
 // ── Context ───────────────────────────────────────────
-const GameContext = createContext(null)
+export const GameContext = createContext(null)
 
 // ── Provider ──────────────────────────────────────────
 export function GameProvider({ children }) {

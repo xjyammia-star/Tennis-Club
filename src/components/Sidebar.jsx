@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useGame, useGameState } from '../context/GameContext'
+import { useContext } from 'react'
+import { GameContext } from '../context/GameContext'
 
 const allNavItems = [
   { id: 'home',          label: '主页总览',   icon: 'ti-home',          path: '/home'          },
@@ -16,13 +17,12 @@ const allNavItems = [
 
 export default function Sidebar() {
   const { pathname } = useLocation()
-  const { advanceWeek } = useGame()
-  const gameState = useGameState()
+  // 直接用 useContext 而不是自定义 hook，排除 hook 层的问题
+  const ctx = useContext(GameContext)
+  const gameState = ctx.state.gameState
 
   function handleNextWeek() {
-    console.log('点击下一周，当前周:', gameState.week)
-    advanceWeek()
-    console.log('advanceWeek 已调用')
+    ctx.advanceWeek()
   }
 
   return (
