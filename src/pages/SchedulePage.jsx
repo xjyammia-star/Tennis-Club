@@ -23,7 +23,7 @@ function dayTotalHours(sessions) {
   return sessions.reduce((sum, s) => sum + (s.hours || 0), 0)
 }
 
-function calcWeekStats(schedule) {
+function calcWeekStats(schedule, players) {
   let totalSessions = 0, totalHours = 0
   const playerHoursMap = {}
   DAYS.forEach(({ key }) => {
@@ -35,7 +35,7 @@ function calcWeekStats(schedule) {
       })
     })
   })
-  const restCount = players.filter(p => !playerHoursMap[p.id]).length
+  const restCount = (players || []).filter(p => !playerHoursMap[p.id]).length
   return { totalSessions, totalHours, playerHoursMap, restCount }
 }
 
@@ -372,7 +372,7 @@ export default function SchedulePage() {
   const [addTarget, setAddTarget]         = useState(null)
   const [view, setView]                   = useState('week')
 
-  const stats = useMemo(() => calcWeekStats(fullSchedule), [fullSchedule])
+  const stats = useMemo(() => calcWeekStats(fullSchedule, players), [fullSchedule, players])
 
   function handleClick(session) {
     if (session.isMerged && session.type === 'private') setPrivateDetail(session)
