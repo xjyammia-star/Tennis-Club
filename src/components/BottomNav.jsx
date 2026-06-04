@@ -1,11 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 
+// 移动端底部导航 5 个核心入口
+// 其余页面（教练、招募、设施、财务、排名、经营）通过主页功能菜单或设置进入
+// 每个图标下有文字标签，active 时高亮
 const navItems = [
-  { id: 'home',          label: '主页', icon: 'ti-home',          path: '/home'          },
-  { id: 'players',       label: '球员', icon: 'ti-users',         path: '/players'       },
-  { id: 'rankings',      label: '排名', icon: 'ti-list-numbers',  path: '/rankings'      },  // ✅ 新增（替换赛事，赛事移到侧边栏）
-  { id: 'finance',       label: '财务', icon: 'ti-chart-bar',     path: '/finance'       },
-  { id: 'club-settings', label: '经营', icon: 'ti-adjustments',   path: '/club-settings' },
+  { id: 'home',     label: '主页', icon: 'ti-home',          path: '/home'     },
+  { id: 'players',  label: '球员', icon: 'ti-users',         path: '/players'  },
+  { id: 'schedule', label: '训练', icon: 'ti-calendar-week', path: '/schedule' },
+  { id: 'events',   label: '赛事', icon: 'ti-trophy',        path: '/events'   },
+  { id: 'settings', label: '设置', icon: 'ti-settings',      path: '/settings' },
 ]
 
 export default function BottomNav() {

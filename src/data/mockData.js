@@ -52,12 +52,15 @@ export const upcomingEvents = [
 ]
 
 export const menuItems = [
-  { id: 'players',    label: '球员管理',   icon: 'ti-users',         path: '/players'   },
-  { id: 'coaches',    label: '教练团队',   icon: 'ti-user-star',     path: '/coaches'   },
-  { id: 'schedule',   label: '训练安排',   icon: 'ti-calendar-week', path: '/schedule'  },
-  { id: 'facilities', label: '俱乐部设施', icon: 'ti-building',      path: '/facilities'},
-  { id: 'finance',    label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'   },
-  { id: 'events',     label: '赛事管理',   icon: 'ti-trophy',        path: '/events'    },
+  { id: 'players',       label: '球员管理',   icon: 'ti-users',         path: '/players'       },
+  { id: 'coaches',       label: '教练团队',   icon: 'ti-user-star',     path: '/coaches'       },
+  { id: 'recruit',       label: '招募市场',   icon: 'ti-user-plus',     path: '/recruit'       },
+  { id: 'schedule',      label: '训练安排',   icon: 'ti-calendar-week', path: '/schedule'      },
+  { id: 'facilities',    label: '俱乐部设施', icon: 'ti-building',      path: '/facilities'    },
+  { id: 'events',        label: '赛事管理',   icon: 'ti-trophy',        path: '/events'        },
+  { id: 'finance',       label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'       },
+  { id: 'rankings',      label: '世界排名',   icon: 'ti-list-numbers',  path: '/rankings'      },
+  { id: 'club-settings', label: '俱乐部经营', icon: 'ti-adjustments',   path: '/club-settings' },
 ]
 
 export const navItems = [
