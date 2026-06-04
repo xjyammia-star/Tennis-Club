@@ -1,0 +1,316 @@
+/* ── 页面容器 ─────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: var(--cream);
+}
+
+.mobileHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 0;
+}
+.mobileTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+@media (min-width: 768px) {
+  .mobileHeader { display: none; }
+}
+
+.inner {
+  padding: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .inner { padding: 24px 28px; }
+}
+
+/* ── Tab 切换（ATP / WTA / ITF）──────────────── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--white);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--cream-dark);
+}
+.tab {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tabActive {
+  background: var(--forest);
+  color: var(--gold-pale);
+}
+.tabAtp.tabActive  { background: #1a4090; }
+.tabWta.tabActive  { background: #8a1a6a; }
+.tabItf.tabActive  { background: #5a2a8a; }
+
+/* ── 顶部说明栏 ───────────────────────────────── */
+.infoBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 14px;
+}
+.infoBanner i { color: var(--gold); font-size: 15px; }
+
+/* ── 加载/错误状态 ────────────────────────────── */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 12px;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+.loadingWrap i { font-size: 28px; color: var(--gold); }
+.errorWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  gap: 10px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.errorWrap i { font-size: 28px; color: #c0392b; }
+.retryBtn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  background: var(--forest);
+  color: var(--gold-pale);
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ── 排名列表卡片 ─────────────────────────────── */
+.listCard {
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ── 表头 ─────────────────────────────────────── */
+.listHeader {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px 70px 56px;
+  padding: 10px 14px;
+  background: var(--cream);
+  border-bottom: 1px solid var(--cream-dark);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 480px) {
+  .listHeader {
+    grid-template-columns: 44px 1fr 64px 56px;
+  }
+  .colNat { display: none; }
+}
+
+/* ── 排名行 ───────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px 70px 56px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--cream-dark);
+  align-items: center;
+  transition: background 0.12s;
+  cursor: default;
+}
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--cream); }
+
+/* ✅ 我方球员高亮行 */
+.rowMine {
+  background: #f0f7ee;
+  border-left: 3px solid var(--forest);
+}
+.rowMine:hover { background: #e6f2e3; }
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 44px 1fr 64px 56px;
+  }
+}
+
+/* ── 排名号码列 ───────────────────────────────── */
+.colRank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rankNum {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.rankNum.top3 { color: var(--gold); }
+
+/* 排名变化箭头 */
+.rankChange {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+.rankUp   { color: #2a8a3a; }
+.rankDown { color: #c0392b; }
+.rankSame { color: var(--ink-faint); font-size: 9px; }
+
+/* ── 球员信息列 ───────────────────────────────── */
+.colPlayer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: var(--gold-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+/* ✅ 我方球员头像用金色 */
+.avatarMine {
+  background: var(--gold);
+  color: var(--forest);
+}
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.playerName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playerMeta {
+  font-size: 11px;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+}
+/* ✅ 我方球员标签 */
+.myClubTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--forest);
+  background: #d4edcc;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── 国籍列 ───────────────────────────────────── */
+.colNat {
+  font-size: 12px;
+  color: var(--ink-mid);
+  text-align: center;
+}
+@media (max-width: 480px) { .colNat { display: none; } }
+
+/* ── 积分列 ───────────────────────────────────── */
+.colPoints {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ── 年龄列 ───────────────────────────────────── */
+.colAge {
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+/* ── 分隔线（每10名一组）────────────────────────── */
+.groupDivider {
+  height: 1px;
+  background: var(--cream-dark);
+  margin: 0;
+}
+
+/* ── 俱乐部球员未上榜提示 ────────────────────── */
+.myPlayersSection {
+  margin-top: 16px;
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.myPlayersSectionTitle {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  background: var(--cream);
+  border-bottom: 1px solid var(--cream-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.myPlayersSectionTitle i { color: var(--forest); }
+.myPlayersRow {
+  display: grid;
+  grid-template-columns: 1fr 80px 70px 56px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--cream-dark);
+  align-items: center;
+  font-size: 13px;
+}
+.myPlayersRow:last-child { border-bottom: none; }
+.myPlayersName { font-weight: 600; color: var(--ink); }
+.myPlayersMeta { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+.noRankTag {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+}

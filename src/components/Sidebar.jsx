@@ -9,6 +9,7 @@ const allNavItems = [
   { id: 'schedule',      label: '训练安排',   icon: 'ti-calendar-week', path: '/schedule'      },
   { id: 'facilities',    label: '俱乐部设施', icon: 'ti-building',      path: '/facilities'    },
   { id: 'events',        label: '赛事管理',   icon: 'ti-trophy',        path: '/events'        },
+  { id: 'rankings',      label: '世界排名',   icon: 'ti-list-numbers',  path: '/rankings'      },  // ✅ 新增
   { id: 'finance',       label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'       },
   { id: 'club-settings', label: '俱乐部经营', icon: 'ti-adjustments',   path: '/club-settings' },
   { id: 'settings',      label: '设置',       icon: 'ti-settings',      path: '/settings'      },

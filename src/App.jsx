@@ -14,6 +14,7 @@ import EventsPage from './pages/EventsPage'
 import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
+import RankingsPage from './pages/RankingsPage'   // ✅ 新增
 import { advanceWeekEngine } from './utils/weekEngine'
 
 import {
@@ -30,7 +31,6 @@ import {
 export const GameCtx = createContext(null)
 export const useGameCtx = () => useContext(GameCtx)
 
-// ── 默认初始 state ────────────────────────────────────
 const INIT = {
   gameState:        { ...initGameState },
   clubStats:        { ...initClubStats },
@@ -50,19 +50,12 @@ const INIT = {
   upcomingEvents:   [...initUpcoming],
 }
 
-// ── reducer（不再处理 ADVANCE_WEEK，改由 async 函数处理）──
 function reducer(state, action) {
   switch (action.type) {
-
-    // ADVANCE_WEEK 现在由 GameProvider.advanceWeek() 处理
-    // reducer 里保留空 case 避免警告
     case 'ADVANCE_WEEK':
       return state
-
-    // 从存档加载完整 state（也用于 advanceWeek 写回结果）
     case 'LOAD_SAVE':
       return { ...INIT, ...action.data }
-
     case 'ADD_SESSION': {
       const { day, session } = action
       return { ...state, schedule: { ...state.schedule, [day]: [...(state.schedule[day] || []), session] } }
@@ -74,12 +67,10 @@ function reducer(state, action) {
       })
       return { ...state, schedule: ns }
     }
-
     case 'UPDATE_GAME_STATE':
       return { ...state, gameState: { ...state.gameState, ...action.data } }
     case 'UPDATE_CLUB_STATS':
       return { ...state, clubStats: { ...state.clubStats, ...action.data } }
-
     case 'ADD_PLAYER':
       return {
         ...state,
@@ -97,7 +88,6 @@ function reducer(state, action) {
         ...state,
         players: state.players.map(p => p.id === action.player.id ? { ...p, ...action.player } : p),
       }
-
     case 'ADD_COACH':
       return {
         ...state,
@@ -115,7 +105,6 @@ function reducer(state, action) {
         ...state,
         coaches: state.coaches.map(c => c.id === action.coach.id ? { ...c, ...action.coach } : c),
       }
-
     case 'UPDATE_FACILITY':
       return {
         ...state,
@@ -123,12 +112,10 @@ function reducer(state, action) {
       }
     case 'ADD_FACILITY':
       return { ...state, facilities: [...state.facilities, action.facility] }
-
     case 'ENTER_EVENT':
       return { ...state, myEntries: [...state.myEntries, action.entry] }
     case 'WITHDRAW_EVENT':
       return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== action.entry.eventId) }
-
     case 'ADD_TRANSACTION':
       return {
         ...state,
@@ -138,28 +125,22 @@ function reducer(state, action) {
           cash: state.finance.cash + (action.tx.type === 'income' ? action.tx.amount : -action.tx.amount),
         },
       }
-
     case 'ADD_NEWS':
       return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 15) }
-
     default:
       return state
   }
 }
 
-// ── 自动存档 ──────────────────────────────────────────
 function autoSave(state) {
   try {
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
-
     const userStr = localStorage.getItem('tcm_user')
     const slotStr = localStorage.getItem('tcm_current_slot')
     if (!userStr || !slotStr) return
-
     const user = JSON.parse(userStr)
     const slot = parseInt(slotStr, 10)
     if (!user?.id || !slot) return
-
     const saveData = {
       club_name:    state.gameState.clubName,
       current_year: state.gameState.year,
@@ -169,27 +150,22 @@ function autoSave(state) {
       difficulty:   state.gameState.difficulty,
       state_json:   JSON.stringify(state),
     }
-
     fetch('/api/saves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'save', userId: user.id, slot, saveData }),
     }).catch(err => console.warn('自动存档远程失败（不影响游戏）:', err))
-
   } catch (err) {
     console.warn('自动存档失败:', err)
   }
 }
 
-// ── 手动存档（供 SettingsPage 调用）──────────────────
 export async function manualSave(state, slot) {
   try {
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
-
     const userStr = localStorage.getItem('tcm_user')
     const user = userStr ? JSON.parse(userStr) : null
     if (!user?.id) return { success: true, remote: false }
-
     const saveData = {
       club_name:    state.gameState.clubName,
       current_year: state.gameState.year,
@@ -199,7 +175,6 @@ export async function manualSave(state, slot) {
       difficulty:   state.gameState.difficulty,
       state_json:   JSON.stringify(state),
     }
-
     const res = await fetch('/api/saves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -213,7 +188,6 @@ export async function manualSave(state, slot) {
   }
 }
 
-// ── 加载存档（供 LandingPage 调用）──────────────────
 export async function loadSave(userId, slot) {
   try {
     const res = await fetch(`/api/saves?userId=${userId}&slot=${slot}`)
@@ -231,12 +205,10 @@ export async function loadSave(userId, slot) {
   return null
 }
 
-// ── GameProvider ──────────────────────────────────────
 function GameProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INIT)
-  const [advancing, setAdvancing] = useState(false)  // 「下一周」处理中标志
+  const [advancing, setAdvancing] = useState(false)
 
-  // 进入游戏时：检查是否有存档需要加载
   useEffect(() => {
     const pendingLoad = localStorage.getItem('tcm_pending_load')
     if (pendingLoad) {
@@ -251,17 +223,12 @@ function GameProvider({ children }) {
     }
   }, [])
 
-  // ── 核心：async 版「进入下一周」────────────────────
-  // advanceWeekEngine 是 async（需要 fetch 世界球员），
-  // 不能放在 reducer 里，改为 Context 方法
   async function advanceWeek() {
-    if (advancing) return   // 防止重复点击
+    if (advancing) return
     setAdvancing(true)
     try {
       const newState = await advanceWeekEngine(state)
-      // 用 LOAD_SAVE 把整个 state 替换（最简单可靠的方式）
       dispatch({ type: 'LOAD_SAVE', data: newState })
-      // 自动存档
       autoSave(newState)
     } catch (err) {
       console.error('进入下一周失败:', err)
@@ -296,6 +263,7 @@ function GameLayout() {
               <Route path="/finance"       element={<FinancePage />}     />
               <Route path="/settings"      element={<SettingsPage />}    />
               <Route path="/club-settings" element={<ClubSettingsPage />}/>
+              <Route path="/rankings"      element={<RankingsPage />}    />  {/* ✅ 新增 */}
             </Routes>
           </main>
         </div>
