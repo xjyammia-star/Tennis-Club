@@ -65,10 +65,31 @@
 .historyRow:last-child { border-bottom: none; }
 .historyLeft { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .historyName { font-size: 13px; color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.historyRight { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-.historyResult { font-size: 11px; color: var(--ink-muted); }
-.historyPrize { font-size: 12px; font-weight: 500; color: #1a6010; }
-.noHistory { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+.historyRight { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.historyResults { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.historyResult  { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
+.historyRound   { color: var(--ink); font-weight: 500; }
+.historyPrize   { font-size: 12px; font-weight: 500; color: #1a6010; }
+.noHistory      { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+
+/* ✅ 战报按钮 */
+.reportBtn {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  font-family: var(--font-sans); font-size: 11px; font-weight: 500;
+  padding: 5px 10px; border-radius: var(--radius-md); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.reportBtnFull {
+  /* 有完整战报：深绿底 */
+  background: var(--forest); border: none; color: var(--gold);
+}
+.reportBtnFull:hover { background: var(--forest-mid); }
+.reportBtnSimple {
+  /* 只有简版：边框款 */
+  background: var(--white); border: 0.5px solid var(--cream-dark); color: var(--ink-muted);
+}
+.reportBtnSimple:hover { border-color: var(--forest); color: var(--forest); }
+.reportBtn i { font-size: 13px; }
 
 /* ── Filter ── */
 .filterRow { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -94,46 +115,36 @@
 
 /* ── Event list ── */
 .eventList { display: flex; flex-direction: column; gap: 6px; padding-bottom: 16px; }
-
 .eventRow {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--white); border: 0.5px solid var(--cream-dark);
   border-radius: var(--radius-md); padding: 12px 14px;
-  cursor: pointer; transition: border-color 0.15s;
-  box-shadow: var(--shadow-card);
+  cursor: pointer; transition: border-color 0.15s; box-shadow: var(--shadow-card);
 }
 .eventRow:hover { border-color: rgba(28,58,26,0.25); }
 .eventSoon    { border-left: 3px solid #e67e22; }
 .eventOngoing { border-left: 3px solid var(--forest); background: rgba(28,58,26,0.02); }
 .eventPast    { opacity: 0.55; }
-
 .eventLeft { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
 .eventInfo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .eventName { font-size: 14px; font-weight: 500; color: var(--ink); }
 .eventSub  { font-size: 11px; color: var(--ink-muted); display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
 .eventSub i { font-size: 11px; }
-
 .eventRight { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-
 .enteredTag {
   font-size: 10px; padding: 2px 7px; border-radius: 4px;
   background: #e8f5e2; color: #1a6010; border: 0.5px solid #90d060;
   display: flex; align-items: center; gap: 3px; white-space: nowrap;
 }
 .enteredTag i { font-size: 10px; }
-
-.weekTag { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
-.weekTagSoon { color: #a04000; font-weight: 500; }
+.weekTag        { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+.weekTagSoon    { color: #a04000; font-weight: 500; }
 .weekTagOngoing { font-size: 11px; color: var(--forest); font-weight: 500; white-space: nowrap; }
-
-/* ── Surface tag ── */
-.surfaceTag {
-  font-size: 11px; display: flex; align-items: center; gap: 3px; font-weight: 500;
-}
-.surfaceTag i { font-size: 12px; }
+.surfaceTag     { font-size: 11px; display: flex; align-items: center; gap: 3px; font-weight: 500; }
+.surfaceTag i   { font-size: 12px; }
 
 /* ════════════════════════════════
-   DETAIL PANEL
+   OVERLAY（共用）
    ════════════════════════════════ */
 .overlay {
   position: fixed; inset: 0;
@@ -142,6 +153,9 @@
 }
 @media (min-width: 768px) { .overlay { align-items: center; padding: 20px; } }
 
+/* ════════════════════════════════
+   DETAIL PANEL（报名弹窗）
+   ════════════════════════════════ */
 .detailPanel {
   width: 100%; max-width: 540px; max-height: 88vh;
   background: var(--white);
@@ -151,17 +165,16 @@
 @media (min-width: 768px) { .detailPanel { border-radius: var(--radius-lg); } }
 @keyframes slideUp {
   from { transform: translateY(24px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
-
 .detailHeader {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 20px 20px 14px; border-bottom: 0.5px solid var(--cream-dark);
   position: sticky; top: 0; background: var(--white); z-index: 1;
 }
-.detailTagRow { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-.detailName { font-family: var(--font-serif); font-size: 18px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
-.detailMeta { font-size: 12px; color: var(--ink-muted); }
+.detailTagRow  { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.detailName    { font-family: var(--font-serif); font-size: 18px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.detailMeta    { font-size: 12px; color: var(--ink-muted); }
 .closeBtn {
   background: var(--cream); border: 0.5px solid var(--cream-dark);
   border-radius: 50%; width: 30px; height: 30px;
@@ -169,26 +182,20 @@
   cursor: pointer; font-size: 14px; color: var(--ink-muted); flex-shrink: 0;
 }
 .closeBtn:hover { background: var(--cream-dark); }
-
 .detailBody { padding: 16px 20px 28px; }
-
-/* status card */
 .statusCard {
   display: flex; align-items: center; gap: 8px;
   border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px;
   font-size: 13px; background: var(--cream); color: var(--ink-mid);
 }
 .statusCard i { font-size: 16px; flex-shrink: 0; }
-.statusSoon { background: #fff3e0; color: #a04000; }
+.statusSoon    { background: #fff3e0; color: #a04000; }
 .statusOngoing { background: rgba(28,58,26,0.07); color: var(--forest); }
-.statusNormal { background: var(--cream); color: var(--ink-mid); }
-
+.statusNormal  { background: var(--cream); color: var(--ink-mid); }
 .enteredPill {
   margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 10px;
   background: #e8f5e2; color: #1a6010; border: 0.5px solid #90d060; white-space: nowrap;
 }
-
-/* detail section */
 .detailSection { margin-bottom: 16px; }
 .detailSectionTitle {
   font-size: 11px; font-weight: 500; color: var(--forest);
@@ -197,13 +204,8 @@
   padding-bottom: 6px; border-bottom: 0.5px solid var(--cream-dark); margin-bottom: 10px;
 }
 .detailSectionTitle i { font-size: 13px; }
-
-/* player grid */
 .playerGrid { display: flex; flex-direction: column; gap: 6px; }
-@media (min-width: 480px) {
-  .playerGrid { display: grid; grid-template-columns: repeat(2, 1fr); }
-}
-
+@media (min-width: 480px) { .playerGrid { display: grid; grid-template-columns: repeat(2, 1fr); } }
 .playerBtn {
   display: flex; align-items: center; gap: 10px;
   background: var(--cream); border: 0.5px solid var(--cream-dark);
@@ -211,9 +213,8 @@
   transition: all 0.15s; text-align: left;
 }
 .playerBtn:hover { border-color: rgba(28,58,26,0.3); }
-.playerBtnSel { background: rgba(28,58,26,0.07); border-color: var(--forest); }
+.playerBtnSel   { background: rgba(28,58,26,0.07); border-color: var(--forest); }
 .playerBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .playerBtnAvatar {
   width: 30px; height: 30px; border-radius: 50%;
   background: var(--forest); color: var(--gold);
@@ -223,12 +224,10 @@
 .playerBtnInfo { flex: 1; }
 .playerBtnName { font-size: 13px; font-weight: 500; color: var(--ink); display: block; }
 .playerBtnMeta { font-size: 10px; color: var(--ink-muted); }
-
 .noEligible {
   font-size: 13px; color: var(--ink-faint); display: flex; align-items: center;
   gap: 6px; padding: 12px 0; font-style: italic;
 }
-
 .actionRow { margin-top: 4px; }
 .btnEnter {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -250,21 +249,17 @@
    ════════════════════════════════ */
 .hostPanel {
   width: 100%; max-width: 480px; max-height: 88vh;
-  background: var(--white);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  display: flex; flex-direction: column;
-  animation: slideUp 0.2s ease;
+  background: var(--white); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex; flex-direction: column; animation: slideUp 0.2s ease;
 }
 @media (min-width: 768px) { .hostPanel { border-radius: var(--radius-lg); max-height: 85vh; } }
-
 .hostHeader {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 18px 14px; border-bottom: 0.5px solid var(--cream-dark); flex-shrink: 0;
 }
 .hostTitle { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--ink); }
-.hostBody { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
-
-.sizeRow { display: flex; gap: 8px; }
+.hostBody  { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.sizeRow   { display: flex; gap: 8px; }
 .sizeBtn {
   flex: 1; font-family: var(--font-sans); font-size: 13px; padding: 8px;
   border-radius: var(--radius-md); border: 0.5px solid var(--cream-dark);
@@ -272,7 +267,6 @@
 }
 .sizeBtn:hover { border-color: var(--forest); }
 .sizeBtnActive { background: var(--forest); border-color: var(--forest); color: var(--gold-pale); }
-
 .hostGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .hostBox {
   background: var(--cream); border-radius: var(--radius-md); padding: 10px 6px;
@@ -280,7 +274,6 @@
 }
 .hostBoxVal { font-size: 15px; font-weight: 500; color: var(--ink); line-height: 1; }
 .hostBoxLbl { font-size: 10px; color: var(--ink-muted); text-align: center; }
-
 .hostEstimate {
   background: var(--cream); border-radius: var(--radius-md); padding: 14px;
   display: flex; flex-direction: column; gap: 8px;
@@ -289,15 +282,10 @@
   display: flex; align-items: center; justify-content: space-between;
   font-size: 13px; color: var(--ink-mid);
 }
-.hostEstTotal {
-  padding-top: 8px; border-top: 0.5px solid var(--cream-dark);
-  font-weight: 500; color: var(--ink);
-}
+.hostEstTotal { padding-top: 8px; border-top: 0.5px solid var(--cream-dark); font-weight: 500; color: var(--ink); }
 .estIncome  { color: #1a6010; }
 .estExpense { color: #c0392b; }
-
-.hostNote { font-size: 11px; color: var(--ink-faint); line-height: 1.6; }
-
+.hostNote   { font-size: 11px; color: var(--ink-faint); line-height: 1.6; }
 .hostFooter {
   display: flex; gap: 10px;
   padding: 14px 18px max(18px, env(safe-area-inset-bottom));
@@ -315,3 +303,159 @@
   padding: 11px; cursor: pointer; transition: background 0.15s;
 }
 .btnHost:hover { background: var(--forest-mid); }
+
+/* ════════════════════════════════
+   ✅ 战报弹窗（MATCH REPORT MODAL）
+   ════════════════════════════════ */
+.reportPanel {
+  width: 100%; max-width: 560px; max-height: 92vh;
+  background: var(--white);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex; flex-direction: column;
+  animation: slideUp 0.2s ease;
+  overflow: hidden;
+}
+@media (min-width: 768px) { .reportPanel { border-radius: var(--radius-lg); max-height: 88vh; } }
+
+.reportHeader {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 20px 20px 14px; border-bottom: 0.5px solid var(--cream-dark);
+  background: var(--white); flex-shrink: 0;
+}
+.reportTitle    { font-family: var(--font-serif); font-size: 18px; font-weight: 600; color: var(--ink); margin: 6px 0 3px; }
+.reportSubtitle { font-size: 12px; color: var(--ink-muted); }
+
+.reportBody { flex: 1; overflow-y: auto; padding: 16px 18px 28px; }
+
+/* 汇总成绩卡横排 */
+.reportSummaryRow {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.reportSummaryCard {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 140px;
+  background: var(--cream); border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md); padding: 10px 12px;
+  cursor: pointer; transition: all 0.15s; text-align: left;
+}
+.reportSummaryCard:hover     { border-color: var(--forest); }
+.reportSummaryCardActive     { background: rgba(28,58,26,0.07); border-color: var(--forest); }
+.reportSummaryAvatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: var(--forest); color: var(--gold);
+  font-family: var(--font-serif); font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.reportSummaryInfo   { display: flex; flex-direction: column; gap: 2px; }
+.reportSummaryName   { font-size: 13px; font-weight: 600; color: var(--ink); }
+.reportSummaryResult { font-size: 12px; color: var(--ink-mid); font-weight: 500; }
+.reportSummaryPrize  { font-size: 11px; color: #1a6010; font-weight: 500; }
+
+/* 成绩颜色 */
+.reportResultChampion { color: var(--gold) !important; }
+.reportResultRunnerUp { color: #1a4090 !important; }
+.reportResultGood     { color: #1a6010 !important; }
+
+/* 总奖金条 */
+.reportTotalPrize {
+  display: flex; align-items: center; gap: 6px;
+  background: #f0f9f0; border: 0.5px solid #a0d8a0;
+  border-radius: var(--radius-md); padding: 10px 14px;
+  font-size: 13px; color: var(--ink-mid); margin-bottom: 16px;
+}
+.reportTotalPrize i { color: #1a6010; font-size: 15px; }
+.reportTotalPrize strong { color: #1a6010; font-size: 15px; margin-left: auto; }
+
+/* 逐轮战报标题 */
+.reportRoundsTitle {
+  font-size: 11px; font-weight: 600; color: var(--forest);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+  padding-bottom: 10px; border-bottom: 0.5px solid var(--cream-dark);
+  margin-bottom: 14px;
+}
+.reportRoundsTitle i { font-size: 14px; }
+
+/* 时间轴 */
+.reportTimeline { display: flex; flex-direction: column; }
+.reportTimelineItem {
+  display: flex; gap: 12px;
+}
+.reportTimelineLeft {
+  display: flex; flex-direction: column; align-items: center;
+  width: 28px; flex-shrink: 0;
+}
+.reportTimelineNode {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  z-index: 1;
+}
+.nodeWin  { background: var(--forest); color: var(--gold); }
+.nodeLose { background: #c0392b;       color: white; }
+.reportTimelineLine {
+  flex: 1; width: 1.5px; background: var(--cream-dark);
+  margin: 3px 0; min-height: 16px;
+}
+
+/* 时间轴右侧内容 */
+.reportTimelineContent {
+  flex: 1; padding-bottom: 18px;
+}
+.reportRoundHeader {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px; margin-top: 3px;
+}
+.reportRoundLabel  { font-size: 13px; font-weight: 600; color: var(--ink); }
+.reportRoundResult { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.reportRoundWin    { background: #e8f5e2; color: #1a6010; }
+.reportRoundLose   { background: #fdecea; color: #a83228; }
+
+/* 对手卡片 */
+.reportOpponent {
+  background: var(--cream); border-radius: var(--radius-md); padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.reportOpponentLeft {
+  display: flex; align-items: center; gap: 10px;
+}
+.reportOpponentAvatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--ink-mid); color: white;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.reportOpponentName { font-size: 13px; font-weight: 600; color: var(--ink); }
+.reportOpponentNat  { font-size: 11px; color: var(--ink-muted); font-weight: 400; }
+.reportOpponentRank { font-size: 11px; color: var(--ink-muted); margin-top: 1px; }
+
+/* 战力进度条 */
+.reportPowerBar   { display: flex; flex-direction: column; gap: 4px; }
+.reportPowerLabel {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600;
+}
+.reportPowerTrack {
+  height: 6px; background: #e8e2d6; border-radius: 3px; overflow: hidden;
+}
+.reportPowerFill  {
+  height: 100%; background: var(--forest); border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.reportWinProb { font-size: 11px; color: var(--ink-muted); }
+
+/* 积分获得 */
+.reportPoints {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 12px; font-weight: 600; color: var(--gold);
+  background: #fef9ec; border: 0.5px solid #f0d98a;
+  border-radius: var(--radius-md); padding: 7px 12px;
+}
+.reportPoints i { font-size: 13px; }
+.reportPointsPrize { color: #1a6010; font-weight: 500; }
+
+/* 简版无战报提示 */
+.reportNoDetail {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ink-muted);
+  background: var(--cream); border-radius: var(--radius-md); padding: 14px;
+}
+.reportNoDetail i { color: var(--gold); font-size: 16px; flex-shrink: 0; }

@@ -14,25 +14,26 @@ const LEVEL_META = {
   '250':  { cls: styles.badge250,  color: '#2a6858' },
   itf:    { cls: styles.badgeItf,  color: '#5a2a8a' },
 }
-
-const SURFACE_ICON = { 硬地: 'ti-rectangle', 红土: 'ti-circle', 草地: 'ti-leaf' }
+const SURFACE_ICON  = { 硬地: 'ti-rectangle', 红土: 'ti-circle', 草地: 'ti-leaf' }
 const SURFACE_COLOR = { 硬地: '#2a5fa8', 红土: '#b8562a', 草地: '#2a7a3a' }
 
-function weeksUntil(week, currentWeek) {
-  return week - currentWeek
+const ROUND_ORDER = ['r1','r2','r3','qf','sf','runner_up','champion']
+const ROUND_LABEL = {
+  r1: '首轮', r2: '第二轮', r3: '第三轮',
+  qf: '四强', sf: '半决赛', runner_up: '亚军', champion: '冠军',
 }
 
+function weeksUntil(week, currentWeek) { return week - currentWeek }
 function getStatus(event, currentWeek) {
   const diff = weeksUntil(event.week, currentWeek)
-  if (diff < 0) return 'past'
+  if (diff < 0)             return 'past'
   if (diff === 0 || diff === 1) return 'ongoing'
-  if (diff <= 4) return 'soon'
+  if (diff <= 4)            return 'soon'
   return 'upcoming'
 }
-
 function getEligiblePlayers(event, players) {
   return players.filter(p => {
-    if (event.level === 'itf') return p.age >= 14 && p.age < 18
+    if (event.level === 'itf')  return p.age >= 14 && p.age < 18
     if (event.level === 'slam') return p.ranking && p.ranking <= 150
     if (event.level === '1000') return p.ranking && p.ranking <= 300
     if (event.level === '500')  return p.ranking && p.ranking <= 500
@@ -41,18 +42,237 @@ function getEligiblePlayers(event, players) {
   })
 }
 
-// ── 赛事级别徽章 ──────────────────────────────────────
 function LevelBadge({ level, label }) {
   const meta = LEVEL_META[level] || LEVEL_META['250']
   return <span className={`${styles.badge} ${meta.cls}`}>{label}</span>
 }
 
+// ════════════════════════════════════════════════════════
+// ✅ 战报弹窗
+// 兼容两种数据格式：
+//   - 完整格式（weekEngine 生成）：含 matchResults 逐轮数据
+//   - 简版格式（mockData eventHistory）：只有 results 汇总
+// ════════════════════════════════════════════════════════
+function MatchReportModal({ record, onClose }) {
+  // 判断是哪种格式
+  // 完整格式：record.matchResults 是数组（来自 weekEngine 写入 recentNews）
+  // 简版格式：record.results 是数组（来自 mockData eventHistory）
+  const isFullReport = Array.isArray(record.matchResults) && record.matchResults.length > 0
+  const [activePlayer, setActivePlayer] = useState(0)
+
+  // 完整格式下：当前选中的球员战报
+  const playerReports = isFullReport ? record.matchResults : null
+  const currentReport = playerReports?.[activePlayer]
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.reportPanel} onClick={e => e.stopPropagation()}>
+
+        {/* ── 头部 ── */}
+        <div className={styles.reportHeader}>
+          <div>
+            <div className={styles.detailTagRow}>
+              <LevelBadge level={record.level} label={record.levelLabel} />
+              {record.surface && (
+                <span className={styles.surfaceTag} style={{ color: SURFACE_COLOR[record.surface] }}>
+                  <i className={`ti ${SURFACE_ICON[record.surface]}`} aria-hidden="true" />
+                  {record.surface}
+                </span>
+              )}
+            </div>
+            <div className={styles.reportTitle}>{record.eventName}</div>
+            <div className={styles.reportSubtitle}>
+              第 {record.year ?? '—'} 年 · 第 {record.week ?? '—'} 周
+            </div>
+          </div>
+          <button className={styles.closeBtn} onClick={onClose}>
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className={styles.reportBody}>
+
+          {/* ── 汇总成绩卡 ── */}
+          <div className={styles.reportSummaryRow}>
+            {isFullReport
+              ? playerReports.map((r, i) => (
+                  <button
+                    key={r.playerId ?? i}
+                    className={`${styles.reportSummaryCard} ${activePlayer === i ? styles.reportSummaryCardActive : ''}`}
+                    onClick={() => setActivePlayer(i)}
+                  >
+                    <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
+                    <div className={styles.reportSummaryInfo}>
+                      <span className={styles.reportSummaryName}>{r.playerName}</span>
+                      <span className={`${styles.reportSummaryResult} ${
+                        r.finalRound === 'champion' ? styles.reportResultChampion :
+                        r.finalRound === 'runner_up' ? styles.reportResultRunnerUp :
+                        ['sf','qf'].includes(r.finalRound) ? styles.reportResultGood : ''
+                      }`}>
+                        {r.finalRoundLabel ?? ROUND_LABEL[r.finalRound] ?? r.finalRound}
+                      </span>
+                      {r.prize > 0 && (
+                        <span className={styles.reportSummaryPrize}>
+                          +¥{r.prize.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))
+              : (record.results ?? []).map((r, i) => (
+                  <div key={i} className={styles.reportSummaryCard}>
+                    <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
+                    <div className={styles.reportSummaryInfo}>
+                      <span className={styles.reportSummaryName}>{r.playerName}</span>
+                      <span className={styles.reportSummaryResult}>{r.round}</span>
+                      {r.prize > 0 && (
+                        <span className={styles.reportSummaryPrize}>+¥{r.prize.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+            }
+          </div>
+
+          {/* ── 总奖金 ── */}
+          {(record.totalPrize > 0) && (
+            <div className={styles.reportTotalPrize}>
+              <i className="ti ti-currency-yen" aria-hidden="true" />
+              本次赛事总奖金
+              <strong>+¥{record.totalPrize.toLocaleString()}</strong>
+            </div>
+          )}
+
+          {/* ── 完整格式：逐轮战报 ── */}
+          {isFullReport && currentReport && (
+            <div className={styles.reportRounds}>
+              <div className={styles.reportRoundsTitle}>
+                <i className="ti ti-timeline" aria-hidden="true" />
+                {currentReport.playerName} · 逐轮战报
+              </div>
+
+              {/* 进度时间轴 */}
+              <div className={styles.reportTimeline}>
+                {(currentReport.matchResults ?? []).map((match, idx) => {
+                  const isWin  = match.result === 'win' || match.result === 'champion'
+                  const isLast = idx === (currentReport.matchResults.length - 1)
+                  return (
+                    <div key={idx} className={styles.reportTimelineItem}>
+                      {/* 左侧竖线 + 节点 */}
+                      <div className={styles.reportTimelineLeft}>
+                        <div className={`${styles.reportTimelineNode} ${
+                          isWin ? styles.nodeWin : styles.nodeLose
+                        }`}>
+                          <i className={`ti ${isWin ? 'ti-check' : 'ti-x'}`} aria-hidden="true" />
+                        </div>
+                        {!isLast && <div className={styles.reportTimelineLine} />}
+                      </div>
+
+                      {/* 右侧内容 */}
+                      <div className={styles.reportTimelineContent}>
+                        <div className={styles.reportRoundHeader}>
+                          <span className={styles.reportRoundLabel}>
+                            {match.roundLabel ?? ROUND_LABEL[match.round] ?? match.round}
+                          </span>
+                          <span className={`${styles.reportRoundResult} ${
+                            isWin ? styles.reportRoundWin : styles.reportRoundLose
+                          }`}>
+                            {match.result === 'champion' ? '🏆 夺冠' : isWin ? '胜' : '负'}
+                          </span>
+                        </div>
+
+                        {/* 对手信息（冠军轮无对手） */}
+                        {match.opponent && (
+                          <div className={styles.reportOpponent}>
+                            <div className={styles.reportOpponentLeft}>
+                              <div className={styles.reportOpponentAvatar}>
+                                {match.opponent.name?.charAt(0)}
+                              </div>
+                              <div>
+                                <div className={styles.reportOpponentName}>
+                                  {match.opponent.name}
+                                  {match.opponent.nationality && (
+                                    <span className={styles.reportOpponentNat}>
+                                      · {match.opponent.nationality}
+                                    </span>
+                                  )}
+                                </div>
+                                {match.opponent.ranking && (
+                                  <div className={styles.reportOpponentRank}>
+                                    世界排名 #{match.opponent.ranking}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* 战力对比 */}
+                            {match.myPower != null && match.oppPower != null && (
+                              <div className={styles.reportPowerBar}>
+                                <div className={styles.reportPowerLabel}>
+                                  <span style={{ color: 'var(--forest)' }}>
+                                    战力 {match.myPower}
+                                  </span>
+                                  <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>vs</span>
+                                  <span style={{ color: 'var(--ink-mid)' }}>
+                                    {match.oppPower}
+                                  </span>
+                                </div>
+                                <div className={styles.reportPowerTrack}>
+                                  <div
+                                    className={styles.reportPowerFill}
+                                    style={{
+                                      width: `${Math.round(match.myPower / (match.myPower + match.oppPower) * 100)}%`
+                                    }}
+                                  />
+                                </div>
+                                <div className={styles.reportWinProb}>
+                                  胜率 {match.winProb}%
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 积分获得（仅最终轮显示） */}
+                        {isLast && currentReport.points > 0 && (
+                          <div className={styles.reportPoints}>
+                            <i className="ti ti-star" aria-hidden="true" />
+                            获得积分 +{currentReport.points}
+                            {currentReport.prize > 0 && (
+                              <span className={styles.reportPointsPrize}>
+                                · 奖金 +¥{currentReport.prize.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── 简版格式：无逐轮数据时的提示 ── */}
+          {!isFullReport && (
+            <div className={styles.reportNoDetail}>
+              <i className="ti ti-info-circle" aria-hidden="true" />
+              <span>该场赛事为历史导入数据，暂无逐轮战报。</span>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 赛事详情弹窗 ──────────────────────────────────────
 function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, currentWeek }) {
-  const eligible = getEligiblePlayers(event, players)
+  const eligible  = getEligiblePlayers(event, players)
   const isEntered = !!entry
   const weeksAway = weeksUntil(event.week, currentWeek)
-  const status = getStatus(event, currentWeek)
+  const status    = getStatus(event, currentWeek)
   const [selectedPlayers, setSelectedPlayers] = useState(entry?.playerIds || [])
 
   function togglePlayer(id) {
@@ -64,7 +284,6 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.detailPanel} onClick={e => e.stopPropagation()}>
-
         <div className={styles.detailHeader}>
           <div>
             <div className={styles.detailTagRow}>
@@ -85,8 +304,6 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
         </div>
 
         <div className={styles.detailBody}>
-
-          {/* 状态卡 */}
           <div className={`${styles.statusCard} ${
             status === 'soon' ? styles.statusSoon :
             status === 'ongoing' ? styles.statusOngoing : styles.statusNormal
@@ -97,15 +314,14 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
               status === 'soon' ? 'ti-alarm' : 'ti-calendar'
             }`} aria-hidden="true" />
             <span>
-              {status === 'past' ? '赛事已结束' :
+              {status === 'past'    ? '赛事已结束' :
                status === 'ongoing' ? '赛事进行中' :
-               status === 'soon' ? `距开赛仅剩 ${weeksAway} 周` :
+               status === 'soon'    ? `距开赛仅剩 ${weeksAway} 周` :
                `距开赛还有 ${weeksAway} 周`}
             </span>
             {isEntered && <span className={styles.enteredPill}>已报名</span>}
           </div>
 
-          {/* 可参赛球员 */}
           <div className={styles.detailSection}>
             <div className={styles.detailSectionTitle}>
               <i className="ti ti-users" aria-hidden="true" />
@@ -126,8 +342,7 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
                       <div className={styles.playerBtnInfo}>
                         <span className={styles.playerBtnName}>{p.name}</span>
                         <span className={styles.playerBtnMeta}>
-                          {p.age}岁
-                          {p.ranking ? ` · #${p.ranking}` : ''}
+                          {p.age}岁{p.ranking ? ` · #${p.ranking}` : ''}
                         </span>
                       </div>
                       {sel && <i className="ti ti-check" style={{ color: 'var(--gold)', fontSize: 14 }} aria-hidden="true" />}
@@ -142,7 +357,6 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
             )}
           </div>
 
-          {/* 操作 */}
           {status !== 'past' && (
             <div className={styles.actionRow}>
               {isEntered ? (
@@ -163,7 +377,6 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
               )}
             </div>
           )}
-
         </div>
       </div>
     </div>
@@ -173,65 +386,34 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
 // ── 承办赛事弹窗 ──────────────────────────────────────
 function HostModal({ onClose }) {
   const [size, setSize] = useState('small')
-  const cfg = hostEventConfig[size]
+  const cfg       = hostEventConfig[size]
   const estIncome = cfg.regFee * cfg.regMax * 0.7 + cfg.ticketFee * cfg.ticketMax * 0.6
   const estProfit = estIncome - cfg.cost
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.hostPanel} onClick={e => e.stopPropagation()}>
-
         <div className={styles.hostHeader}>
           <span className={styles.hostTitle}>承办比赛</span>
           <button className={styles.closeBtn} onClick={onClose}>
             <i className="ti ti-x" aria-hidden="true" />
           </button>
         </div>
-
         <div className={styles.hostBody}>
-
           <div className={styles.sizeRow}>
-            {[
-              { k: 'small',  l: '小型赛事' },
-              { k: 'medium', l: '中型赛事' },
-              { k: 'large',  l: '大型赛事' },
-            ].map(({ k, l }) => (
-              <button
-                key={k}
-                className={`${styles.sizeBtn} ${size === k ? styles.sizeBtnActive : ''}`}
-                onClick={() => setSize(k)}
-              >{l}</button>
+            {[{ k:'small',l:'小型赛事' },{ k:'medium',l:'中型赛事' },{ k:'large',l:'大型赛事' }].map(({k,l}) => (
+              <button key={k} className={`${styles.sizeBtn} ${size===k ? styles.sizeBtnActive : ''}`} onClick={() => setSize(k)}>{l}</button>
             ))}
           </div>
-
           <div className={styles.hostGrid}>
-            <div className={styles.hostBox}>
-              <span className={styles.hostBoxVal}>¥{(cfg.cost/10000).toFixed(0)}万</span>
-              <span className={styles.hostBoxLbl}>承办成本</span>
-            </div>
-            <div className={styles.hostBox}>
-              <span className={styles.hostBoxVal}>¥{cfg.regFee}</span>
-              <span className={styles.hostBoxLbl}>报名费/人</span>
-            </div>
-            <div className={styles.hostBox}>
-              <span className={styles.hostBoxVal}>{cfg.regMax}人</span>
-              <span className={styles.hostBoxLbl}>报名上限</span>
-            </div>
-            <div className={styles.hostBox}>
-              <span className={styles.hostBoxVal}>+{cfg.prestige}</span>
-              <span className={styles.hostBoxLbl}>声望加成</span>
-            </div>
+            <div className={styles.hostBox}><span className={styles.hostBoxVal}>¥{(cfg.cost/10000).toFixed(0)}万</span><span className={styles.hostBoxLbl}>承办成本</span></div>
+            <div className={styles.hostBox}><span className={styles.hostBoxVal}>¥{cfg.regFee}</span><span className={styles.hostBoxLbl}>报名费/人</span></div>
+            <div className={styles.hostBox}><span className={styles.hostBoxVal}>{cfg.regMax}人</span><span className={styles.hostBoxLbl}>报名上限</span></div>
+            <div className={styles.hostBox}><span className={styles.hostBoxVal}>+{cfg.prestige}</span><span className={styles.hostBoxLbl}>声望加成</span></div>
           </div>
-
           <div className={styles.hostEstimate}>
-            <div className={styles.hostEstRow}>
-              <span>预估收入</span>
-              <strong className={styles.estIncome}>+¥{(estIncome/10000).toFixed(1)}万</strong>
-            </div>
-            <div className={styles.hostEstRow}>
-              <span>承办成本</span>
-              <strong className={styles.estExpense}>-¥{(cfg.cost/10000).toFixed(0)}万</strong>
-            </div>
+            <div className={styles.hostEstRow}><span>预估收入</span><strong className={styles.estIncome}>+¥{(estIncome/10000).toFixed(1)}万</strong></div>
+            <div className={styles.hostEstRow}><span>承办成本</span><strong className={styles.estExpense}>-¥{(cfg.cost/10000).toFixed(0)}万</strong></div>
             <div className={`${styles.hostEstRow} ${styles.hostEstTotal}`}>
               <span>预估净利润</span>
               <strong className={estProfit >= 0 ? styles.estIncome : styles.estExpense}>
@@ -239,19 +421,14 @@ function HostModal({ onClose }) {
               </strong>
             </div>
           </div>
-
-          <p className={styles.hostNote}>
-            * 需提前 2 周申请，实际收入受参与人数影响。承办大型赛事需声望 ≥ 3000。
-          </p>
+          <p className={styles.hostNote}>* 需提前 2 周申请，实际收入受参与人数影响。承办大型赛事需声望 ≥ 3000。</p>
         </div>
-
         <div className={styles.hostFooter}>
           <button className={styles.btnCancel} onClick={onClose}>取消</button>
           <button className={styles.btnHost} onClick={() => { alert('承办功能开发中…'); onClose() }}>
             <i className="ti ti-flag" aria-hidden="true" /> 申请承办
           </button>
         </div>
-
       </div>
     </div>
   )
@@ -259,15 +436,14 @@ function HostModal({ onClose }) {
 
 // ── 赛事行 ────────────────────────────────────────────
 function EventRow({ event, entry, onClick, currentWeek }) {
-  const status = getStatus(event, currentWeek)
+  const status    = getStatus(event, currentWeek)
   const weeksAway = weeksUntil(event.week, currentWeek)
-
   return (
     <div
       className={`${styles.eventRow} ${
-        status === 'soon' ? styles.eventSoon :
+        status === 'soon'    ? styles.eventSoon    :
         status === 'ongoing' ? styles.eventOngoing :
-        status === 'past' ? styles.eventPast : ''
+        status === 'past'    ? styles.eventPast    : ''
       }`}
       onClick={() => onClick(event)}
     >
@@ -305,49 +481,85 @@ function EventRow({ event, entry, onClick, currentWeek }) {
   )
 }
 
+// ── ✅ 历史战绩行（可点击展开战报）──────────────────────
+function HistoryRow({ record, onViewReport }) {
+  // 判断是否有完整战报数据
+  const hasFullReport = Array.isArray(record.matchResults) && record.matchResults.length > 0
+
+  return (
+    <div className={styles.historyRow}>
+      <div className={styles.historyLeft}>
+        <LevelBadge level={record.level} label={record.levelLabel} />
+        <span className={styles.historyName}>{record.eventName}</span>
+      </div>
+      <div className={styles.historyRight}>
+        <div className={styles.historyResults}>
+          {(record.results ?? record.matchResults?.map(r => ({
+            playerName: r.playerName,
+            round: r.finalRoundLabel ?? ROUND_LABEL[r.finalRound] ?? r.finalRound,
+          })) ?? []).map((r, i) => (
+            <span key={i} className={styles.historyResult}>
+              {r.playerName} <span className={styles.historyRound}>{r.round}</span>
+            </span>
+          ))}
+          {record.totalPrize > 0 && (
+            <span className={styles.historyPrize}>+¥{record.totalPrize.toLocaleString()}</span>
+          )}
+        </div>
+        {/* ✅ 战报按钮 */}
+        <button
+          className={`${styles.reportBtn} ${hasFullReport ? styles.reportBtnFull : styles.reportBtnSimple}`}
+          onClick={() => onViewReport(record)}
+          title={hasFullReport ? '查看详细战报' : '查看简版战报'}
+        >
+          <i className="ti ti-file-report" aria-hidden="true" />
+          战报
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── 主页面 ────────────────────────────────────────────
 export default function EventsPage() {
-  // ✅ 改动：从 GameCtx 读取全局状态和 dispatch
   const { state, dispatch } = useGameCtx()
   const { players, myEntries, gameState } = state
   const currentWeek = gameState.week
 
-  const [selected, setSelected]       = useState(null)
-  const [showHost, setShowHost]       = useState(false)
-  const [filter, setFilter]           = useState('all')
-  const [showHistory, setShowHistory] = useState(false)
+  const [selected, setSelected]         = useState(null)
+  const [showHost, setShowHost]         = useState(false)
+  const [filter, setFilter]             = useState('all')
+  const [showHistory, setShowHistory]   = useState(false)
+  const [reportRecord, setReportRecord] = useState(null)  // ✅ 当前查看战报的记录
 
   const filtered = useMemo(() => {
     return allEvents.filter(ev => {
-      if (filter === 'entered') return myEntries.some(e => e.eventId === ev.id)
-      if (filter === 'itf')     return ev.level === 'itf'
-      if (filter === 'pro')     return ev.level !== 'itf'
+      if (filter === 'entered')  return myEntries.some(e => e.eventId === ev.id)
+      if (filter === 'itf')      return ev.level === 'itf'
+      if (filter === 'pro')      return ev.level !== 'itf'
       if (filter === 'upcoming') return getStatus(ev, currentWeek) !== 'past'
       return true
     })
   }, [filter, myEntries, currentWeek])
 
   const enteredCount = myEntries.length
-  const soonCount = allEvents.filter(ev => {
+  const soonCount    = allEvents.filter(ev => {
     const diff = weeksUntil(ev.week, currentWeek)
     return diff >= 0 && diff <= 4
   }).length
 
-  // ✅ 改动：用 dispatch 代替本地 setEntries
   function handleEnter(eventId, playerIds) {
     dispatch({ type: 'ENTER_EVENT', eventId, playerIds })
   }
-
   function handleWithdraw(eventId) {
     dispatch({ type: 'WITHDRAW_EVENT', eventId })
   }
 
-  // 历史战绩从全局 state 读取（若有），否则 fallback 到 mockData
+  // 历史战绩：优先用 state 里的，fallback 到 mockData
   const history = state.eventHistory ?? eventHistory
 
   return (
     <div className={styles.page}>
-
       <header className={styles.mobileHeader}>
         <h1 className={styles.mobileTitle}>赛事管理</h1>
       </header>
@@ -362,16 +574,12 @@ export default function EventsPage() {
           </div>
           <div className={styles.summaryDiv} />
           <div className={styles.summaryItem}>
-            <span className={`${styles.summaryVal} ${enteredCount > 0 ? styles.summaryGreen : ''}`}>
-              {enteredCount}
-            </span>
+            <span className={`${styles.summaryVal} ${enteredCount > 0 ? styles.summaryGreen : ''}`}>{enteredCount}</span>
             <span className={styles.summaryLabel}>已报名</span>
           </div>
           <div className={styles.summaryDiv} />
           <div className={styles.summaryItem}>
-            <span className={`${styles.summaryVal} ${soonCount > 0 ? styles.summaryWarn : ''}`}>
-              {soonCount}
-            </span>
+            <span className={`${styles.summaryVal} ${soonCount > 0 ? styles.summaryWarn : ''}`}>{soonCount}</span>
             <span className={styles.summaryLabel}>近4周赛事</span>
           </div>
           <div className={styles.summaryDiv} />
@@ -394,39 +602,31 @@ export default function EventsPage() {
           </button>
         </div>
 
-        {/* 历史战绩 */}
+        {/* ✅ 历史战绩（每行加「战报」按钮）*/}
         {showHistory && (
           <div className={styles.historyCard}>
             <div className={styles.historyTitle}>历史战绩</div>
-            {history.length > 0 ? history.map(h => (
-              <div key={h.id} className={styles.historyRow}>
-                <div className={styles.historyLeft}>
-                  <LevelBadge level={h.level} label={h.levelLabel} />
-                  <span className={styles.historyName}>{h.eventName}</span>
-                </div>
-                <div className={styles.historyRight}>
-                  {h.results.map((r, i) => (
-                    <span key={i} className={styles.historyResult}>
-                      {r.playerName} {r.round}
-                    </span>
-                  ))}
-                  <span className={styles.historyPrize}>+¥{h.totalPrize.toLocaleString()}</span>
-                </div>
-              </div>
-            )) : (
-              <p className={styles.noHistory}>暂无历史记录</p>
-            )}
+            {history.length > 0
+              ? history.map(h => (
+                  <HistoryRow
+                    key={h.id}
+                    record={h}
+                    onViewReport={setReportRecord}
+                  />
+                ))
+              : <p className={styles.noHistory}>暂无历史记录</p>
+            }
           </div>
         )}
 
         {/* 筛选 */}
         <div className={styles.filterRow}>
           {[
-            { v: 'all',      l: '全部' },
-            { v: 'upcoming', l: '即将开始' },
-            { v: 'entered',  l: '已报名' },
-            { v: 'itf',      l: 'ITF青少年' },
-            { v: 'pro',      l: '职业赛' },
+            { v:'all',      l:'全部'      },
+            { v:'upcoming', l:'即将开始'  },
+            { v:'entered',  l:'已报名'    },
+            { v:'itf',      l:'ITF青少年' },
+            { v:'pro',      l:'职业赛'    },
           ].map(({ v, l }) => (
             <button
               key={v}
@@ -451,7 +651,7 @@ export default function EventsPage() {
 
       </div>
 
-      {/* 详情弹窗 */}
+      {/* 赛事详情弹窗 */}
       {selected && (
         <EventDetail
           event={selected}
@@ -467,6 +667,13 @@ export default function EventsPage() {
       {/* 承办弹窗 */}
       {showHost && <HostModal onClose={() => setShowHost(false)} />}
 
+      {/* ✅ 战报弹窗 */}
+      {reportRecord && (
+        <MatchReportModal
+          record={reportRecord}
+          onClose={() => setReportRecord(null)}
+        />
+      )}
     </div>
   )
 }
