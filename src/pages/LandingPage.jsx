@@ -431,7 +431,7 @@ export default function LandingPage() {
 
   // ✅ 难度选择确认后：把难度存入 state 初始化参数，跳转游戏
   function handleDifficultyConfirm(difficulty) {
-    setLocal('tcm_new_game_difficulty', difficulty)
+    localStorage.setItem('tcm_new_game_difficulty', difficulty)  // ✅ 直接存原始字符串，不用 JSON 序列化
     setModal(null)
     navigate('/home')
   }
