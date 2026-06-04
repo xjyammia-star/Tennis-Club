@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { recruitCoaches, recruitPlayers } from '../data/mockData'
 import { useGameCtx } from '../App'
+// ✅ 不再从 mockData 导入 recruitCoaches / recruitPlayers
+//    改为从全局 state 读取，这样每周刷新后数据会自动更新
 import styles from './RecruitPage.module.css'
 
 const LEVEL_CLASS = {
@@ -14,21 +15,23 @@ const TALENT_CLASS = {
 const HEALTH_LABEL = { healthy: '健康', minor: '轻伤', major: '重伤' }
 const HEALTH_CLASS  = { healthy: styles.tagHealthy, minor: styles.tagMinor, major: styles.tagMajor }
 
-// 教练设施要求 → 匹配俱乐部设施类型
-// requiresFacility 是中文描述，需要映射到 facility.level 和 type
+// 教练设施要求 → 匹配俱乐部设施类型和最低级别
 const FACILITY_REQUIRE_MAP = {
   '高级健身房':  { type: 'gym',    minLevel: '高级' },
   '高级休息室':  { type: 'lounge', minLevel: '高级' },
   '顶级健身房':  { type: 'gym',    minLevel: '顶级' },
   '顶级休息室':  { type: 'lounge', minLevel: '顶级' },
+  '高级球场':    { type: 'hard_court', minLevel: '高级' },
+  '高级会议室':  { type: 'meeting', minLevel: '高级' },
 }
 const LEVEL_ORDER = { 糟糕: 0, 普通: 1, 高级: 2, 顶级: 3 }
 
-// 检查俱乐部是否满足教练的设施要求
+// ✅ 设施检查：返回 { met, reason }
+// met=true 表示满足，met=false 表示不满足并说明原因
 function checkFacilityRequirement(requiresFacility, facilities) {
   if (!requiresFacility) return { met: true, reason: '' }
   const req = FACILITY_REQUIRE_MAP[requiresFacility]
-  if (!req) return { met: true, reason: '' }  // 未知要求默认通过
+  if (!req) return { met: true, reason: '' }
 
   const found = facilities.find(f => f.type === req.type)
   if (!found) return { met: false, reason: `需要建设${requiresFacility}` }
@@ -36,7 +39,10 @@ function checkFacilityRequirement(requiresFacility, facilities) {
   const facilityLevelNum = LEVEL_ORDER[found.level] ?? 0
   const requiredLevelNum = LEVEL_ORDER[req.minLevel] ?? 0
   if (facilityLevelNum < requiredLevelNum) {
-    return { met: false, reason: `${found.name}需升级至${req.minLevel}（当前${found.level}）` }
+    return {
+      met: false,
+      reason: `${found.name}需升级至${req.minLevel}（当前${found.level}）`,
+    }
   }
   return { met: true, reason: '' }
 }
@@ -53,6 +59,8 @@ function MiniBar({ value, color = 'forest' }) {
 function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
   const isCoach  = type === 'coach'
   const isPlayer = type === 'player'
+  // ✅ 设施不满足时禁用确认按钮
+  const canConfirm = isPlayer || !facilityCheck || facilityCheck.met
 
   return (
     <div className={styles.modalOverlay} onClick={onCancel}>
@@ -76,7 +84,7 @@ function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
                 <span>训练加成</span>
                 <strong>{item.expBonus}</strong>
               </div>
-              {/* 设施要求满足与否 */}
+              {/* ✅ 设施要求展示：满足绿色 / 不满足红色警告 */}
               {item.requiresFacility && facilityCheck && (
                 facilityCheck.met ? (
                   <div className={`${styles.modalRow} ${styles.modalOk}`}>
@@ -86,7 +94,7 @@ function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
                 ) : (
                   <div className={`${styles.modalRow} ${styles.modalWarn}`}>
                     <i className="ti ti-alert-triangle" aria-hidden="true" />
-                    <span>⚠️ {facilityCheck.reason}</span>
+                    <span>⚠️ {facilityCheck.reason}，无法聘用</span>
                   </div>
                 )
               )}
@@ -119,9 +127,14 @@ function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
         </div>
         <div className={styles.modalActions}>
           <button className={styles.btnCancel} onClick={onCancel}>取消</button>
-          {/* 设施不满足时仍允许聘用，但提示警告 */}
-          <button className={styles.btnConfirm} onClick={() => onConfirm(item)}>
-            确认{isCoach ? '聘用' : '招募'}
+          {/* ✅ 设施不满足时按钮置灰禁用 */}
+          <button
+            className={styles.btnConfirm}
+            onClick={() => canConfirm && onConfirm(item)}
+            disabled={!canConfirm}
+            style={!canConfirm ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+          >
+            {canConfirm ? `确认${isCoach ? '聘用' : '招募'}` : '设施不足，无法聘用'}
           </button>
         </div>
       </div>
@@ -131,6 +144,9 @@ function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
 
 // ── 教练招募卡片 ──────────────────────────────────────
 function CoachRecruitCard({ coach, onRecruit, facilityCheck }) {
+  // ✅ 设施不满足时卡片按钮也禁用
+  const canRecruit = facilityCheck?.met !== false
+
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -145,7 +161,7 @@ function CoachRecruitCard({ coach, onRecruit, facilityCheck }) {
           </div>
           <div className={styles.tagRow}>
             <span className={`${styles.styleTag} ${
-              coach.style === 'strict' ? styles.styleStrict :
+              coach.style === 'strict'  ? styles.styleStrict  :
               coach.style === 'relaxed' ? styles.styleRelaxed : styles.styleFree
             }`}>{coach.styleLabel}</span>
             <span className={styles.bonusTag}>{coach.expBonus}</span>
@@ -153,29 +169,49 @@ function CoachRecruitCard({ coach, onRecruit, facilityCheck }) {
           </div>
         </div>
       </div>
+
       <div className={styles.highlight}>
         <i className="ti ti-award" aria-hidden="true" />
         <span>{coach.careerHighlight}</span>
       </div>
-      {coach.specialSkills.length > 0 && (
+
+      {coach.specialSkills?.length > 0 && (
         <div className={styles.skillRow}>
           {coach.specialSkills.map(s => <span key={s} className={styles.skillBadge}>{s}</span>)}
         </div>
       )}
+
+      {/* ✅ 可传授技能展示（新字段） */}
+      {coach.skills?.length > 0 && (
+        <div className={styles.skillRow}>
+          <span className={styles.skillLabel}>可传授：</span>
+          {coach.skills.map(s => (
+            <span key={s} className={`${styles.skillBadge} ${styles.skillBadgeTeach}`}>{s}</span>
+          ))}
+        </div>
+      )}
+
       <p className={styles.bio}>{coach.bio}</p>
 
-      {/* 设施要求：满足显示绿色，不满足显示红色警告 */}
+      {/* ✅ 设施要求横幅：满足绿色，不满足红色 */}
       {coach.requiresFacility && (
-        <div className={facilityCheck?.met ? styles.requireBannerOk : styles.requireBanner}>
-          <i className={`ti ${facilityCheck?.met ? 'ti-check' : 'ti-alert-triangle'}`} aria-hidden="true" />
-          {facilityCheck?.met
+        <div className={canRecruit ? styles.requireBannerOk : styles.requireBanner}>
+          <i className={`ti ${canRecruit ? 'ti-check' : 'ti-alert-triangle'}`} aria-hidden="true" />
+          {canRecruit
             ? `设施要求已满足：${coach.requiresFacility}`
             : `⚠️ ${facilityCheck?.reason || `需要设施：${coach.requiresFacility}`}`}
         </div>
       )}
 
-      <button className={styles.recruitBtn} onClick={() => onRecruit(coach)}>
-        <i className="ti ti-user-plus" aria-hidden="true" /> 聘用教练
+      {/* ✅ 设施不满足时按钮置灰 */}
+      <button
+        className={styles.recruitBtn}
+        onClick={() => canRecruit && onRecruit(coach)}
+        disabled={!canRecruit}
+        style={!canRecruit ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+      >
+        <i className="ti ti-user-plus" aria-hidden="true" />
+        {canRecruit ? '聘用教练' : '设施不足'}
       </button>
     </div>
   )
@@ -204,7 +240,7 @@ function PlayerRecruitCard({ player, onRecruit }) {
             {player.joinFee > 0 && (
               <span className={styles.feeTag}><i className="ti ti-coin-yuan" aria-hidden="true" /> 需补助</span>
             )}
-            {player.currentClub !== '无' && (
+            {player.currentClub && player.currentClub !== '无' && (
               <span className={styles.clubTag}><i className="ti ti-building" aria-hidden="true" /> {player.currentClub}</span>
             )}
           </div>
@@ -244,25 +280,30 @@ export default function RecruitPage() {
 
   const facilities = state.facilities || []
 
+  // ✅ 从全局 state 读取招募候选人，不再用 mockData 静态数据
+  // 第一次进游戏时 state 里还没有，fallback 到空数组（下一周后会自动生成）
+  const stateRecruitCoaches = state.recruitCoaches || []
+  const stateRecruitPlayers = state.recruitPlayers || []
+
   const available = tab === 'coaches'
-    ? recruitCoaches.filter(c => !accepted.includes(`coach-${c.id}`))
-    : recruitPlayers.filter(p => !accepted.includes(`player-${p.id}`))
+    ? stateRecruitCoaches.filter(c => !accepted.includes(`coach-${c.id}`))
+    : stateRecruitPlayers.filter(p => !accepted.includes(`player-${p.id}`))
 
   function handleRecruit(item) {
     setPending({ type: tab === 'coaches' ? 'coach' : 'player', item })
   }
 
   function handleConfirm(item) {
-    const key = tab === 'coaches' ? `coach-${item.id}` : `player-${item.id}`
-    setAccepted(prev => [...prev, key])
-    setPending(null)
-
+    // ✅ 教练：再次确认设施满足才执行（双重保险）
     if (tab === 'coaches') {
+      const check = checkFacilityRequirement(item.requiresFacility, facilities)
+      if (!check.met) return  // 不满足设施要求，静默拦截
+
       const newCoach = {
         ...item,
-        contractWeeksLeft: item.contractYears * 52,
+        contractWeeksLeft: (item.contractYears || 1) * 52,
         studentCount: 0,
-        totalStudents: 0,
+        totalStudents: item.totalStudents || 8,
         loyalty: 70,
       }
       dispatch({ type: 'ADD_COACH', coach: newCoach })
@@ -275,20 +316,22 @@ export default function RecruitPage() {
         },
       })
     } else {
-      // 问题1：确保完整属性，包括 mockData 里可能缺少的字段
+      // 球员：补全所有 weekEngine 需要的字段，避免计算报错
       const newPlayer = {
-        pressure:    50,   // 补全 mockData 里招募球员可能缺的精神属性
-        willpower:   50,
-        focus:       50,
-        returnServe: 45,
-        volley:      35,
-        loyalty:     65,
-        ranking:     null,
-        points:      0,
+        pressure:     50,
+        willpower:    50,
+        focus:        50,
+        returnServe:  45,
+        volley:       35,
+        loyalty:      65,
+        ranking:      null,
+        points:       0,
         injuryResist: 65,
-        expPool:     {},
+        expPool:      {},
+        fatigue:      20,
+        inMatch:      false,
+        matchEventId: null,
         ...item,
-        // isSponsored：有补助费的视为赞助球员
         isSponsored: item.joinFee > 0,
       }
       dispatch({ type: 'ADD_PLAYER', player: newPlayer })
@@ -301,9 +344,13 @@ export default function RecruitPage() {
         },
       })
     }
+
+    // 从本周列表移除
+    const key = tab === 'coaches' ? `coach-${item.id}` : `player-${item.id}`
+    setAccepted(prev => [...prev, key])
+    setPending(null)
   }
 
-  // 当前弹窗中教练的设施检查结果
   const pendingFacilityCheck = pending?.type === 'coach'
     ? checkFacilityRequirement(pending.item.requiresFacility, facilities)
     : null
@@ -320,20 +367,21 @@ export default function RecruitPage() {
           <span>招募市场每周刷新，声望越高出现的候选人等级越高。</span>
         </div>
 
+        {/* ✅ Tab 计数显示实时数量 */}
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${tab === 'players' ? styles.tabActive : ''}`}
             onClick={() => setTab('players')}
           >
             <i className="ti ti-users" aria-hidden="true" /> 申请球员
-            <span className={styles.tabCount}>{recruitPlayers.length}</span>
+            <span className={styles.tabCount}>{stateRecruitPlayers.length}</span>
           </button>
           <button
             className={`${styles.tab} ${tab === 'coaches' ? styles.tabActive : ''}`}
             onClick={() => setTab('coaches')}
           >
             <i className="ti ti-user-star" aria-hidden="true" /> 待招教练
-            <span className={styles.tabCount}>{recruitCoaches.length}</span>
+            <span className={styles.tabCount}>{stateRecruitCoaches.length}</span>
           </button>
         </div>
 
@@ -342,7 +390,9 @@ export default function RecruitPage() {
             {tab === 'coaches'
               ? available.map(c => (
                   <CoachRecruitCard
-                    key={c.id} coach={c} onRecruit={handleRecruit}
+                    key={c.id}
+                    coach={c}
+                    onRecruit={handleRecruit}
                     facilityCheck={checkFacilityRequirement(c.requiresFacility, facilities)}
                   />
                 ))
@@ -353,8 +403,12 @@ export default function RecruitPage() {
           </div>
         ) : (
           <div className={styles.empty}>
-            <i className="ti ti-check" aria-hidden="true" />
-            <p>本周候选人已处理完毕</p>
+            <i className="ti ti-info-circle" aria-hidden="true" />
+            <p>
+              {stateRecruitCoaches.length === 0 && stateRecruitPlayers.length === 0
+                ? '进入下一周后市场将刷新候选人'
+                : '本周候选人已处理完毕'}
+            </p>
             <span>下周会有新的候选人出现</span>
           </div>
         )}
