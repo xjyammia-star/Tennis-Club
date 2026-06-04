@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { DEFAULT_CLUB_SETTINGS, getClubSettings } from '../utils/clubSettings'
 import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
-import { gameState, clubStats } from '../data/mockData'
+// ✅ 不再用 mockData 里的静态数据，改从 GameCtx 读取真实 state
+import { useGameCtx } from '../App'
 import styles from './ClubSettingsPage.module.css'
 
 function Section({ title, icon, children }) {
@@ -31,8 +32,7 @@ function NumRow({ label, desc, value, onChange, min, max, step=1, prefix='', suf
   )
 }
 
-// 私教费用行（带级别标签）
-function PrivateFeeRow({ levelLabel, levelColor, value, onChange }) {
+function PrivateFeeRow({ levelLabel, levelColor, value, onChange, coachCut }) {
   return (
     <div className={styles.row}>
       <div className={styles.rowLeft}>
@@ -43,7 +43,7 @@ function PrivateFeeRow({ levelLabel, levelColor, value, onChange }) {
           <span className={styles.rowLabel}>私教费用</span>
         </div>
         <span className={styles.rowDesc}>
-          俱乐部收入 ¥{Math.round(value * 40 / 100)}/节（按40%分成）
+          俱乐部收入 ¥{Math.round(value * (coachCut ?? 40) / 100)}/节
         </span>
       </div>
       <div className={styles.numInput}>
@@ -56,6 +56,10 @@ function PrivateFeeRow({ levelLabel, levelColor, value, onChange }) {
 }
 
 export default function ClubSettingsPage() {
+  // ✅ 读取真实游戏状态（声望、球场数等）
+  const { state } = useGameCtx()
+  const { gameState, clubStats, schedule } = state
+
   const [settings, setSettings] = useState(getClubSettings)
   const [saved, setSaved] = useState(false)
 
@@ -70,21 +74,38 @@ export default function ClubSettingsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const rentalPreview = calcCourtRentalIncome({
-    courtCount: clubStats.courtCount,
-    prestige:   gameState.prestige,
-    hourlyRate: settings.courtHourlyRate,
-    weekPrivateCounts: { mon:4, tue:3, wed:4, thu:3, fri:4, sat:2, sun:0 },
-    eventModifier: 0,
+  // ✅ 从真实 schedule 计算本周团课占用（court_group）
+  const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
+  const weekGroupCounts = {}
+  DAYS_KEYS.forEach(day => {
+    weekGroupCounts[day] = (schedule[day] || []).reduce((sum, s) => {
+      if (s.type === 'court_group') return sum + (s.hours || 0)
+      return sum
+    }, 0)
   })
-  const rateAdj   = Math.max(10, rentalPreview.rentRate - Math.floor((settings.courtHourlyRate - 200) / 50) * 3)
-  const incomeAdj = Math.round(rentalPreview.totalRentableHours * (rateAdj / 100) * settings.courtHourlyRate)
 
-  // 预估本周私教总收入（示例：假设每周约20节私教）
+  // ✅ 用真实数据计算外租预估，私教用典型估算值（因为经营页没有私教排课信息）
+  // 假设每天平均私教场数 = 球场数（保守估计）
+  const typicalPrivateCounts = {}
+  DAYS_KEYS.forEach(day => { typicalPrivateCounts[day] = Math.floor(clubStats.courtCount * 1.5) })
+
+  const rentalPreview = calcCourtRentalIncome({
+    courtCount:       clubStats.courtCount,  // ✅ 真实球场数
+    prestige:         gameState.prestige,    // ✅ 真实声望
+    hourlyRate:       settings.courtHourlyRate,
+    weekPrivateCounts: typicalPrivateCounts,
+    weekGroupCounts,                         // ✅ 真实团课占用
+    eventModifier:    0,
+  })
+
+  // ✅ 直接用 rentalPreview.income，不再做多余的 rateAdj/incomeAdj 重复计算
+  const estRentalIncome = rentalPreview.income
+
+  // 预估私教收入（基于每周约20节私教的保守估算）
   const privateIncomePreview = Math.round(
-    (settings.privateFeeElite     * 0.02 +
-     settings.privateFeeSenior    * 0.08 +
-     settings.privateFeeNormal    * 0.08 +
+    (settings.privateFeeElite      * 0.02 +
+     settings.privateFeeSenior     * 0.08 +
+     settings.privateFeeNormal     * 0.08 +
      settings.privateFeeeAssistant * 0.02) * settings.privateCoachCut / 100 * 20
   )
 
@@ -106,43 +127,47 @@ export default function ClubSettingsPage() {
             <div className={styles.previewTitle}>本周外租收入预估</div>
             <div className={styles.previewGrid}>
               <div className={styles.previewItem}>
-                <span className={styles.previewVal}>¥{incomeAdj.toLocaleString()}</span>
+                {/* ✅ 直接用 calcCourtRentalIncome 的结果 */}
+                <span className={styles.previewVal}>¥{estRentalIncome.toLocaleString()}</span>
                 <span className={styles.previewLbl}>预估收入</span>
               </div>
               <div className={styles.previewItem}>
-                <span className={styles.previewVal}>{rateAdj}%</span>
+                <span className={styles.previewVal}>{rentalPreview.rentRate}%</span>
                 <span className={styles.previewLbl}>出租率</span>
               </div>
               <div className={styles.previewItem}>
-                <span className={`${styles.previewVal} ${styles[`rate_${rentRateLabel(rateAdj)}`]}`}>
-                  {rentRateLabel(rateAdj)}
+                <span className={`${styles.previewVal} ${styles[`rate_${rentRateLabel(rentalPreview.rentRate)}`]}`}>
+                  {rentRateLabel(rentalPreview.rentRate)}
                 </span>
                 <span className={styles.previewLbl}>场地热度</span>
               </div>
               <div className={styles.previewItem}>
+                {/* ✅ 显示扣除私教和团课后的实际可租时长 */}
                 <span className={styles.previewVal}>{rentalPreview.totalRentableHours}h</span>
                 <span className={styles.previewLbl}>可租总时长</span>
               </div>
             </div>
             <div className={styles.previewNote}>
               <i className="ti ti-info-circle" />
-              声望加成 +{rentalPreview.prestigeBonus}%，实际出租率受随机事件影响
+              声望加成 +{rentalPreview.prestigeBonus}%，已扣除团课和私教占用时间，实际出租率受随机事件影响
             </div>
           </div>
+
+          {/* ✅ 场地使用规则说明更新，与实际逻辑一致 */}
           <div className={styles.timeTable}>
             <div className={styles.timeTableTitle}>场地使用规则</div>
             {[
-              { time: '06:00–10:00', use: '私教专用 + 可外租', tag: 'rent' },
-              { time: '10:00–12:00', use: '俱乐部团课专用',     tag: 'club' },
-              { time: '12:00–17:00', use: '团课 + 可外租',      tag: 'rent' },
-              { time: '17:00–19:00', use: '俱乐部团课专用',     tag: 'club' },
-              { time: '19:00–22:00', use: '团课 + 可外租',      tag: 'rent' },
+              { time: '06:00–10:00', use: '私教专用（系统自动排课）', tag: 'mixed' },
+              { time: '10:00–12:00', use: '俱乐部团课专用（不可外租）', tag: 'club' },
+              { time: '12:00–17:00', use: '团课优先，剩余时间可外租', tag: 'mixed' },
+              { time: '17:00–19:00', use: '俱乐部团课专用（不可外租）', tag: 'club' },
+              { time: '19:00–22:00', use: '团课优先，剩余时间可外租', tag: 'mixed' },
             ].map((r, i) => (
               <div key={i} className={styles.timeRow}>
                 <span className={styles.timeSlot}>{r.time}</span>
                 <span className={styles.timeUse}>{r.use}</span>
-                <span className={`${styles.timeTag} ${styles[`tag_${r.tag}`]}`}>
-                  {r.tag === 'rent' ? '可租' : '俱乐部'}
+                <span className={`${styles.timeTag} ${styles[`tag_${r.tag === 'mixed' ? 'rent' : r.tag}`]}`}>
+                  {r.tag === 'club' ? '专用' : '可租'}
                 </span>
               </div>
             ))}
@@ -157,32 +182,34 @@ export default function ClubSettingsPage() {
             min={10} max={70} step={5} suffix="%"
           />
 
-          {/* 按级别设置私教费用 */}
           <div className={styles.feeSection}>
             <div className={styles.feeSectionTitle}>各级别私教费用（每节1小时）</div>
             <PrivateFeeRow
               levelLabel="顶级教练" levelColor="#c9a84c"
               value={settings.privateFeeElite}
               onChange={v => update('privateFeeElite', v)}
+              coachCut={settings.privateCoachCut}
             />
             <PrivateFeeRow
               levelLabel="高级教练" levelColor="#2a7a5a"
               value={settings.privateFeeSenior}
               onChange={v => update('privateFeeSenior', v)}
+              coachCut={settings.privateCoachCut}
             />
             <PrivateFeeRow
               levelLabel="普通教练" levelColor="#2a5fa8"
               value={settings.privateFeeNormal}
               onChange={v => update('privateFeeNormal', v)}
+              coachCut={settings.privateCoachCut}
             />
             <PrivateFeeRow
               levelLabel="助教" levelColor="#8a9688"
               value={settings.privateFeeeAssistant}
               onChange={v => update('privateFeeeAssistant', v)}
+              coachCut={settings.privateCoachCut}
             />
           </div>
 
-          {/* 预估私教收入 */}
           <div className={styles.previewCard}>
             <div className={styles.previewTitle}>本周私教收入预估</div>
             <div className={styles.feePreviewRow}>
@@ -201,16 +228,16 @@ export default function ClubSettingsPage() {
             </div>
             <div className={styles.previewNote}>
               <i className="ti ti-info-circle" />
-              基于当前私教安排估算，实际以每周结算为准
+              基于约20节/周估算，实际以每周结算为准
             </div>
           </div>
 
           <div className={styles.ruleSummary}>
             {[
-              { icon: 'ti-users',        text: `每天最多 ${clubStats.courtCount * 2} 场私教（球场数×2）` },
-              { icon: 'ti-user-star',    text: `同时私教不超过 ${clubStats.coachCount} 人（教练数量上限）` },
-              { icon: 'ti-heart',        text: '受伤球员或比赛周自动跳过' },
-              { icon: 'ti-award',        text: '富裕球员倾向预约高级教练' },
+              { icon: 'ti-users',     text: `每天最多 ${clubStats.courtCount * 2} 场私教（球场数×2）` },
+              { icon: 'ti-user-star', text: `同时私教不超过 ${clubStats.coachCount} 人（教练数量上限）` },
+              { icon: 'ti-heart',     text: '受伤球员或比赛周自动跳过' },
+              { icon: 'ti-award',     text: '富裕球员倾向预约高级教练' },
             ].map((r, i) => (
               <div key={i} className={styles.ruleItem}>
                 <i className={`ti ${r.icon}`} /><span>{r.text}</span>
@@ -245,12 +272,12 @@ export default function ClubSettingsPage() {
             min={0} max={500} step={10} prefix="¥" suffix="/人/小时"
           />
           <NumRow
-            label="体能团课" desc="每人每小时收费"
+            label="体能团课" desc="每人每小时收费（在健身房举行，不占用球场）"
             value={settings.fitnessClassFee} onChange={v => update('fitnessClassFee', v)}
             min={0} max={500} step={10} prefix="¥" suffix="/人/小时"
           />
           <NumRow
-            label="战术分析课" desc="每人每小时收费"
+            label="战术分析课" desc="每人每小时收费（在会议室举行，不占用球场）"
             value={settings.tacticsClassFee} onChange={v => update('tacticsClassFee', v)}
             min={0} max={300} step={10} prefix="¥" suffix="/人/小时"
           />
