@@ -58,6 +58,7 @@
 .tabAtp.tabActive  { background: #1a4090; }
 .tabWta.tabActive  { background: #8a1a6a; }
 .tabItf.tabActive  { background: #5a2a8a; }
+.tabItfF.tabActive { background: #a0246a; }
 
 /* ── 顶部说明栏 ───────────────────────────────── */
 .infoBanner {

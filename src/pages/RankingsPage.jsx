@@ -3,19 +3,25 @@ import { useGameCtx } from '../App'
 import styles from './RankingsPage.module.css'
 
 // ── 巡回赛配置 ────────────────────────────────────────
+// ✅ ITF 拆成男子青少年 / 女子青少年两个 Tab
 const TOURS = [
-  { key: 'ATP',        label: 'ATP 男子',   tabClass: styles.tabAtp  },
-  { key: 'WTA',        label: 'WTA 女子',   tabClass: styles.tabWta  },
-  { key: 'ITF_JUNIOR', label: 'ITF 青少年', tabClass: styles.tabItf  },
+  { key: 'ATP',          label: 'ATP 男子',     tabClass: styles.tabAtp  },
+  { key: 'WTA',          label: 'WTA 女子',     tabClass: styles.tabWta  },
+  { key: 'ITF_JUNIOR_M', label: 'ITF 男子青少年', tabClass: styles.tabItf  },
+  { key: 'ITF_JUNIOR_F', label: 'ITF 女子青少年', tabClass: styles.tabItfF },
 ]
 
-// 巡回赛对应的球员性别过滤
-const TOUR_GENDER = { ATP: 'male', WTA: 'female', ITF_JUNIOR: null }
+// 每个巡回赛对应我方球员的过滤条件
+const TOUR_FILTER = {
+  ATP:          p => p.gender === 'male'   && p.age >= 18,
+  WTA:          p => p.gender === 'female' && p.age >= 18,
+  ITF_JUNIOR_M: p => p.gender === 'male'   && p.age < 18,
+  ITF_JUNIOR_F: p => p.gender === 'female' && p.age < 18,
+}
 
 // ── 排名变化图标 ──────────────────────────────────────
 function RankChange({ change }) {
   if (change > 0) {
-    // rankChange = lastMonth - current，正数代表上月排名更靠后 = 本月上升
     return (
       <span className={`${styles.rankChange} ${styles.rankUp}`}>
         <i className="ti ti-arrow-up" aria-hidden="true" />
@@ -71,7 +77,7 @@ function RankRow({ player, isMine, clubName }) {
       {/* 积分 */}
       <div className={styles.colPoints}>{player.points?.toLocaleString() ?? '—'}</div>
 
-      {/* 年龄（在大屏显示） */}
+      {/* 年龄 */}
       <div className={styles.colAge}>{player.age}</div>
     </div>
   )
@@ -109,55 +115,30 @@ export default function RankingsPage() {
     fetchRankings(tour)
   }, [tour, fetchRankings])
 
-  // ── 把俱乐部球员「插入」到排名列表 ───────────────
-  // 策略：
-  // 1. 找出本巡回赛对应性别的我方球员（有积分/排名的）
-  // 2. 合并进世界排名列表，按积分重新排序，取前100
-  // 3. 没有积分的我方球员单独展示在列表下方
-  const tourGender = TOUR_GENDER[tour]  // null = ITF不过滤性别
+  // ── 合并我方球员进排名 ────────────────────────────
+  const filterFn = TOUR_FILTER[tour] || (() => false)
 
-  // 有排名的我方球员（参与当前巡回赛）
-  const myRankedPlayers = myPlayers.filter(p => {
-    if (!p.points || p.points <= 0) return false
-    if (tourGender && p.gender !== tourGender) return false
-    if (tour === 'ITF_JUNIOR' && p.age >= 18) return false
-    if (tour !== 'ITF_JUNIOR' && p.age < 18) return false
-    return true
-  })
-
-  // 没有积分的我方球员（显示在列表下方）
-  const myUnrankedPlayers = myPlayers.filter(p => {
-    if (p.points && p.points > 0) return false
-    if (tourGender && p.gender !== tourGender) return false
-    if (tour === 'ITF_JUNIOR' && p.age >= 18) return false
-    if (tour !== 'ITF_JUNIOR' && p.age < 18) return false
-    return true
-  })
-
-  // 合并：世界球员 + 我方有积分球员，按积分降序排列
-  const myPlayerIds = new Set(myRankedPlayers.map(p => `mine_${p.id}`))
+  const myRankedPlayers   = myPlayers.filter(p => filterFn(p) && p.points > 0)
+  const myUnrankedPlayers = myPlayers.filter(p => filterFn(p) && !(p.points > 0))
 
   const merged = [
     ...rankings.map(p => ({ ...p, _source: 'world', _key: `world_${p.id}` })),
     ...myRankedPlayers.map(p => ({
-      id:          `mine_${p.id}`,
-      name:        p.name,
-      age:         p.age,
-      nationality: '中国',
-      points:      p.points,
-      gender:      p.gender,
+      id:           `mine_${p.id}`,
+      name:         p.name,
+      age:          p.age,
+      nationality:  '中国',
+      points:       p.points,
+      gender:       p.gender,
       tour,
-      rankChange:  0,   // 俱乐部球员暂无历史数据，显示 —
-      _source:     'mine',
-      _key:        `mine_${p.id}`,
+      rankChange:   0,
+      _source:      'mine',
+      _key:         `mine_${p.id}`,
     })),
   ]
-  .sort((a, b) => (b.points || 0) - (a.points || 0))
-  .slice(0, 100)
-  .map((p, idx) => ({ ...p, ranking: idx + 1 }))
-
-  // 标记我方球员在合并后列表中的位置
-  const isMineInTop100 = (p) => p._source === 'mine'
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, 100)
+    .map((p, idx) => ({ ...p, ranking: idx + 1 }))
 
   return (
     <div className={styles.page}>
@@ -167,7 +148,7 @@ export default function RankingsPage() {
 
       <div className={styles.inner}>
 
-        {/* 巡回赛 Tab */}
+        {/* ✅ 四个 Tab：ATP / WTA / ITF男子青少年 / ITF女子青少年 */}
         <div className={styles.tabs}>
           {TOURS.map(t => (
             <button
@@ -212,7 +193,6 @@ export default function RankingsPage() {
         {/* 排名列表 */}
         {!loading && !error && merged.length > 0 && (
           <div className={styles.listCard}>
-            {/* 表头 */}
             <div className={styles.listHeader}>
               <span>排名</span>
               <span>球员</span>
@@ -221,16 +201,12 @@ export default function RankingsPage() {
               <span style={{ textAlign: 'center' }}>年龄</span>
             </div>
 
-            {/* 数据行 */}
             {merged.map((player, idx) => (
               <div key={player._key}>
-                {/* 每10名加一条视觉分隔线 */}
-                {idx > 0 && idx % 10 === 0 && (
-                  <div className={styles.groupDivider} />
-                )}
+                {idx > 0 && idx % 10 === 0 && <div className={styles.groupDivider} />}
                 <RankRow
                   player={player}
-                  isMine={isMineInTop100(player)}
+                  isMine={player._source === 'mine'}
                   clubName={clubName}
                 />
               </div>
@@ -238,7 +214,7 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* 俱乐部球员未进前100 / 尚无积分的，列表下方单独展示 */}
+        {/* 无积分球员列表 */}
         {!loading && !error && myUnrankedPlayers.length > 0 && (
           <div className={styles.myPlayersSection}>
             <div className={styles.myPlayersSectionTitle}>
