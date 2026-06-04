@@ -113,10 +113,19 @@ function reducer(state, action) {
       }
     case 'ADD_FACILITY':
       return { ...state, facilities: [...state.facilities, action.facility] }
-    case 'ENTER_EVENT':
-      return { ...state, myEntries: [...state.myEntries, action.entry] }
-    case 'WITHDRAW_EVENT':
-      return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== action.entry.eventId) }
+    case 'ENTER_EVENT': {
+      // 兼容两种 dispatch 格式：
+      // 旧：dispatch({ type, entry: { eventId, playerIds } })
+      // 新：dispatch({ type, eventId, playerIds })
+      const newEntry = action.entry ?? { eventId: action.eventId, playerIds: action.playerIds, status: 'upcoming' }
+      const filtered = state.myEntries.filter(e => e.eventId !== newEntry.eventId)
+      return { ...state, myEntries: [...filtered, newEntry] }
+    }
+    case 'WITHDRAW_EVENT': {
+      // 兼容两种格式：action.entry.eventId 或 action.eventId
+      const withdrawId = action.entry?.eventId ?? action.eventId
+      return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== withdrawId) }
+    }
     case 'ADD_TRANSACTION':
       return {
         ...state,

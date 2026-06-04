@@ -118,10 +118,10 @@ function generateRecruitPlayers(currentWeek) {
 // 生成招募教练（每周3人）
 function generateRecruitCoaches(currentWeek) {
   const levels = [
-    { level: 'elite',     levelLabel: '顶级教练', expBonus: '+15%', salaryRange: [8000, 12000] },
-    { level: 'senior',    levelLabel: '高级教练', expBonus: '+10%', salaryRange: [5000, 7000]  },
+    { level: 'elite',     levelLabel: '顶级教练', expBonus: '+10%', salaryRange: [8000, 12000] },
+    { level: 'senior',    levelLabel: '高级教练', expBonus: '+5%',  salaryRange: [5000, 7000]  },
     { level: 'normal',    levelLabel: '普通教练', expBonus: '+3%',  salaryRange: [3000, 5000]  },
-    { level: 'assistant', levelLabel: '助教',     expBonus: '-5%',  salaryRange: [1500, 2500]  },
+    { level: 'assistant', levelLabel: '助教',     expBonus: '0%',   salaryRange: [1500, 2500]  },
   ]
   // 按权重随机：助教40%，普通35%，高级20%，顶级5%
   const levelWeights = [5, 20, 35, 40]
@@ -714,11 +714,22 @@ export async function advanceWeekEngine(state) {
     )
   })
 
+  // ✅ 问题5修复：计算每天球场团课占用小时数，传给外租计算函数
+  const weekGroupCounts = {}
+  DAYS_KEYS.forEach(day => {
+    let ghours = 0
+    ;(schedule[day] || []).forEach(s => {
+      if (s.type === 'court_group') ghours += s.hours || 0
+    })
+    weekGroupCounts[day] = ghours
+  })
+
   const rentalInfo = calcCourtRentalIncome({
     courtCount: clubStats.courtCount,
     prestige: gameState.prestige,
     hourlyRate: settings.courtHourlyRate,
     weekPrivateCounts,
+    weekGroupCounts,
     eventModifier: 0,
   })
 

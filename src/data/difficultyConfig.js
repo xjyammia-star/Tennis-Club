@@ -89,9 +89,9 @@ function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set
 // 生成教练
 function makeCoach(id, level, name, gender = 'male') {
   const LEVEL_MAP = {
-    assistant: { levelLabel: '助教',     expBonus: '-5%',  salaryRange: [1800, 2200], contractWeeks: 52  },
+    assistant: { levelLabel: '助教',     expBonus: '0%',   salaryRange: [1800, 2200], contractWeeks: 52  },
     normal:    { levelLabel: '普通教练', expBonus: '+3%',  salaryRange: [3500, 4500], contractWeeks: 52  },
-    senior:    { levelLabel: '高级教练', expBonus: '+10%', salaryRange: [5500, 6500], contractWeeks: 104 },
+    senior:    { levelLabel: '高级教练', expBonus: '+5%',  salaryRange: [5500, 6500], contractWeeks: 104 },
   }
   const cfg = LEVEL_MAP[level] || LEVEL_MAP.normal
   return {
@@ -180,6 +180,12 @@ const EASY_FACILITIES = [
 
 // ── 主函数：根据难度生成完整初始 state ──────────────
 export function buildInitialState(difficulty, baseState) {
+  // ✅ 问题2修复：normalize 难度值，防止大小写或空值导致始终走 easy 分支
+  const d = (difficulty || 'normal').toLowerCase().trim()
+  if (d !== difficulty) {
+    console.warn('[buildInitialState] 难度值已 normalize:', difficulty, '->', d)
+  }
+  difficulty = d
   const usedNames = new Set()
 
   // ── 困难 ──────────────────────────────────────────

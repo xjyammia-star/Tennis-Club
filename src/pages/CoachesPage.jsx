@@ -50,7 +50,9 @@ function CoachDetail({ coach, onClose, onRaise, onFire }) {
     coach.loyalty >= 30 ? '训练效率 -10%，可能要求加薪' :
                           '训练效率 -20%，极可能要求加薪'
 
-  const penaltyAmount = coach.contractWeeksLeft * coach.weeklySalary * 2
+  // ✅ 问题1修复：违约金 = 月工资 × 2（月工资 = 周薪 × 4）
+  const monthlyWage = coach.weeklySalary * 4
+  const penaltyAmount = monthlyWage * 2
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -123,9 +125,10 @@ function CoachDetail({ coach, onClose, onRaise, onFire }) {
               <span className={styles.contractLabel}>剩余合同周期</span>
               <ContractBadge weeks={coach.contractWeeksLeft} />
             </div>
+            {/* ✅ 问题1：违约金说明更新为月薪×2 */}
             <p className={styles.contractNote}>
-              违约金约 ¥{(penaltyAmount / 10000).toFixed(1)} 万
-              （剩余{coach.contractWeeksLeft}周 × 周薪 × 2）
+              违约金 ¥{penaltyAmount.toLocaleString()}
+              （月薪 ¥{monthlyWage.toLocaleString()} × 2）
             </p>
           </div>
 
@@ -151,7 +154,6 @@ function CoachDetail({ coach, onClose, onRaise, onFire }) {
             <p className={styles.bio}>{coach.bio}</p>
           </div>
 
-          {/* 操作按钮 */}
           {!confirmFire ? (
             <div className={styles.actionRow}>
               <button className={styles.btnSecondary} onClick={() => onRaise(coach)}>
@@ -162,11 +164,11 @@ function CoachDetail({ coach, onClose, onRaise, onFire }) {
               </button>
             </div>
           ) : (
-            // 二次确认解雇
             <div className={styles.fireConfirm}>
               <p className={styles.fireWarn}>
                 确认解雇 {coach.name}？需支付违约金
                 <strong> ¥{penaltyAmount.toLocaleString()}</strong>
+                （月薪×2）
               </p>
               <div className={styles.actionRow}>
                 <button className={styles.btnSecondary} onClick={() => setConfirmFire(false)}>
@@ -254,28 +256,22 @@ export default function CoachesPage() {
   const totalWeeklyCost = coaches.reduce((sum, c) => sum + c.weeklySalary, 0)
   const warnCount = coaches.filter(c => c.contractWeeksLeft <= CONTRACT_WARN).length
 
-  // 加薪 10%
   function handleRaise(coach) {
-    const newSalary = Math.round(coach.weeklySalary * 1.1)
+    const newSalary  = Math.round(coach.weeklySalary * 1.1)
     const newLoyalty = Math.min(100, coach.loyalty + 5)
-    dispatch({
-      type: 'UPDATE_COACH',
-      coach: { ...coach, weeklySalary: newSalary, loyalty: newLoyalty },
-    })
-    // 同步更新详情弹窗里的数据
+    dispatch({ type: 'UPDATE_COACH', coach: { ...coach, weeklySalary: newSalary, loyalty: newLoyalty } })
     setSelectedCoach(prev => prev ? { ...prev, weeklySalary: newSalary, loyalty: newLoyalty } : null)
   }
 
-  // 解雇：扣违约金 + 移除教练
   function handleFire(coach) {
-    const penalty = coach.contractWeeksLeft * coach.weeklySalary * 2
+    // ✅ 问题1：违约金 = 月薪 × 2
+    const penalty = coach.weeklySalary * 4 * 2
     dispatch({ type: 'REMOVE_COACH', coach })
     dispatch({
       type: 'ADD_TRANSACTION',
       tx: {
         id: `tx_fire_${coach.id}_${Date.now()}`,
-        type: 'expense',
-        category: 'penalty',
+        type: 'expense', category: 'penalty',
         label: `解雇${coach.name}违约金`,
         amount: penalty,
       },
@@ -283,9 +279,8 @@ export default function CoachesPage() {
     dispatch({
       type: 'ADD_NEWS',
       news: {
-        id: Date.now(),
-        type: 'coach',
-        text: `教练${coach.name}已被解雇，支付违约金 ¥${penalty.toLocaleString()}。`,
+        id: Date.now(), type: 'coach',
+        text: `教练${coach.name}已被解雇，支付违约金 ¥${penalty.toLocaleString()}（月薪×2）。`,
         week: state.gameState.week,
       },
     })
