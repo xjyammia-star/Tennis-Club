@@ -111,7 +111,7 @@
 }
 
 /* ════════════════════════════════
-   MODALS
+   MODALS（通用）
    ════════════════════════════════ */
 .overlay {
   position: fixed; inset: 0;
@@ -162,7 +162,7 @@
 
 /* confirm desc */
 .confirmDesc {
-  font-size: 13px; color: var(--ink-mid); line-height: 1.7;
+  font-size: 13px; color: var(--ink-mid); line-height: 1.7; margin: 0;
 }
 
 .modalFooter {
@@ -189,3 +189,101 @@
   padding: 10px; cursor: pointer; transition: background 0.15s;
 }
 .btnDanger:hover { background: #8a2820; }
+
+/* ════════════════════════════════
+   ✅ 退出游戏
+   ════════════════════════════════ */
+
+/* 顶部退出按钮 */
+.exitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: var(--white);
+  border: 1.5px solid #e8a070;
+  border-radius: var(--radius-md);
+  color: #a04000;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.exitBtn:hover {
+  background: #fff8f4;
+  border-color: #c0392b;
+  color: #c0392b;
+}
+.exitBtn i { font-size: 17px; }
+
+/* 退出弹窗图标 */
+.exitIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.exitIcon i {
+  font-size: 40px;
+  color: #a04000;
+}
+
+/* 退出弹窗附注 */
+.exitNote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+/* 退出弹窗三按钮底部 */
+.exitFooter {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px max(16px, env(safe-area-inset-bottom));
+  border-top: 0.5px solid var(--cream-dark);
+  background: var(--white);
+  flex-wrap: wrap;
+}
+
+/* 不保存退出（橙色边框） */
+.btnExitOnly {
+  flex: 1;
+  min-width: 90px;
+  background: var(--white);
+  border: 0.5px solid #e8a070;
+  border-radius: var(--radius-md);
+  color: #a04000;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btnExitOnly:hover { background: #fff8f4; border-color: #c0392b; color: #c0392b; }
+
+/* 保存并退出（深绿） */
+.btnSaveExit {
+  flex: 1.4;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--forest);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--gold);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnSaveExit:hover    { background: var(--forest-mid); }
+.btnSaveExit:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnSaveExit i        { font-size: 14px; }
