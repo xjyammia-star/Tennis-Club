@@ -16,6 +16,7 @@ import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
 import RankingsPage from './pages/RankingsPage'   // ✅ 新增
 import { advanceWeekEngine } from './utils/weekEngine'
+import { buildInitialState } from './data/difficultyConfig'  // ✅ 新增
 
 import {
   gameState as initGameState, clubStats as initClubStats,
@@ -210,6 +211,19 @@ function GameProvider({ children }) {
   const [advancing, setAdvancing] = useState(false)
 
   useEffect(() => {
+    // 优先检查新游戏难度（点「开始游戏」选难度后跳转）
+    const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
+    if (newGameDifficulty) {
+      localStorage.removeItem('tcm_new_game_difficulty')
+      try {
+        const newState = buildInitialState(newGameDifficulty, INIT)
+        dispatch({ type: 'LOAD_SAVE', data: newState })
+      } catch (err) {
+        console.warn('难度初始化失败，使用默认 state:', err)
+      }
+      return
+    }
+    // 检查是否有存档需要加载（点「继续游戏」后跳转）
     const pendingLoad = localStorage.getItem('tcm_pending_load')
     if (pendingLoad) {
       try {

@@ -15,19 +15,19 @@ const ADMIN_PASSWORD = 'admin888'
 // ── 难度配置 ─────────────────────────────────────────
 // ✅ 新增：三种难度的完整初始状态说明
 const DIFFICULTY_CONFIG = {
-  easy: {
-    label:    '简单',
-    icon:     'ti-leaf',
-    color:    '#2a8a3a',
-    tagColor: '#e8f5e2',
-    desc:     '适合初次体验，资金充裕，更容易发展壮大',
+  hard: {
+    label:    '困难',
+    icon:     'ti-flame',
+    color:    '#c0392b',
+    tagColor: '#fdecea',
+    desc:     '挑战模式：小型俱乐部起步，资金紧张，贷款压力大，需要精打细算才能生存',
     details: [
-      { icon: 'ti-rectangle',     text: '6片普通硬地球场' },
-      { icon: 'ti-currency-yen',  text: '起始资金 ¥50万' },
-      { icon: 'ti-user-star',     text: '2名高级教练 + 1名普通教练' },
-      { icon: 'ti-users',         text: '8名青少年球员（含2名天赋型）' },
-      { icon: 'ti-building',      text: '健身房 + 会议室 + 更衣室' },
-      { icon: 'ti-trending-up',   text: '经验值 +20%，伤病概率 -30%' },
+      { icon: 'ti-rectangle',    text: '4片糟糕级硬地球场' },
+      { icon: 'ti-building',     text: '糟糕级更衣室 + 糟糕级健身房' },
+      { icon: 'ti-users',        text: '6名随机青少年球员' },
+      { icon: 'ti-user-star',    text: '1名助教 + 1名普通教练' },
+      { icon: 'ti-currency-yen', text: '现金 ¥10万 · 银行贷款 ¥5000/月' },
+      { icon: 'ti-star',         text: '俱乐部声望 0' },
     ],
   },
   normal: {
@@ -35,29 +35,29 @@ const DIFFICULTY_CONFIG = {
     icon:     'ti-tennis',
     color:    '#c9a84c',
     tagColor: '#fef3d8',
-    desc:     '平衡的游戏体验，需要合理规划经营策略',
+    desc:     '标准模式：中型俱乐部，资金适中，需要合理规划经营策略逐步壮大',
     details: [
-      { icon: 'ti-rectangle',     text: '4片普通硬地球场' },
-      { icon: 'ti-currency-yen',  text: '起始资金 ¥20万' },
-      { icon: 'ti-user-star',     text: '1名高级教练 + 2名普通教练' },
-      { icon: 'ti-users',         text: '6名球员（结构混合）' },
-      { icon: 'ti-building',      text: '健身房 + 会议室' },
-      { icon: 'ti-trending-up',   text: '标准经验值和伤病概率' },
+      { icon: 'ti-rectangle',    text: '6片普通级硬地球场' },
+      { icon: 'ti-building',     text: '普通级更衣室 + 健身房 + 休息室' },
+      { icon: 'ti-users',        text: '12名随机青少年球员' },
+      { icon: 'ti-user-star',    text: '2名助教 + 2名普通教练' },
+      { icon: 'ti-currency-yen', text: '现金 ¥20万 · 无贷款' },
+      { icon: 'ti-star',         text: '俱乐部声望 1000' },
     ],
   },
-  hard: {
-    label:    '困难',
-    icon:     'ti-flame',
-    color:    '#c0392b',
-    tagColor: '#fdecea',
-    desc:     '挑战模式，资金紧张，需要精打细算才能生存',
+  easy: {
+    label:    '简单',
+    icon:     'ti-leaf',
+    color:    '#2a8a3a',
+    tagColor: '#e8f5e2',
+    desc:     '体验模式：中型俱乐部，资金充裕，设施完善，更容易发展壮大',
     details: [
-      { icon: 'ti-rectangle',     text: '2片普通硬地球场' },
-      { icon: 'ti-currency-yen',  text: '起始资金 ¥8万 + 银行贷款 ¥5万/月' },
-      { icon: 'ti-user-star',     text: '1名普通教练 + 1名助教' },
-      { icon: 'ti-users',         text: '4名球员（天赋参差不齐）' },
-      { icon: 'ti-building',      text: '仅有空地（需自行建设）' },
-      { icon: 'ti-trending-up',   text: '经验值 -10%，伤病概率 +20%' },
+      { icon: 'ti-rectangle',    text: '6片普通硬地 + 2片普通红土球场' },
+      { icon: 'ti-building',     text: '普通级更衣室 + 健身房 + 休息室 + 宿舍' },
+      { icon: 'ti-users',        text: '16名随机青少年球员' },
+      { icon: 'ti-user-star',    text: '2名助教 + 3名普通教练 + 1名高级教练' },
+      { icon: 'ti-currency-yen', text: '现金 ¥50万 · 无贷款' },
+      { icon: 'ti-star',         text: '俱乐部声望 3000' },
     ],
   },
 }
@@ -274,7 +274,7 @@ function GuideModal({ onClose }) {
 
 // ── ✅ 难度选择弹窗（新增）────────────────────────────
 function DifficultyModal({ onClose, onConfirm }) {
-  const [selected, setSelected] = useState('normal')
+  const [selected, setSelected] = useState('hard')
   const cfg = DIFFICULTY_CONFIG[selected]
 
   return (
