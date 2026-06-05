@@ -3,20 +3,19 @@ import { useGameCtx } from '../App'
 import styles from './RankingsPage.module.css'
 
 // ── 巡回赛配置 ────────────────────────────────────────
-// ✅ ITF 拆成男子青少年 / 女子青少年两个 Tab
 const TOURS = [
-  { key: 'ATP',          label: 'ATP 男子',     tabClass: styles.tabAtp  },
-  { key: 'WTA',          label: 'WTA 女子',     tabClass: styles.tabWta  },
+  { key: 'ATP',          label: 'ATP 男子',       tabClass: styles.tabAtp  },
+  { key: 'WTA',          label: 'WTA 女子',       tabClass: styles.tabWta  },
   { key: 'ITF_JUNIOR_M', label: 'ITF 男子青少年', tabClass: styles.tabItf  },
   { key: 'ITF_JUNIOR_F', label: 'ITF 女子青少年', tabClass: styles.tabItfF },
 ]
 
-// 每个巡回赛对应我方球员的过滤条件
+// ✅ ITF 年龄范围修正为 14-17岁（14岁以下不参与ITF青少年赛）
 const TOUR_FILTER = {
   ATP:          p => p.gender === 'male'   && p.age >= 18,
   WTA:          p => p.gender === 'female' && p.age >= 18,
-  ITF_JUNIOR_M: p => p.gender === 'male'   && p.age < 18,
-  ITF_JUNIOR_F: p => p.gender === 'female' && p.age < 18,
+  ITF_JUNIOR_M: p => p.gender === 'male'   && p.age >= 14 && p.age < 18,
+  ITF_JUNIOR_F: p => p.gender === 'female' && p.age >= 14 && p.age < 18,
 }
 
 // ── 排名变化图标 ──────────────────────────────────────
@@ -44,7 +43,6 @@ function RankChange({ change }) {
 function RankRow({ player, isMine, clubName }) {
   return (
     <div className={`${styles.row} ${isMine ? styles.rowMine : ''}`}>
-      {/* 排名 + 变化 */}
       <div className={styles.colRank}>
         <span className={`${styles.rankNum} ${player.ranking <= 3 ? styles.top3 : ''}`}>
           {player.ranking}
@@ -52,7 +50,6 @@ function RankRow({ player, isMine, clubName }) {
         <RankChange change={player.rankChange} />
       </div>
 
-      {/* 球员信息 */}
       <div className={styles.colPlayer}>
         <div className={`${styles.avatar} ${isMine ? styles.avatarMine : ''}`}>
           {player.name.charAt(0)}
@@ -71,13 +68,8 @@ function RankRow({ player, isMine, clubName }) {
         </div>
       </div>
 
-      {/* 国籍 */}
       <div className={styles.colNat}>{player.nationality || '—'}</div>
-
-      {/* 积分 */}
       <div className={styles.colPoints}>{player.points?.toLocaleString() ?? '—'}</div>
-
-      {/* 年龄 */}
       <div className={styles.colAge}>{player.age}</div>
     </div>
   )
@@ -89,12 +81,11 @@ export default function RankingsPage() {
   const { players: myPlayers, gameState } = state
   const clubName = gameState.clubName
 
-  const [tour, setTour]         = useState('ATP')
+  const [tour, setTour]       = useState('ATP')
   const [rankings, setRankings] = useState([])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
 
-  // ── 拉取排名数据 ──────────────────────────────────
   const fetchRankings = useCallback(async (selectedTour) => {
     setLoading(true)
     setError(null)
@@ -115,7 +106,6 @@ export default function RankingsPage() {
     fetchRankings(tour)
   }, [tour, fetchRankings])
 
-  // ── 合并我方球员进排名 ────────────────────────────
   const filterFn = TOUR_FILTER[tour] || (() => false)
 
   const myRankedPlayers   = myPlayers.filter(p => filterFn(p) && p.points > 0)
@@ -124,16 +114,16 @@ export default function RankingsPage() {
   const merged = [
     ...rankings.map(p => ({ ...p, _source: 'world', _key: `world_${p.id}` })),
     ...myRankedPlayers.map(p => ({
-      id:           `mine_${p.id}`,
-      name:         p.name,
-      age:          p.age,
-      nationality:  '中国',
-      points:       p.points,
-      gender:       p.gender,
+      id:          `mine_${p.id}`,
+      name:        p.name,
+      age:         p.age,
+      nationality: '中国',
+      points:      p.points,
+      gender:      p.gender,
       tour,
-      rankChange:   0,
-      _source:      'mine',
-      _key:         `mine_${p.id}`,
+      rankChange:  0,
+      _source:     'mine',
+      _key:        `mine_${p.id}`,
     })),
   ]
     .sort((a, b) => (b.points || 0) - (a.points || 0))
@@ -148,7 +138,6 @@ export default function RankingsPage() {
 
       <div className={styles.inner}>
 
-        {/* ✅ 四个 Tab：ATP / WTA / ITF男子青少年 / ITF女子青少年 */}
         <div className={styles.tabs}>
           {TOURS.map(t => (
             <button
@@ -161,7 +150,6 @@ export default function RankingsPage() {
           ))}
         </div>
 
-        {/* 说明条 */}
         <div className={styles.infoBanner}>
           <i className="ti ti-info-circle" aria-hidden="true" />
           <span>
@@ -171,7 +159,6 @@ export default function RankingsPage() {
           </span>
         </div>
 
-        {/* 加载中 */}
         {loading && (
           <div className={styles.loadingWrap}>
             <i className="ti ti-loader-2" aria-hidden="true" />
@@ -179,7 +166,6 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* 错误 */}
         {error && !loading && (
           <div className={styles.errorWrap}>
             <i className="ti ti-alert-triangle" aria-hidden="true" />
@@ -190,7 +176,6 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* 排名列表 */}
         {!loading && !error && merged.length > 0 && (
           <div className={styles.listCard}>
             <div className={styles.listHeader}>
@@ -214,7 +199,6 @@ export default function RankingsPage() {
           </div>
         )}
 
-        {/* 无积分球员列表 */}
         {!loading && !error && myUnrankedPlayers.length > 0 && (
           <div className={styles.myPlayersSection}>
             <div className={styles.myPlayersSectionTitle}>
