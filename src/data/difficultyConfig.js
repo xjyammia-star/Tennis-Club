@@ -4,18 +4,17 @@
 // 被 App.jsx 在新游戏开始时读取
 // ══════════════════════════════════════════════════════
 
-// ── 随机生成球员辅助函数 ──────────────────────────────
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 const MALE_NAMES = [
   '王浩然','李志远','张宇轩','刘建国','陈伟明','孙俊杰','周晨曦','吴锦涛',
-  '郑大鹏','冯凯','林鑫','黄磊','赵博文','徐子豪','何建辉',
+  '郑大鹏','冯凯','林鑫','黄磊','赵博文','徐子豪','何建辉','江文涛','许嘉豪',
 ]
 const FEMALE_NAMES = [
   '王晓雨','李美玲','张静怡','刘梦琪','陈小慧','孙雪','周慧敏','吴婷婷',
-  '郑丽华','冯雯雯','林佳慧','黄欣怡','赵紫涵','徐雅琳','何梦瑶',
+  '郑丽华','冯雯雯','林佳慧','黄欣怡','赵紫涵','徐雅琳','何梦瑶','江欣桐','许思涵',
 ]
 
 function pickName(gender, used = new Set()) {
@@ -43,7 +42,6 @@ function randAttr(base, spread = 12) {
   return Math.min(85, Math.max(20, base + randInt(-spread, spread)))
 }
 
-// 生成一名随机青少年球员（年龄 13-17）
 function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set()) {
   const talent = randInt(talentRange[0], talentRange[1])
   const age    = randInt(13, 17)
@@ -86,7 +84,6 @@ function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set
   }
 }
 
-// 生成教练
 function makeCoach(id, level, name, gender = 'male') {
   const LEVEL_MAP = {
     assistant: { levelLabel: '助教',     expBonus: '0%',   salaryRange: [1800, 2200], contractWeeks: 52  },
@@ -98,20 +95,20 @@ function makeCoach(id, level, name, gender = 'male') {
     id,
     name,
     gender,
-    age:              randInt(25, 50),
+    age:               randInt(25, 50),
     level,
-    levelLabel:       cfg.levelLabel,
-    style:            ['strict','free','balanced'][randInt(0, 2)],
-    styleLabel:       ['一丝不苟','自由发挥','张弛有度'][randInt(0, 2)],
-    expBonus:         cfg.expBonus,
-    loyalty:          randInt(65, 80),
-    weeklySalary:     randInt(cfg.salaryRange[0], cfg.salaryRange[1]),
+    levelLabel:        cfg.levelLabel,
+    style:             ['strict','free','balanced'][randInt(0, 2)],
+    styleLabel:        ['一丝不苟','自由发挥','张弛有度'][randInt(0, 2)],
+    expBonus:          cfg.expBonus,
+    loyalty:           randInt(65, 80),
+    weeklySalary:      randInt(cfg.salaryRange[0], cfg.salaryRange[1]),
     contractWeeksLeft: cfg.contractWeeks,
-    specialSkills:    [],
-    skills:           [],
-    studentCount:     0,
-    totalStudents:    level === 'senior' ? 4 : level === 'normal' ? 6 : 8,
-    careerHighlight:  level === 'senior'
+    specialSkills:     [],
+    skills:            [],
+    studentCount:      0,
+    totalStudents:     level === 'senior' ? 4 : level === 'normal' ? 6 : 8,
+    careerHighlight:   level === 'senior'
       ? `前职业球员，最高排名 #${randInt(200, 400)}，执教多年`
       : level === 'normal'
       ? `体育学院网球专业，持有 ITF Level 2 证书`
@@ -124,170 +121,149 @@ function makeCoach(id, level, name, gender = 'male') {
   }
 }
 
-// ── 三种难度初始设施 ──────────────────────────────────
-
+// ── 设施配置 ──────────────────────────────────────────
 const HARD_FACILITIES = [
-  // 4片糟糕级硬地
-  { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%', icon: 'ti-rectangle', maintenancePaid: true },
-  { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%', icon: 'ti-rectangle', maintenancePaid: true },
-  { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%', icon: 'ti-rectangle', maintenancePaid: true },
-  { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%', icon: 'ti-rectangle', maintenancePaid: true },
-  // 1片糟糕级更衣室
-  { id: 'locker_1', type: 'locker', category: 'service', name: '更衣室', level: '糟糕', mainEffect: '每天疲劳 -2', icon: 'ti-door', maintenancePaid: true },
-  // 1片糟糕级健身房
-  { id: 'gym_1', type: 'gym', category: 'training', name: '健身房', level: '糟糕', mainEffect: '身体 +80%，精神 +40%', icon: 'ti-barbell', maintenancePaid: true },
-  // 空地
+  { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%',   icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%',   icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%',   icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%',   icon: 'ti-rectangle', maintenancePaid: true },
+  { id: 'locker_1', type: 'locker',   category: 'service',  name: '更衣室',     level: '糟糕', mainEffect: '每天疲劳 -2', icon: 'ti-door',         maintenancePaid: true },
+  { id: 'gym_1',    type: 'gym',      category: 'training', name: '健身房',     level: '糟糕', mainEffect: '身体 +80%，精神 +40%', icon: 'ti-barbell', maintenancePaid: true },
   { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
   { id: 'empty_2', type: 'empty', category: 'empty', name: '空地 B', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
 const NORMAL_FACILITIES = [
-  // 6片普通级硬地
   { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_5', type: 'hard_court', category: 'training', name: '硬地球场 5', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_6', type: 'hard_court', category: 'training', name: '硬地球场 6', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
-  // 普通级更衣室 + 健身房 + 休息室
-  { id: 'locker_1', type: 'locker',  category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4', icon: 'ti-door',         maintenancePaid: true },
-  { id: 'gym_1',    type: 'gym',     category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell',  maintenancePaid: true },
-  { id: 'lounge_1', type: 'lounge',  category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',         maintenancePaid: true },
-  // 空地
+  { id: 'locker_1', type: 'locker',  category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4', icon: 'ti-door',    maintenancePaid: true },
+  { id: 'gym_1',    type: 'gym',     category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell', maintenancePaid: true },
+  { id: 'lounge_1', type: 'lounge',  category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',    maintenancePaid: true },
   { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
   { id: 'empty_2', type: 'empty', category: 'empty', name: '空地 B', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
 const EASY_FACILITIES = [
-  // 6片普通级硬地
   { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_5', type: 'hard_court', category: 'training', name: '硬地球场 5', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_6', type: 'hard_court', category: 'training', name: '硬地球场 6', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
-  // 2片普通级红土
   { id: 'clay_1', type: 'clay_court', category: 'training', name: '红土球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'clay_2', type: 'clay_court', category: 'training', name: '红土球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
-  // 普通级更衣室 + 健身房 + 休息室 + 宿舍
-  { id: 'locker_1',    type: 'locker',    category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4', icon: 'ti-door',         maintenancePaid: true },
-  { id: 'gym_1',       type: 'gym',       category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell',  maintenancePaid: true },
-  { id: 'lounge_1',    type: 'lounge',    category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',         maintenancePaid: true },
-  { id: 'dormitory_1', type: 'dormitory', category: 'service',  name: '宿舍',   level: '普通', mainEffect: '每天疲劳 -5，创收', icon: 'ti-bed',      maintenancePaid: true },
-  // 空地
+  { id: 'locker_1',    type: 'locker',    category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4', icon: 'ti-door',    maintenancePaid: true },
+  { id: 'gym_1',       type: 'gym',       category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell', maintenancePaid: true },
+  { id: 'lounge_1',    type: 'lounge',    category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',    maintenancePaid: true },
+  { id: 'dormitory_1', type: 'dormitory', category: 'service',  name: '宿舍',   level: '普通', mainEffect: '每天疲劳 -5，创收', icon: 'ti-bed', maintenancePaid: true },
   { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
-// ── 主函数：根据难度生成完整初始 state ──────────────
-export function buildInitialState(difficulty, baseState) {
-  // ✅ 问题2修复：normalize 难度值，防止大小写或空值导致始终走 easy 分支
+// ══════════════════════════════════════════════════════
+// 主函数：根据难度和游戏年限生成完整初始 state
+//
+// @param difficulty   'hard' | 'normal' | 'easy'
+// @param baseState    INIT 基础 state（来自 App.jsx）
+// @param gameDuration 游戏总年限：10 | 20 | 30（默认20）
+// ══════════════════════════════════════════════════════
+export function buildInitialState(difficulty, baseState, gameDuration = 20) {
   const d = (difficulty || 'normal').toLowerCase().trim()
-  if (d !== difficulty) {
-    console.warn('[buildInitialState] 难度值已 normalize:', difficulty, '->', d)
-  }
   difficulty = d
   const usedNames = new Set()
 
+  // 游戏结束年份 = 当前年(1) + 选择的年限
+  const endYear = 1 + (Number(gameDuration) || 20)
+
   // ── 困难 ──────────────────────────────────────────
   if (difficulty === 'hard') {
-    // 6名随机青少年球员（天赋偏低，50-75）
-    const players = Array.from({ length: 6 }, (_, i) => {
-      const gender = i % 2 === 0 ? 'male' : 'female'
-      return makeYoungPlayer(i + 1, gender, [50, 75], usedNames)
-    })
+    const players = Array.from({ length: 6 }, (_, i) =>
+      makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [50, 75], usedNames)
+    )
     const coaches = [
       makeCoach(1, 'assistant', '陈文博', 'male'),
       makeCoach(2, 'normal',   '王志明', 'male'),
     ]
-    const facilities = HARD_FACILITIES
-    const courtCount = 4
     return {
       ...baseState,
       gameState: {
         ...baseState.gameState,
-        difficulty:     'hard',
-        clubSize:       'small',
-        cash:           100000,
-        prestige:       0,
-        prestigeTitle:  '默默无闻',
-        loanMonthly:    5000,
+        difficulty:    'hard',
+        clubSize:      'small',
+        cash:          100000,
+        prestige:      0,
+        prestigeTitle: '默默无闻',
+        loanMonthly:   5000,
+        endYear,           // ✅ 游戏结束年份
+        gameDuration,      // ✅ 玩家选择的年限
       },
       clubStats: {
         ...baseState.clubStats,
         playerCount:    players.length,
         playerCapacity: 10,
         coachCount:     coaches.length,
-        courtCount,
+        courtCount:     4,
         courtTypes:     '糟糕硬地',
-        facilityCount:  facilities.filter(f => f.type !== 'empty').length,
+        facilityCount:  HARD_FACILITIES.filter(f => f.type !== 'empty').length,
       },
       players,
       coaches,
-      facilities,
+      facilities:   HARD_FACILITIES,
       schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
       transactions: [],
-      recentNews:   [{
-        id: 1, type: 'player',
-        text: '欢迎来到困难模式！资金紧张，贷款压力大，每一分钱都要用在刀刃上。',
-        week: 1,
-      }],
+      recentNews:   [{ id: 1, type: 'player', text: '欢迎来到困难模式！资金紧张，贷款压力大，每一分钱都要用在刀刃上。', week: 1 }],
     }
   }
 
   // ── 普通 ──────────────────────────────────────────
   if (difficulty === 'normal') {
-    // 12名随机青少年球员（天赋中等，55-80）
-    const players = Array.from({ length: 12 }, (_, i) => {
-      const gender = i % 2 === 0 ? 'male' : 'female'
-      return makeYoungPlayer(i + 1, gender, [55, 80], usedNames)
-    })
+    const players = Array.from({ length: 12 }, (_, i) =>
+      makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [55, 80], usedNames)
+    )
     const coaches = [
       makeCoach(1, 'assistant', '陈文博', 'male'),
       makeCoach(2, 'assistant', '赵磊',   'male'),
       makeCoach(3, 'normal',   '李梅',   'female'),
       makeCoach(4, 'normal',   '王志明', 'male'),
     ]
-    const facilities = NORMAL_FACILITIES
-    const courtCount = 6
     return {
       ...baseState,
       gameState: {
         ...baseState.gameState,
-        difficulty:     'normal',
-        clubSize:       'medium',
-        cash:           200000,
-        prestige:       1000,
-        prestigeTitle:  '当地闻名',
-        loanMonthly:    0,
+        difficulty:    'normal',
+        clubSize:      'medium',
+        cash:          200000,
+        prestige:      1000,
+        prestigeTitle: '当地闻名',
+        loanMonthly:   0,
+        endYear,
+        gameDuration,
       },
       clubStats: {
         ...baseState.clubStats,
         playerCount:    players.length,
         playerCapacity: 18,
         coachCount:     coaches.length,
-        courtCount,
+        courtCount:     6,
         courtTypes:     '普通硬地',
-        facilityCount:  facilities.filter(f => f.type !== 'empty').length,
+        facilityCount:  NORMAL_FACILITIES.filter(f => f.type !== 'empty').length,
       },
       players,
       coaches,
-      facilities,
+      facilities:   NORMAL_FACILITIES,
       schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
       transactions: [],
-      recentNews:   [{
-        id: 1, type: 'player',
-        text: '欢迎来到普通模式！拥有一支小有规模的球队，合理规划经营策略，逐步走向顶峰。',
-        week: 1,
-      }],
+      recentNews:   [{ id: 1, type: 'player', text: '欢迎来到普通模式！拥有一支小有规模的球队，合理规划经营策略，逐步走向顶峰。', week: 1 }],
     }
   }
 
   // ── 简单 ──────────────────────────────────────────
-  // 16名随机青少年球员（天赋偏高，65-90）
-  const players = Array.from({ length: 16 }, (_, i) => {
-    const gender = i % 2 === 0 ? 'male' : 'female'
-    return makeYoungPlayer(i + 1, gender, [65, 90], usedNames)
-  })
+  const players = Array.from({ length: 16 }, (_, i) =>
+    makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [65, 90], usedNames)
+  )
   const coaches = [
     makeCoach(1, 'assistant', '陈文博',  'male'),
     makeCoach(2, 'assistant', '赵磊',    'male'),
@@ -296,37 +272,33 @@ export function buildInitialState(difficulty, baseState) {
     makeCoach(5, 'normal',   '孙丽华',  'female'),
     makeCoach(6, 'senior',   '张国强',  'male'),
   ]
-  const facilities = EASY_FACILITIES
-  const courtCount = 8
   return {
     ...baseState,
     gameState: {
       ...baseState.gameState,
-      difficulty:     'easy',
-      clubSize:       'medium',
-      cash:           500000,
-      prestige:       3000,
-      prestigeTitle:  '省内知名',
-      loanMonthly:    0,
+      difficulty:    'easy',
+      clubSize:      'medium',
+      cash:          500000,
+      prestige:      3000,
+      prestigeTitle: '省内知名',
+      loanMonthly:   0,
+      endYear,
+      gameDuration,
     },
     clubStats: {
       ...baseState.clubStats,
       playerCount:    players.length,
       playerCapacity: 24,
       coachCount:     coaches.length,
-      courtCount,
+      courtCount:     8,
       courtTypes:     '普通硬地 + 红土',
-      facilityCount:  facilities.filter(f => f.type !== 'empty').length,
+      facilityCount:  EASY_FACILITIES.filter(f => f.type !== 'empty').length,
     },
     players,
     coaches,
-    facilities,
+    facilities:   EASY_FACILITIES,
     schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
     transactions: [],
-    recentNews:   [{
-      id: 1, type: 'player',
-      text: '欢迎来到简单模式！资金充裕，设施完善，带领俱乐部走向辉煌！',
-      week: 1,
-    }],
+    recentNews:   [{ id: 1, type: 'player', text: '欢迎来到简单模式！资金充裕，设施完善，带领俱乐部走向辉煌！', week: 1 }],
   }
 }

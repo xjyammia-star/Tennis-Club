@@ -140,15 +140,23 @@ function reducer(state, action) {
   }
 }
 
+// ✅ 修复：autoSave 不再依赖 tcm_current_slot
+// 改为始终存入槽位 1（自动存档固定用槽位1）
+// 玩家手动存档时可以选择槽位2或3
 function autoSave(state) {
   try {
+    // 始终写入 localStorage 作为本地备份
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
+
     const userStr = localStorage.getItem('tcm_user')
-    const slotStr = localStorage.getItem('tcm_current_slot')
-    if (!userStr || !slotStr) return
+    if (!userStr) return  // 未登录则只存本地
+
     const user = JSON.parse(userStr)
-    const slot = parseInt(slotStr, 10)
-    if (!user?.id || !slot) return
+    if (!user?.id) return
+
+    // ✅ 自动存档固定用槽位 1
+    const slot = 1
+
     const saveData = {
       club_name:    state.gameState.clubName,
       current_year: state.gameState.year,
@@ -158,22 +166,27 @@ function autoSave(state) {
       difficulty:   state.gameState.difficulty,
       state_json:   JSON.stringify(state),
     }
+
     fetch('/api/saves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'save', userId: user.id, slot, saveData }),
-    }).catch(err => console.warn('自动存档远程失败:', err))
+    }).catch(err => console.warn('自动存档远程失败（不影响游戏）:', err))
+
   } catch (err) {
     console.warn('自动存档失败:', err)
   }
 }
 
-export async function manualSave(state, slot) {
+// ✅ 手动存档：支持指定槽位（2或3），默认槽位1
+export async function manualSave(state, slot = 1) {
   try {
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
+
     const userStr = localStorage.getItem('tcm_user')
     const user = userStr ? JSON.parse(userStr) : null
     if (!user?.id) return { success: true, remote: false }
+
     const saveData = {
       club_name:    state.gameState.clubName,
       current_year: state.gameState.year,
@@ -183,6 +196,7 @@ export async function manualSave(state, slot) {
       difficulty:   state.gameState.difficulty,
       state_json:   JSON.stringify(state),
     }
+
     const res = await fetch('/api/saves', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -214,8 +228,8 @@ export async function loadSave(userId, slot) {
 const TRANSITION_MIN_MS = 3800
 
 function GameProvider({ children }) {
-  const [state, dispatch]           = useReducer(reducer, INIT)
-  const [advancing, setAdvancing]   = useState(false)
+  const [state, dispatch]                   = useReducer(reducer, INIT)
+  const [advancing, setAdvancing]           = useState(false)
   const [showTransition, setShowTransition] = useState(false)
   const [showSummary, setShowSummary]       = useState(false)
   const [summaryState, setSummaryState]     = useState(null)
@@ -223,17 +237,24 @@ function GameProvider({ children }) {
   const pendingStateRef = useRef(null)
 
   useEffect(() => {
+    // ✅ 新游戏：读取难度 + 年限
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
     if (newGameDifficulty) {
       localStorage.removeItem('tcm_new_game_difficulty')
+      const gameDuration = parseInt(localStorage.getItem('tcm_new_game_duration') || '20', 10)
+      localStorage.removeItem('tcm_new_game_duration')
       try {
-        const newState = buildInitialState(newGameDifficulty, INIT)
+        const newState = buildInitialState(newGameDifficulty, INIT, gameDuration)
         dispatch({ type: 'LOAD_SAVE', data: newState })
+        // ✅ 新游戏开始后立即存档到槽位1
+        autoSave(newState)
       } catch (err) {
         console.warn('难度初始化失败:', err)
       }
       return
     }
+
+    // 继续游戏：读取存档
     const pendingLoad = localStorage.getItem('tcm_pending_load')
     if (pendingLoad) {
       try {
@@ -244,7 +265,20 @@ function GameProvider({ children }) {
       } finally {
         localStorage.removeItem('tcm_pending_load')
       }
+      return
     }
+
+    // ✅ 兜底：如果都没有，尝试读取本地自动存档（防止刷新丢失）
+    try {
+      const autosave = localStorage.getItem('tcm_autosave')
+      if (autosave) {
+        const savedState = JSON.parse(autosave)
+        // 只有当本地存档不是默认 mockData 状态时才加载
+        if (savedState?.gameState?.week > 1 || savedState?.gameState?.year > 1) {
+          dispatch({ type: 'LOAD_SAVE', data: savedState })
+        }
+      }
+    } catch {}
   }, [])
 
   function handleSummaryClose() {
@@ -258,21 +292,16 @@ function GameProvider({ children }) {
   }
 
   async function advanceWeek() {
-    console.log('🎾 advanceWeek called, advancing=', advancing)
     if (advancing) return
     setAdvancing(true)
     setPrevFinance({ ...state.finance })
-
-    console.log('🎾 showing transition...')
     setShowTransition(true)
 
     const startTime = Date.now()
 
     try {
-      console.log('🎾 running weekEngine...')
       const newState = await advanceWeekEngine(state)
       pendingStateRef.current = newState
-      console.log('🎾 weekEngine done, waiting for min duration...')
 
       const elapsed = Date.now() - startTime
       const remaining = TRANSITION_MIN_MS - elapsed
@@ -280,7 +309,6 @@ function GameProvider({ children }) {
         await new Promise(r => setTimeout(r, remaining))
       }
 
-      console.log('🎾 showing summary...')
       setShowTransition(false)
       setSummaryState(newState)
       setShowSummary(true)

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { buildInitialState } from '../data/difficultyConfig'
+import GameInitAnimation from '../components/GameInitAnimation'
 import styles from './LandingPage.module.css'
 
 function getLocal(key) {
@@ -13,7 +15,6 @@ const ADMIN_EMAIL    = 'admin@tennisclub.com'
 const ADMIN_PASSWORD = 'admin888'
 
 // ── 难度配置 ─────────────────────────────────────────
-// ✅ 新增：三种难度的完整初始状态说明
 const DIFFICULTY_CONFIG = {
   hard: {
     label:    '困难',
@@ -62,6 +63,13 @@ const DIFFICULTY_CONFIG = {
   },
 }
 
+// ── 游戏年限配置 ──────────────────────────────────────
+const DURATION_OPTIONS = [
+  { value: 10, label: '10年', desc: '快速体验' },
+  { value: 20, label: '20年', desc: '标准流程' },
+  { value: 30, label: '30年', desc: '深度经营' },
+]
+
 // ── 背景网球场线条 ────────────────────────────────────
 function CourtLines() {
   return (
@@ -92,12 +100,12 @@ function CourtLines() {
 
 // ── 登录/注册弹窗 ─────────────────────────────────────
 function AuthModal({ mode: initialMode, onClose, onSuccess }) {
-  const [mode, setMode]       = useState(initialMode)
-  const [email, setEmail]     = useState('')
+  const [mode, setMode]         = useState(initialMode)
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -136,8 +144,8 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
       <div className={styles.authModal} onClick={e => e.stopPropagation()}>
         <div className={styles.authHeader}>
           <div className={styles.authTabs}>
-            <button className={`${styles.authTab} ${mode === 'login'    ? styles.authTabActive : ''}`} onClick={() => { setMode('login');    setError('') }}>登录</button>
-            <button className={`${styles.authTab} ${mode === 'register' ? styles.authTabActive : ''}`} onClick={() => { setMode('register'); setError('') }}>注册</button>
+            <button className={`${styles.authTab} ${mode==='login'    ? styles.authTabActive:''}`} onClick={() => { setMode('login');    setError('') }}>登录</button>
+            <button className={`${styles.authTab} ${mode==='register' ? styles.authTabActive:''}`} onClick={() => { setMode('register'); setError('') }}>注册</button>
           </div>
           <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
@@ -272,21 +280,23 @@ function GuideModal({ onClose }) {
   )
 }
 
-// ── ✅ 难度选择弹窗（新增）────────────────────────────
+// ── 难度选择弹窗（含游戏年限）────────────────────────
 function DifficultyModal({ onClose, onConfirm }) {
-  const [selected, setSelected] = useState('hard')
+  const [selected, setSelected] = useState('normal')
+  const [duration, setDuration] = useState(20)
   const cfg = DIFFICULTY_CONFIG[selected]
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.diffModal} onClick={e => e.stopPropagation()}>
         <div className={styles.savesHeader}>
-          <span className={styles.savesTitle}>选择难度</span>
+          <span className={styles.savesTitle}>新游戏设置</span>
           <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
 
         <div className={styles.diffBody}>
-          {/* 三个难度按钮 */}
+          {/* 难度选择 */}
+          <div className={styles.diffSectionLabel}>选择难度</div>
           <div className={styles.diffTabs}>
             {Object.entries(DIFFICULTY_CONFIG).map(([key, d]) => (
               <button
@@ -306,7 +316,7 @@ function DifficultyModal({ onClose, onConfirm }) {
             {cfg.desc}
           </div>
 
-          {/* 初始条件列表 */}
+          {/* 初始条件 */}
           <div className={styles.diffDetails}>
             <div className={styles.diffDetailsTitle}>初始条件</div>
             {cfg.details.map((d, i) => (
@@ -317,13 +327,29 @@ function DifficultyModal({ onClose, onConfirm }) {
             ))}
           </div>
 
-          {/* 难度标签 */}
-          <div
-            className={styles.diffBadge}
-            style={{ background: cfg.tagColor, color: cfg.color }}
-          >
+          {/* ✅ 游戏年限选择 */}
+          <div className={styles.diffSectionLabel} style={{ marginTop: 16 }}>游戏年限</div>
+          <div className={styles.durationRow}>
+            {DURATION_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                className={`${styles.durationBtn} ${duration === opt.value ? styles.durationBtnActive : ''}`}
+                onClick={() => setDuration(opt.value)}
+              >
+                <span className={styles.durationLabel}>{opt.label}</span>
+                <span className={styles.durationDesc}>{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+          <div className={styles.durationNote}>
+            <i className="ti ti-info-circle" aria-hidden="true" />
+            游戏将在第 {1 + duration} 年结束，届时根据俱乐部综合评分判定最终成绩
+          </div>
+
+          {/* 已选摘要 */}
+          <div className={styles.diffBadge} style={{ background: cfg.tagColor, color: cfg.color }}>
             <i className={`ti ${cfg.icon}`} />
-            已选择：{cfg.label}难度
+            {cfg.label}难度 · {duration}年
           </div>
         </div>
 
@@ -332,7 +358,7 @@ function DifficultyModal({ onClose, onConfirm }) {
           <button
             className={styles.btnStartGame}
             style={{ background: cfg.color }}
-            onClick={() => onConfirm(selected)}
+            onClick={() => onConfirm(selected, duration)}
           >
             <i className="ti ti-arrow-right" /> 开始游戏
           </button>
@@ -410,6 +436,13 @@ export default function LandingPage() {
   const [user,  setUser]  = useState(() => getLocal('tcm_user'))
   const [modal, setModal] = useState(null)
 
+  // ✅ 新增：初始化动画状态
+  const [initAnim, setInitAnim]       = useState(false)
+  const [initPlayers, setInitPlayers] = useState([])
+  const [initCoaches, setInitCoaches] = useState([])
+  const [initDifficulty, setInitDifficulty] = useState('normal')
+  const [pendingState, setPendingState]     = useState(null)
+
   function handleAuthSuccess(u) {
     setUser(u)
     setModal(null)
@@ -423,16 +456,43 @@ export default function LandingPage() {
     navigate('/home')
   }
 
-  // ✅ 开始游戏：先弹难度选择，再跳转
   function handleNewGame() {
     if (!user) { setModal('login'); return }
     setModal('difficulty')
   }
 
-  // ✅ 难度选择确认后：把难度存入 state 初始化参数，跳转游戏
-  function handleDifficultyConfirm(difficulty) {
-    localStorage.setItem('tcm_new_game_difficulty', difficulty)  // ✅ 直接存原始字符串，不用 JSON 序列化
+  // ✅ 难度 + 年限确认后：先生成 state，显示初始化动画，动画结束后跳转
+  function handleDifficultyConfirm(difficulty, duration) {
     setModal(null)
+
+    // 提前生成初始 state（这样动画里可以展示球员名字）
+    // 需要一个最小 INIT 结构，这里用空对象，App.jsx 会用 buildInitialState 的结果覆盖
+    const tempState = buildInitialState(difficulty, {
+      gameState: { clubName: '长青网球俱乐部', year: 1, week: 1, dayOfWeek: '周一',
+                   cash: 0, prestige: 0, prestigeTitle: '', prestigeChange: 0,
+                   difficulty, clubSize: 'medium', loanMonthly: 0 },
+      clubStats: { playerCount: 0, playerCapacity: 0, coachCount: 0, courtCount: 0, courtTypes: '', facilityCount: 0 },
+      players: [], coaches: [], facilities: [], schedule: {},
+      allEvents: [], myEntries: [], eventHistory: [],
+      finance: { cash: 0, weekIncome: 0, weekExpense: 0, weekNet: 0, yearIncome: 0, yearExpense: 0 },
+      transactions: [], weeklyTrend: [], incomeBreakdown: [], expenseBreakdown: [],
+      recentNews: [], upcomingEvents: [],
+    }, duration)
+
+    // 存入 localStorage，App.jsx 读取后初始化
+    localStorage.setItem('tcm_new_game_difficulty', difficulty)
+    localStorage.setItem('tcm_new_game_duration', String(duration))
+
+    // 启动动画，把球员/教练信息传进去展示
+    setInitPlayers(tempState.players || [])
+    setInitCoaches(tempState.coaches || [])
+    setInitDifficulty(difficulty)
+    setPendingState(tempState)
+    setInitAnim(true)
+  }
+
+  // ✅ 动画完成后跳转
+  function handleInitComplete() {
     navigate('/home')
   }
 
@@ -442,7 +502,7 @@ export default function LandingPage() {
       <CourtLines />
       <div className={styles.vignette} />
 
-      {/* 右上角 登录/用户信息 */}
+      {/* 右上角 */}
       <div className={styles.topRight}>
         {user ? (
           <div className={styles.userChip}>
@@ -474,7 +534,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ✅ 右下角菜单：删掉「游戏设置」，保留三个按钮 */}
+      {/* 菜单 */}
       <div className={styles.menuGroup}>
         <button className={styles.menuBtn} onClick={handleNewGame}>
           <span>开始游戏</span>
@@ -508,13 +568,21 @@ export default function LandingPage() {
       {modal === 'guide' && (
         <GuideModal onClose={() => setModal(null)} />
       )}
-      {/* ✅ 新增难度选择弹窗 */}
       {modal === 'difficulty' && (
         <DifficultyModal onClose={() => setModal(null)} onConfirm={handleDifficultyConfirm} />
       )}
       {modal === 'admin' && user?.isAdmin && (
         <AdminModal onClose={() => setModal(null)} />
       )}
+
+      {/* ✅ 初始化动画（最上层，盖住所有内容） */}
+      <GameInitAnimation
+        visible={initAnim}
+        players={initPlayers}
+        coaches={initCoaches}
+        difficulty={initDifficulty}
+        onComplete={handleInitComplete}
+      />
     </div>
   )
 }

@@ -722,3 +722,69 @@
 }
 .btnStartGame:hover { opacity: 0.88; }
 .btnStartGame i { font-size: 15px; }
+/* ── 在 LandingPage.module.css 末尾追加以下样式 ── */
+
+.diffSectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-mid, #4a5a48);
+  margin-bottom: 8px;
+}
+
+.durationRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.durationBtn {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1.5px solid var(--cream-dark, #e8e2d6);
+  border-radius: 10px;
+  background: var(--cream, #f0ece3);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s;
+}
+
+.durationBtn:hover {
+  border-color: var(--forest-mid, #2a4e28);
+  background: rgba(28,58,26,0.05);
+}
+
+.durationBtnActive {
+  border-color: var(--forest, #1c3a1a) !important;
+  background: rgba(28,58,26,0.08) !important;
+}
+
+.durationLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink, #1a2a18);
+}
+
+.durationDesc {
+  font-size: 11px;
+  color: var(--ink-muted, #8a9688);
+}
+
+.durationNote {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-muted, #8a9688);
+  margin-bottom: 12px;
+}
+
+.durationNote i {
+  color: var(--gold, #c9a84c);
+  font-size: 13px;
+  flex-shrink: 0;
+}
