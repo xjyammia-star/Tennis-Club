@@ -9,8 +9,9 @@ import { generatePrivateLessons } from './privateLesson'
 import { SKILL_DEFS, SKILL_NAMES, getSelfLearnChance, canCoachTeach } from '../data/skillDefs'
 import { simulateTournament, applyMatchExp } from './matchEngine'
 import { MATCH_EXP, MATCH_ATTR_DIST } from '../data/gameConstants'
-// ✅ 新增：导入设施价格和维护费率常量
+// ✅ 新增：导入设施价格、维护费率、共用外租参数提取函数
 import { FACILITY_PRICES, MAINTENANCE_RATE } from '../data/mockData'
+import { calcRentalParams } from './courtRental'
 
 // ── 招募市场候选人随机生成 ──────────────────────────
 
@@ -706,30 +707,8 @@ export async function advanceWeekEngine(state) {
   })
 
   // 7. 财务结算
-  const weekPrivateCounts = {}
-  DAYS_KEYS.forEach(day => {
-    weekPrivateCounts[day] = (privateLessons[day] || []).reduce(
-      (sum, s) => sum + (s.playerIds?.length || 0), 0
-    )
-  })
-
-  // ✅ 修复：团课场地占用 = ceil(学员人数 / 4) × 课时小时数
-  // 每块场地最多同时容纳4名球员，超过需要多块场地
-  // 例：8人2小时团课 → ceil(8/4)=2块场地 → 占用4小时
-  // 例：10人2小时团课 → ceil(10/4)=3块场地 → 占用6小时
-  const PLAYERS_PER_COURT = 4
-  const weekGroupCounts = {}
-  DAYS_KEYS.forEach(day => {
-    let courtHours = 0
-    ;(schedule[day] || []).forEach(s => {
-      if (s.type === 'court_group') {
-        const playerCount = s.playerIds?.length || 0
-        const courtsNeeded = Math.ceil(playerCount / PLAYERS_PER_COURT)
-        courtHours += courtsNeeded * (s.hours || 0)
-      }
-    })
-    weekGroupCounts[day] = courtHours
-  })
+  // ✅ 使用共用函数 calcRentalParams，与 SchedulePage/ClubSettingsPage 计算完全一致
+  const { weekPrivateCounts, weekGroupCounts } = calcRentalParams(schedule, privateLessons)
 
   const rentalInfo = calcCourtRentalIncome({
     courtCount: clubStats.courtCount,

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { DAYS, courseTypes } from '../data/mockData'
 import { useGameCtx } from '../App'
 import { generatePrivateLessons } from '../utils/privateLesson'
-import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
+import { calcCourtRentalIncome, calcRentalParams, rentRateLabel } from '../utils/courtRental'
 import { getClubSettings } from '../utils/clubSettings'
 import styles from './SchedulePage.module.css'
 
@@ -471,7 +471,6 @@ function WeekStats({ stats, rentalInfo }) {
         <span className={styles.statLbl}>未排课</span>
       </div>
       <div className={styles.statDiv} />
-      {/* ✅ 显示可租时长和预估收入 */}
       <div className={styles.statItem}>
         <span className={styles.statVal} style={{ color: '#1a6010', fontSize: 14 }}>
           ¥{rentalInfo.income.toLocaleString()}
@@ -511,39 +510,19 @@ export default function SchedulePage() {
     return merged
   }, [groupSchedule, privateLessons])
 
-  // ✅ 修复：私教占用小时数 = 每天私教人数（每人1小时1场）
-  const weekPrivateCounts = useMemo(() => {
-    const counts = {}
-    DAYS.forEach(({ key }) => {
-      counts[key] = (privateLessons[key] || []).reduce((sum, s) => {
-        if (s.type === 'private' && s.isMerged) return sum + (s.playerIds?.length || 0)
-        if (s.type === 'private') return sum + 1
-        return sum
-      }, 0)
-    })
-    return counts
-  }, [privateLessons])
+  // ✅ 使用共用函数 calcRentalParams，与 weekEngine/ClubSettingsPage 计算完全一致
+  const { weekPrivateCounts, weekGroupCounts } = useMemo(
+    () => calcRentalParams(groupSchedule, privateLessons),
+    [groupSchedule, privateLessons]
+  )
 
-  // ✅ 新增：球场团课占用小时数（只有 court_group 在球场举行）
-  const weekGroupCounts = useMemo(() => {
-    const counts = {}
-    DAYS.forEach(({ key }) => {
-      counts[key] = (groupSchedule[key] || []).reduce((sum, s) => {
-        if (s.type === 'court_group') return sum + (s.hours || 0)
-        return sum
-      }, 0)
-    })
-    return counts
-  }, [groupSchedule])
-
-  // ✅ 修复：传入 weekGroupCounts，外租预估更准确
   const rentalInfo = useMemo(() => calcCourtRentalIncome({
-    courtCount:       clubStats.courtCount,
-    prestige:         state.gameState.prestige || 1000,
-    hourlyRate:       settings.courtHourlyRate,
+    courtCount:        clubStats.courtCount,
+    prestige:          state.gameState.prestige || 1000,
+    hourlyRate:        settings.courtHourlyRate,
     weekPrivateCounts,
     weekGroupCounts,
-    eventModifier:    0,
+    eventModifier:     0,
   }), [weekPrivateCounts, weekGroupCounts, settings.courtHourlyRate, clubStats.courtCount, state.gameState.prestige])
 
   const [selectedDay, setSelectedDay] = useState('mon')
@@ -689,7 +668,6 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* ✅ 显示外租详情：可租时长 + 出租率 + 预估收入 */}
         <div className={styles.rentalBanner}>
           <i className="ti ti-home" />
           <span>

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { DEFAULT_CLUB_SETTINGS, getClubSettings } from '../utils/clubSettings'
-import { calcCourtRentalIncome, rentRateLabel } from '../utils/courtRental'
-// ✅ 不再用 mockData 里的静态数据，改从 GameCtx 读取真实 state
+import { calcCourtRentalIncome, calcRentalParams, rentRateLabel } from '../utils/courtRental'
 import { useGameCtx } from '../App'
 import styles from './ClubSettingsPage.module.css'
 
@@ -56,7 +55,6 @@ function PrivateFeeRow({ levelLabel, levelColor, value, onChange, coachCut }) {
 }
 
 export default function ClubSettingsPage() {
-  // ✅ 读取真实游戏状态（声望、球场数等）
   const { state } = useGameCtx()
   const { gameState, clubStats, schedule } = state
 
@@ -74,31 +72,19 @@ export default function ClubSettingsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  // ✅ 从真实 schedule 计算本周团课占用（court_group）
-  const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
-  const weekGroupCounts = {}
-  DAYS_KEYS.forEach(day => {
-    weekGroupCounts[day] = (schedule[day] || []).reduce((sum, s) => {
-      if (s.type === 'court_group') return sum + (s.hours || 0)
-      return sum
-    }, 0)
-  })
-
-  // ✅ 用真实数据计算外租预估，私教用典型估算值（因为经营页没有私教排课信息）
-  // 假设每天平均私教场数 = 球场数（保守估计）
-  const typicalPrivateCounts = {}
-  DAYS_KEYS.forEach(day => { typicalPrivateCounts[day] = Math.floor(clubStats.courtCount * 1.5) })
+  // ✅ 使用共用函数 calcRentalParams，与 SchedulePage/weekEngine 计算完全一致
+  // ClubSettingsPage 没有私教排课数据，传空对象（私教按0计算）
+  const { weekPrivateCounts, weekGroupCounts } = calcRentalParams(schedule, {})
 
   const rentalPreview = calcCourtRentalIncome({
-    courtCount:       clubStats.courtCount,  // ✅ 真实球场数
-    prestige:         gameState.prestige,    // ✅ 真实声望
-    hourlyRate:       settings.courtHourlyRate,
-    weekPrivateCounts: typicalPrivateCounts,
-    weekGroupCounts,                         // ✅ 真实团课占用
-    eventModifier:    0,
+    courtCount:        clubStats.courtCount,
+    prestige:          gameState.prestige,
+    hourlyRate:        settings.courtHourlyRate,
+    weekPrivateCounts,
+    weekGroupCounts,
+    eventModifier:     0,
   })
 
-  // ✅ 直接用 rentalPreview.income，不再做多余的 rateAdj/incomeAdj 重复计算
   const estRentalIncome = rentalPreview.income
 
   // 预估私教收入（基于每周约20节私教的保守估算）
@@ -127,7 +113,6 @@ export default function ClubSettingsPage() {
             <div className={styles.previewTitle}>本周外租收入预估</div>
             <div className={styles.previewGrid}>
               <div className={styles.previewItem}>
-                {/* ✅ 直接用 calcCourtRentalIncome 的结果 */}
                 <span className={styles.previewVal}>¥{estRentalIncome.toLocaleString()}</span>
                 <span className={styles.previewLbl}>预估收入</span>
               </div>
@@ -142,18 +127,16 @@ export default function ClubSettingsPage() {
                 <span className={styles.previewLbl}>场地热度</span>
               </div>
               <div className={styles.previewItem}>
-                {/* ✅ 显示扣除私教和团课后的实际可租时长 */}
                 <span className={styles.previewVal}>{rentalPreview.totalRentableHours}h</span>
                 <span className={styles.previewLbl}>可租总时长</span>
               </div>
             </div>
             <div className={styles.previewNote}>
               <i className="ti ti-info-circle" />
-              声望加成 +{rentalPreview.prestigeBonus}%，已扣除团课和私教占用时间，实际出租率受随机事件影响
+              声望加成 +{rentalPreview.prestigeBonus}%，已扣除团课占用时间，实际出租率受随机事件影响
             </div>
           </div>
 
-          {/* ✅ 场地使用规则说明更新，与实际逻辑一致 */}
           <div className={styles.timeTable}>
             <div className={styles.timeTableTitle}>场地使用规则</div>
             {[
