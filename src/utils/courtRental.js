@@ -2,27 +2,12 @@
 // 场地外租收入计算
 // ══════════════════════════════════════════════════════
 
-// ── 外租时间规则 ──────────────────────────────────────
-// 每天总可用时间：12小时（06-10点4h + 12-17点5h + 19-22点3h）
-// 俱乐部专用时段（不可外租）：10-12点、17-19点
-//
-// 占用规则：
-// - 私教：1名球员占1块场地 × 1小时
-//   例：3人各1小时私教 = 占用3小时
-//
-// - 团课：每块场地最多4名球员
-//   需要场地数 = ceil(学员人数 / 4)
-//   占用时长 = 需要场地数 × 课时小时数
-//   例：8人2小时团课 → ceil(8/4)=2块场地 → 占用4小时
-//   例：10人2小时团课 → ceil(10/4)=3块场地 → 占用6小时
-
 const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
 const PLAYERS_PER_COURT = 4
 
 // ══════════════════════════════════════════════════════
-// ✅ 共用参数提取函数
+// 共用参数提取函数
 // SchedulePage、ClubSettingsPage、weekEngine 全部调用此函数
-// 保证三处计算逻辑完全一致
 //
 // @param schedule       训练课表 { mon: [...], tue: [...], ... }
 // @param privateLessons 私教课表（可选）
@@ -37,17 +22,24 @@ export function calcRentalParams(schedule, privateLessons = {}) {
     let privateHours = 0
     ;(privateLessons[day] || []).forEach(s => {
       if (s.type !== 'private') return
-      // isMerged 是合并显示的私教卡片，playerIds.length = 总人数
       privateHours += s.isMerged ? (s.playerIds?.length || 0) : 1
     })
     weekPrivateCounts[day] = privateHours
 
     // 团课占用：ceil(学员人数 / 4) × 课时小时数
+    // ✅ 关键：playerIds 为空时默认按 1 块场地计算（至少占1块）
     let courtHours = 0
     ;(schedule[day] || []).forEach(s => {
       if (s.type !== 'court_group') return
-      const courtsNeeded = Math.ceil((s.playerIds?.length || 0) / PLAYERS_PER_COURT)
+      const playerCount  = s.playerIds?.length || 0
+      // 有人数用人数算，没人数（异常情况）至少算1块场地
+      const courtsNeeded = playerCount > 0
+        ? Math.ceil(playerCount / PLAYERS_PER_COURT)
+        : 1
       courtHours += courtsNeeded * (s.hours || 0)
+
+      // 调试日志（上线后可删除）
+      console.log(`[外租] ${day} 团课: ${playerCount}人, ${courtsNeeded}块场地, ${s.hours}h → 占用${courtsNeeded * (s.hours || 0)}h`)
     })
     weekGroupCounts[day] = courtHours
   })
@@ -62,12 +54,6 @@ function prestigeBonus(prestige) {
 
 // ══════════════════════════════════════════════════════
 // 主函数：计算外租收入
-// @param params.courtCount         球场数量
-// @param params.prestige           俱乐部声望值
-// @param params.hourlyRate         每小时租金（元）
-// @param params.weekPrivateCounts  由 calcRentalParams 生成
-// @param params.weekGroupCounts    由 calcRentalParams 生成
-// @param params.eventModifier      随机事件修正（-0.5 ~ +0.5）
 // ══════════════════════════════════════════════════════
 export function calcCourtRentalIncome({
   courtCount,
@@ -81,7 +67,6 @@ export function calcCourtRentalIncome({
   const pBonus    = prestigeBonus(prestige)
   const rentRate  = Math.min(0.95, Math.max(0.10, BASE_RATE + pBonus + eventModifier))
 
-  // 每块场地每天可外租时长（固定12小时）
   const DAILY_RENTABLE_PER_COURT = 12
 
   let totalRentableHours = 0
