@@ -713,13 +713,22 @@ export async function advanceWeekEngine(state) {
     )
   })
 
+  // ✅ 修复：团课场地占用 = ceil(学员人数 / 4) × 课时小时数
+  // 每块场地最多同时容纳4名球员，超过需要多块场地
+  // 例：8人2小时团课 → ceil(8/4)=2块场地 → 占用4小时
+  // 例：10人2小时团课 → ceil(10/4)=3块场地 → 占用6小时
+  const PLAYERS_PER_COURT = 4
   const weekGroupCounts = {}
   DAYS_KEYS.forEach(day => {
-    let ghours = 0
+    let courtHours = 0
     ;(schedule[day] || []).forEach(s => {
-      if (s.type === 'court_group') ghours += s.hours || 0
+      if (s.type === 'court_group') {
+        const playerCount = s.playerIds?.length || 0
+        const courtsNeeded = Math.ceil(playerCount / PLAYERS_PER_COURT)
+        courtHours += courtsNeeded * (s.hours || 0)
+      }
     })
-    weekGroupCounts[day] = ghours
+    weekGroupCounts[day] = courtHours
   })
 
   const rentalInfo = calcCourtRentalIncome({
