@@ -1,0 +1,168 @@
+/* ══════════════════════════════════════════════════════
+   WeekTransition.module.css — 过渡动画样式
+   ══════════════════════════════════════════════════════ */
+
+/* 全屏遮罩 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: var(--forest, #1c3a1a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayIn 0.3s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+/* 中央内容卡片 */
+.panel {
+  width: min(380px, 90vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* 顶部金色装饰线 */
+.topBar {
+  width: 48px;
+  height: 3px;
+  background: var(--gold, #c9a84c);
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+
+/* 年/周标签 */
+.weekLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+
+.weekYear {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: rgba(245, 237, 218, 0.55);
+  text-transform: uppercase;
+}
+
+.weekNum {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--gold-pale, #f5edda);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* 球场容器 */
+.courtWrap {
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.court {
+  position: relative;
+  width: 100%;
+  height: 72px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(245,237,218,0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* 球场中线（球网） */
+.courtNet {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(245,237,218,0.25);
+  transform: translateX(-50%);
+}
+
+/* 球场左右区域线 */
+.courtLeft,
+.courtRight {
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  width: 1px;
+  background: rgba(245,237,218,0.10);
+}
+.courtLeft  { left: 25% }
+.courtRight { right: 25% }
+
+/* 网球 */
+.ball {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  transition: left 0.03s linear;
+}
+
+.ballInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #d4e84a, #a8c020);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  animation: ballSpin 0.4s linear infinite;
+}
+
+@keyframes ballSpin {
+  from { transform: rotate(0deg) }
+  to   { transform: rotate(360deg) }
+}
+
+/* 状态文字行 */
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin-bottom: 20px;
+}
+
+.statusIcon {
+  font-size: 16px;
+  color: var(--gold, #c9a84c);
+  flex-shrink: 0;
+}
+
+.statusText {
+  font-size: 14px;
+  color: rgba(245,237,218,0.7);
+  letter-spacing: 0.02em;
+  animation: fadeSlide 0.3s ease;
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(4px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+/* 进度条 */
+.progressTrack {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold, #c9a84c), #e8c86a);
+  border-radius: 2px;
+  transition: width 0.03s linear;
+}

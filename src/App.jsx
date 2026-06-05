@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { createContext, useContext, useReducer, useEffect, useState } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState, useRef } from 'react'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
 import Topbar from './components/Topbar'
@@ -14,9 +14,12 @@ import EventsPage from './pages/EventsPage'
 import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
-import RankingsPage from './pages/RankingsPage'   // ✅ 新增
+import RankingsPage from './pages/RankingsPage'
+// ✅ 新增：过渡动画 + 周结算弹窗
+import WeekTransition from './components/WeekTransition'
+import WeekSummary from './components/WeekSummary'
 import { advanceWeekEngine } from './utils/weekEngine'
-import { buildInitialState } from './data/difficultyConfig'  // ✅ 新增
+import { buildInitialState } from './data/difficultyConfig'
 
 import {
   gameState as initGameState, clubStats as initClubStats,
@@ -114,15 +117,11 @@ function reducer(state, action) {
     case 'ADD_FACILITY':
       return { ...state, facilities: [...state.facilities, action.facility] }
     case 'ENTER_EVENT': {
-      // 兼容两种 dispatch 格式：
-      // 旧：dispatch({ type, entry: { eventId, playerIds } })
-      // 新：dispatch({ type, eventId, playerIds })
       const newEntry = action.entry ?? { eventId: action.eventId, playerIds: action.playerIds, status: 'upcoming' }
       const filtered = state.myEntries.filter(e => e.eventId !== newEntry.eventId)
       return { ...state, myEntries: [...filtered, newEntry] }
     }
     case 'WITHDRAW_EVENT': {
-      // 兼容两种格式：action.entry.eventId 或 action.eventId
       const withdrawId = action.entry?.eventId ?? action.eventId
       return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== withdrawId) }
     }
@@ -215,12 +214,21 @@ export async function loadSave(userId, slot) {
   return null
 }
 
+// ── 过渡动画最短显示时间（毫秒）──────────────────────
+const TRANSITION_MIN_MS = 3800
+
 function GameProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, INIT)
-  const [advancing, setAdvancing] = useState(false)
+  const [state, dispatch]               = useReducer(reducer, INIT)
+  const [advancing, setAdvancing]       = useState(false)
+
+  // ✅ 新增：过渡动画 & 周结算弹窗状态
+  const [showTransition, setShowTransition] = useState(false)
+  const [showSummary, setShowSummary]       = useState(false)
+  const [summaryState, setSummaryState]     = useState(null)   // weekEngine 结算后的新 state
+  const [prevFinance, setPrevFinance]       = useState(null)   // 结算前的财务（对比用）
+  const pendingStateRef = useRef(null)                          // 存放计算完毕但还未显示的 state
 
   useEffect(() => {
-    // 优先检查新游戏难度（点「开始游戏」选难度后跳转）
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
     if (newGameDifficulty) {
       localStorage.removeItem('tcm_new_game_difficulty')
@@ -232,7 +240,6 @@ function GameProvider({ children }) {
       }
       return
     }
-    // 检查是否有存档需要加载（点「继续游戏」后跳转）
     const pendingLoad = localStorage.getItem('tcm_pending_load')
     if (pendingLoad) {
       try {
@@ -246,23 +253,75 @@ function GameProvider({ children }) {
     }
   }, [])
 
+  // ✅ 新增：关闭周结算弹窗 → 应用新 state
+  function handleSummaryClose() {
+    setShowSummary(false)
+    if (pendingStateRef.current) {
+      dispatch({ type: 'LOAD_SAVE', data: pendingStateRef.current })
+      autoSave(pendingStateRef.current)
+      pendingStateRef.current = null
+    }
+    setAdvancing(false)
+  }
+
   async function advanceWeek() {
     if (advancing) return
     setAdvancing(true)
+    setPrevFinance({ ...state.finance })
+
+    // ① 立即显示过渡动画
+    setShowTransition(true)
+
+    const startTime = Date.now()
+
     try {
+      // ② 并行：weekEngine 计算（同时动画在播放）
       const newState = await advanceWeekEngine(state)
-      dispatch({ type: 'LOAD_SAVE', data: newState })
-      autoSave(newState)
+      pendingStateRef.current = newState
+
+      // ③ 保证动画至少播放 TRANSITION_MIN_MS 毫秒
+      const elapsed = Date.now() - startTime
+      const remaining = TRANSITION_MIN_MS - elapsed
+      if (remaining > 0) {
+        await new Promise(r => setTimeout(r, remaining))
+      }
+
+      // ④ 隐藏过渡动画，显示周结算弹窗
+      setShowTransition(false)
+      setSummaryState(newState)
+      setShowSummary(true)
+
     } catch (err) {
       console.error('进入下一周失败:', err)
-    } finally {
+      setShowTransition(false)
       setAdvancing(false)
     }
   }
 
+  // 过渡动画显示时的年份/周数（显示「即将进入」的那一周）
+  const transitionWeek = (state.gameState.week % 52) + 1
+  const transitionYear = state.gameState.week === 52
+    ? state.gameState.year + 1
+    : state.gameState.year
+
   return (
     <GameCtx.Provider value={{ state, dispatch, advanceWeek, advancing }}>
       {children}
+
+      {/* ✅ 过渡动画：全屏遮罩 */}
+      <WeekTransition
+        visible={showTransition}
+        year={transitionYear}
+        week={transitionWeek}
+      />
+
+      {/* ✅ 周结算弹窗 */}
+      <WeekSummary
+        visible={showSummary}
+        onClose={handleSummaryClose}
+        newState={summaryState}
+        prevFinance={prevFinance}
+      />
     </GameCtx.Provider>
   )
 }
@@ -286,7 +345,7 @@ function GameLayout() {
               <Route path="/finance"       element={<FinancePage />}     />
               <Route path="/settings"      element={<SettingsPage />}    />
               <Route path="/club-settings" element={<ClubSettingsPage />}/>
-              <Route path="/rankings"      element={<RankingsPage />}    />  {/* ✅ 新增 */}
+              <Route path="/rankings"      element={<RankingsPage />}    />
             </Routes>
           </main>
         </div>
