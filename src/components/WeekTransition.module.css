@@ -1,43 +1,36 @@
-/* ══════════════════════════════════════════════════════
-   WeekTransition.module.css — 过渡动画样式
-   ══════════════════════════════════════════════════════ */
+/* WeekTransition.module.css */
 
-/* 全屏遮罩 */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 9000;
-  background: var(--forest, #1c3a1a);
+  z-index: 9999;
+  background: #1c3a1a;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: overlayIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
 }
 
-@keyframes overlayIn {
+@keyframes fadeIn {
   from { opacity: 0 }
   to   { opacity: 1 }
 }
 
-/* 中央内容卡片 */
 .panel {
-  width: min(380px, 90vw);
+  width: min(360px, 88vw);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
 }
 
-/* 顶部金色装饰线 */
 .topBar {
-  width: 48px;
+  width: 40px;
   height: 3px;
-  background: var(--gold, #c9a84c);
+  background: #c9a84c;
   border-radius: 2px;
   margin-bottom: 28px;
 }
 
-/* 年/周标签 */
 .weekLabel {
   display: flex;
   flex-direction: column;
@@ -47,21 +40,19 @@
 }
 
 .weekYear {
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  color: rgba(245, 237, 218, 0.55);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: rgba(245,237,218,0.45);
   text-transform: uppercase;
 }
 
 .weekNum {
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
-  color: var(--gold-pale, #f5edda);
-  letter-spacing: -0.01em;
+  color: #f5edda;
   line-height: 1;
 }
 
-/* 球场容器 */
 .courtWrap {
   width: 100%;
   margin-bottom: 28px;
@@ -70,91 +61,86 @@
 .court {
   position: relative;
   width: 100%;
-  height: 72px;
+  height: 68px;
   background: rgba(255,255,255,0.04);
-  border: 1.5px solid rgba(245,237,218,0.12);
+  border: 1.5px solid rgba(245,237,218,0.10);
   border-radius: 6px;
   overflow: hidden;
 }
 
-/* 球场中线（球网） */
 .courtNet {
   position: absolute;
   left: 50%;
-  top: 0;
-  bottom: 0;
+  top: 0; bottom: 0;
   width: 2px;
-  background: rgba(245,237,218,0.25);
+  background: rgba(245,237,218,0.20);
   transform: translateX(-50%);
 }
 
-/* 球场左右区域线 */
-.courtLeft,
-.courtRight {
+.courtLineLeft {
   position: absolute;
-  top: 20%;
-  bottom: 20%;
+  left: 22%; top: 15%; bottom: 15%;
   width: 1px;
-  background: rgba(245,237,218,0.10);
+  background: rgba(245,237,218,0.08);
 }
-.courtLeft  { left: 25% }
-.courtRight { right: 25% }
 
-/* 网球 */
+.courtLineRight {
+  position: absolute;
+  right: 22%; top: 15%; bottom: 15%;
+  width: 1px;
+  background: rgba(245,237,218,0.08);
+}
+
 .ball {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
-  transition: left 0.03s linear;
+  width: 20px;
+  height: 20px;
 }
 
 .ballInner {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #d4e84a, #a8c020);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  animation: ballSpin 0.4s linear infinite;
+  background: radial-gradient(circle at 35% 35%, #d8f040, #9ab820);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  animation: spin 0.5s linear infinite;
 }
 
-@keyframes ballSpin {
+@keyframes spin {
   from { transform: rotate(0deg) }
   to   { transform: rotate(360deg) }
 }
 
-/* 状态文字行 */
 .statusRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
-  margin-bottom: 20px;
+  height: 26px;
+  margin-bottom: 18px;
 }
 
 .statusIcon {
-  font-size: 16px;
-  color: var(--gold, #c9a84c);
+  font-size: 15px;
+  color: #c9a84c;
   flex-shrink: 0;
 }
 
 .statusText {
-  font-size: 14px;
-  color: rgba(245,237,218,0.7);
-  letter-spacing: 0.02em;
-  animation: fadeSlide 0.3s ease;
+  font-size: 13px;
+  color: rgba(245,237,218,0.65);
+  animation: slideIn 0.25s ease;
 }
 
-@keyframes fadeSlide {
+@keyframes slideIn {
   from { opacity: 0; transform: translateY(4px) }
   to   { opacity: 1; transform: translateY(0) }
 }
 
-/* 进度条 */
 .progressTrack {
   width: 100%;
-  height: 3px;
+  height: 2px;
   background: rgba(255,255,255,0.08);
   border-radius: 2px;
   overflow: hidden;
@@ -162,7 +148,7 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--gold, #c9a84c), #e8c86a);
+  background: linear-gradient(90deg, #c9a84c, #e8c86a);
   border-radius: 2px;
-  transition: width 0.03s linear;
+  transition: width 0.05s linear;
 }

@@ -1,11 +1,7 @@
-// ══════════════════════════════════════════════════════
 // WeekTransition.jsx — 「下一周」过渡动画
-// 点击「下一周」后全屏覆盖，3-4秒后自动结束
-// ══════════════════════════════════════════════════════
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import styles from './WeekTransition.module.css'
 
-// 滚动文字序列（依次显示）
 const LOADING_LINES = [
   { icon: 'ti-run',            text: '球员们正在训练...' },
   { icon: 'ti-calendar-week',  text: '安排本周课程...' },
@@ -16,48 +12,49 @@ const LOADING_LINES = [
 ]
 
 export default function WeekTransition({ year, week, visible }) {
-  const [lineIndex, setLineIndex]   = useState(0)
-  const [progress, setProgress]     = useState(0)
-  const [ballPos, setBallPos]       = useState(0)   // 0-100 网球左右运动
-  const [ballDir, setBallDir]       = useState(1)
+  const [lineIndex, setLineIndex] = useState(0)
+  const [progress, setProgress]   = useState(0)
+  const [ballPos, setBallPos]     = useState(10)
+  // ✅ 修复：用 ref 存 ballDir，不用 state，避免 useEffect 重复触发
+  const ballDirRef = useRef(1)
 
-  // 每 600ms 切换一条文字
+  // 文字轮换
   useEffect(() => {
-    if (!visible) { setLineIndex(0); setProgress(0); return }
-    const timer = setInterval(() => {
-      setLineIndex(i => (i + 1) % LOADING_LINES.length)
-    }, 600)
-    return () => clearInterval(timer)
+    if (!visible) return
+    setLineIndex(0)
+    const t = setInterval(() => setLineIndex(i => (i + 1) % LOADING_LINES.length), 650)
+    return () => clearInterval(t)
   }, [visible])
 
-  // 进度条：4000ms 走完
+  // 进度条
   useEffect(() => {
-    if (!visible) { setProgress(0); return }
+    if (!visible) return
+    setProgress(0)
     const start = Date.now()
-    const total = 4000
-    const raf = setInterval(() => {
+    const total = 3800
+    const t = setInterval(() => {
       const pct = Math.min(100, ((Date.now() - start) / total) * 100)
       setProgress(pct)
-      if (pct >= 100) clearInterval(raf)
-    }, 30)
-    return () => clearInterval(raf)
+      if (pct >= 100) clearInterval(t)
+    }, 50)
+    return () => clearInterval(t)
   }, [visible])
 
-  // 网球左右弹跳动画
+  // ✅ 修复：网球弹跳用 ref 存方向，单个 useEffect 不依赖 ballDir state
   useEffect(() => {
-    if (!visible) { setBallPos(0); return }
-    const timer = setInterval(() => {
+    if (!visible) return
+    setBallPos(10)
+    ballDirRef.current = 1
+    const t = setInterval(() => {
       setBallPos(prev => {
-        const next = prev + ballDir * 3
-        if (next >= 90 || next <= 0) {
-          setBallDir(d => -d)
-          return Math.max(0, Math.min(90, next))
-        }
+        let next = prev + ballDirRef.current * 2.5
+        if (next >= 88) { ballDirRef.current = -1; next = 88 }
+        if (next <= 2)  { ballDirRef.current =  1; next = 2  }
         return next
       })
     }, 30)
-    return () => clearInterval(timer)
-  }, [visible, ballDir])
+    return () => clearInterval(t)
+  }, [visible])
 
   if (!visible) return null
 
@@ -66,28 +63,20 @@ export default function WeekTransition({ year, week, visible }) {
   return (
     <div className={styles.overlay}>
       <div className={styles.panel}>
-
-        {/* 顶部装饰线 */}
         <div className={styles.topBar} />
 
-        {/* 年份 + 周数 */}
         <div className={styles.weekLabel}>
           <span className={styles.weekYear}>第 {year} 年</span>
           <span className={styles.weekNum}>第 {week} 周</span>
         </div>
 
-        {/* 网球场动画区 */}
+        {/* 网球场 */}
         <div className={styles.courtWrap}>
-          {/* 球场线条 */}
           <div className={styles.court}>
             <div className={styles.courtNet} />
-            <div className={styles.courtLeft} />
-            <div className={styles.courtRight} />
-            {/* 运动的网球 */}
-            <div
-              className={styles.ball}
-              style={{ left: `${ballPos}%` }}
-            >
+            <div className={styles.courtLineLeft} />
+            <div className={styles.courtLineRight} />
+            <div className={styles.ball} style={{ left: `${ballPos}%` }}>
               <div className={styles.ballInner} />
             </div>
           </div>
@@ -103,7 +92,6 @@ export default function WeekTransition({ year, week, visible }) {
         <div className={styles.progressTrack}>
           <div className={styles.progressFill} style={{ width: `${progress}%` }} />
         </div>
-
       </div>
     </div>
   )

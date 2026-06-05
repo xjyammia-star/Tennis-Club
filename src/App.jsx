@@ -15,7 +15,6 @@ import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
 import RankingsPage from './pages/RankingsPage'
-// ✅ 新增：过渡动画 + 周结算弹窗
 import WeekTransition from './components/WeekTransition'
 import WeekSummary from './components/WeekSummary'
 import { advanceWeekEngine } from './utils/weekEngine'
@@ -163,7 +162,7 @@ function autoSave(state) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'save', userId: user.id, slot, saveData }),
-    }).catch(err => console.warn('自动存档远程失败（不影响游戏）:', err))
+    }).catch(err => console.warn('自动存档远程失败:', err))
   } catch (err) {
     console.warn('自动存档失败:', err)
   }
@@ -201,9 +200,7 @@ export async function loadSave(userId, slot) {
   try {
     const res = await fetch(`/api/saves?userId=${userId}&slot=${slot}`)
     const data = await res.json()
-    if (data.save?.state_json) {
-      return JSON.parse(data.save.state_json)
-    }
+    if (data.save?.state_json) return JSON.parse(data.save.state_json)
   } catch (err) {
     console.warn('远程读档失败，尝试本地:', err)
   }
@@ -214,19 +211,16 @@ export async function loadSave(userId, slot) {
   return null
 }
 
-// ── 过渡动画最短显示时间（毫秒）──────────────────────
 const TRANSITION_MIN_MS = 3800
 
 function GameProvider({ children }) {
-  const [state, dispatch]               = useReducer(reducer, INIT)
-  const [advancing, setAdvancing]       = useState(false)
-
-  // ✅ 新增：过渡动画 & 周结算弹窗状态
+  const [state, dispatch]           = useReducer(reducer, INIT)
+  const [advancing, setAdvancing]   = useState(false)
   const [showTransition, setShowTransition] = useState(false)
   const [showSummary, setShowSummary]       = useState(false)
-  const [summaryState, setSummaryState]     = useState(null)   // weekEngine 结算后的新 state
-  const [prevFinance, setPrevFinance]       = useState(null)   // 结算前的财务（对比用）
-  const pendingStateRef = useRef(null)                          // 存放计算完毕但还未显示的 state
+  const [summaryState, setSummaryState]     = useState(null)
+  const [prevFinance, setPrevFinance]       = useState(null)
+  const pendingStateRef = useRef(null)
 
   useEffect(() => {
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
@@ -236,7 +230,7 @@ function GameProvider({ children }) {
         const newState = buildInitialState(newGameDifficulty, INIT)
         dispatch({ type: 'LOAD_SAVE', data: newState })
       } catch (err) {
-        console.warn('难度初始化失败，使用默认 state:', err)
+        console.warn('难度初始化失败:', err)
       }
       return
     }
@@ -253,7 +247,6 @@ function GameProvider({ children }) {
     }
   }, [])
 
-  // ✅ 新增：关闭周结算弹窗 → 应用新 state
   function handleSummaryClose() {
     setShowSummary(false)
     if (pendingStateRef.current) {
@@ -265,40 +258,40 @@ function GameProvider({ children }) {
   }
 
   async function advanceWeek() {
+    console.log('🎾 advanceWeek called, advancing=', advancing)
     if (advancing) return
     setAdvancing(true)
     setPrevFinance({ ...state.finance })
 
-    // ① 立即显示过渡动画
+    console.log('🎾 showing transition...')
     setShowTransition(true)
 
     const startTime = Date.now()
 
     try {
-      // ② 并行：weekEngine 计算（同时动画在播放）
+      console.log('🎾 running weekEngine...')
       const newState = await advanceWeekEngine(state)
       pendingStateRef.current = newState
+      console.log('🎾 weekEngine done, waiting for min duration...')
 
-      // ③ 保证动画至少播放 TRANSITION_MIN_MS 毫秒
       const elapsed = Date.now() - startTime
       const remaining = TRANSITION_MIN_MS - elapsed
       if (remaining > 0) {
         await new Promise(r => setTimeout(r, remaining))
       }
 
-      // ④ 隐藏过渡动画，显示周结算弹窗
+      console.log('🎾 showing summary...')
       setShowTransition(false)
       setSummaryState(newState)
       setShowSummary(true)
 
     } catch (err) {
-      console.error('进入下一周失败:', err)
+      console.error('❌ advanceWeek 失败:', err)
       setShowTransition(false)
       setAdvancing(false)
     }
   }
 
-  // 过渡动画显示时的年份/周数（显示「即将进入」的那一周）
   const transitionWeek = (state.gameState.week % 52) + 1
   const transitionYear = state.gameState.week === 52
     ? state.gameState.year + 1
@@ -307,15 +300,11 @@ function GameProvider({ children }) {
   return (
     <GameCtx.Provider value={{ state, dispatch, advanceWeek, advancing }}>
       {children}
-
-      {/* ✅ 过渡动画：全屏遮罩 */}
       <WeekTransition
         visible={showTransition}
         year={transitionYear}
         week={transitionWeek}
       />
-
-      {/* ✅ 周结算弹窗 */}
       <WeekSummary
         visible={showSummary}
         onClose={handleSummaryClose}
