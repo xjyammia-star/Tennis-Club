@@ -542,106 +542,103 @@ export default function SchedulePage() {
   const [addTarget, setAddTarget]         = useState(null)
   const [view, setView]                   = useState('week')
 
-  // ✅ 第6条：全局预选教练/球员，默认全选，点"+"直接带入弹窗
-  const [preCoachIds,   setPreCoachIds]   = useState(() => coaches.map(c => c.id))
-  const [prePlayerIds,  setPrePlayerIds]  = useState(() => players.map(p => p.id))
+  // ── 预选面板：默认全选现有成员，新招募成员默认未选中 ──
+  // 用 useRef 记录"已知"的教练/球员列表（组件挂载时的初始列表）
+  // 新招募的成员 = 当前列表中不在已知列表里的
+  const knownCoachIdsRef  = useRef(coaches.map(c => c.id))
+  const knownPlayerIdsRef = useRef(players.map(p => p.id))
 
-  // 当教练/球员列表变化时（新招募），自动把新成员加入预选并追加到所有团课
-  const prevCoachIdsRef  = useRef(coaches.map(c => c.id))
-  const prevPlayerIdsRef = useRef(players.map(p => p.id))
+  const [preCoachIds,  setPreCoachIds]  = useState(() => coaches.map(c => c.id))
+  const [prePlayerIds, setPrePlayerIds] = useState(() => players.map(p => p.id))
 
+  // 检测新招募的成员（不自动追加到团课，只更新 knownRef）
   useEffect(() => {
     const currentCoachIds  = coaches.map(c => c.id)
     const currentPlayerIds = players.map(p => p.id)
-    const newCoaches  = currentCoachIds.filter(id => !prevCoachIdsRef.current.includes(id))
-    const newPlayers  = currentPlayerIds.filter(id => !prevPlayerIdsRef.current.includes(id))
+    // 更新已知列表（不修改预选状态，新成员保持未选中）
+    knownCoachIdsRef.current  = currentCoachIds
+    knownPlayerIdsRef.current = currentPlayerIds
+  }, [coaches.length, players.length])
 
-    if (newCoaches.length > 0) {
-      setPreCoachIds(prev => [...new Set([...prev, ...newCoaches])])
-      // 把新教练追加到所有现有团课
-      if (newCoaches.length > 0) {
-        setGroupSchedule(prev => {
-          const updated = {}
-          DAYS.forEach(({ key }) => {
-            updated[key] = (prev[key] || []).map(s => {
-              if (s.type === 'private') return s
-              const mergedCoachIds = [...new Set([...(s.coachIds || []), ...newCoaches])]
-              const updatedSession = { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
-                ? coaches.find(c => c.id === mergedCoachIds[0])?.name || s.coachName
-                : `${mergedCoachIds.length}名教练` }
-              dispatch({ type: 'REMOVE_SESSION', id: s.id })
-              dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
-              return updatedSession
-            })
-          })
-          return updated
+  // ── 勾选教练：追加到所有现有团课 ──
+  function togglePreCoach(coachId) {
+    const isAdding = !preCoachIds.includes(coachId)
+    setPreCoachIds(prev => isAdding ? [...prev, coachId] : prev.filter(c => c !== coachId))
+    if (!isAdding) return
+
+    setGroupSchedule(prev => {
+      const updated = {}
+      DAYS.forEach(({ key }) => {
+        updated[key] = (prev[key] || []).map(s => {
+          if (s.type === 'private' || (s.coachIds || []).includes(coachId)) return s
+          const mergedCoachIds = [...(s.coachIds || []), coachId]
+          return {
+            ...s,
+            coachIds: mergedCoachIds,
+            coachName: mergedCoachIds.length === 1
+              ? coaches.find(c => c.id === coachId)?.name || s.coachName
+              : `${mergedCoachIds.length}名教练`,
+          }
         })
-      }
-    }
-
-    if (newPlayers.length > 0) {
-      // ✅ 新增球员默认不选中，需手动勾选才加入团课（不自动追加）
-      // setPrePlayerIds 不变，保持新球员为未选中状态
-    }
-
-    prevCoachIdsRef.current  = currentCoachIds
-    prevPlayerIdsRef.current = currentPlayerIds
-  }, [coaches, players])
-
-  function togglePreCoach(id) {
-    const isAdding = !preCoachIds.includes(id)
-    setPreCoachIds(prev => isAdding ? [...prev, id] : prev.filter(c => c !== id))
-    // 勾选新教练时，自动追加到所有现有团课，并同步 dispatch 到全局 state
-    if (isAdding) {
-      setGroupSchedule(prev => {
-        const updated = {}
-        DAYS.forEach(({ key }) => {
-          updated[key] = (prev[key] || []).map(s => {
-            if (s.type === 'private' || (s.coachIds || []).includes(id)) return s
-            const mergedCoachIds = [...(s.coachIds || []), id]
-            const updatedSession = { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
-              ? coaches.find(c => c.id === id)?.name || s.coachName
-              : `${mergedCoachIds.length}名教练` }
-            // ✅ 同步到全局 state（先删后加，保证数据一致）
-            dispatch({ type: 'REMOVE_SESSION', id: s.id })
-            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
-            return updatedSession
-          })
-        })
-        return updated
       })
-    }
+      return updated
+    })
   }
 
-  function togglePrePlayer(id) {
-    const isAdding = !prePlayerIds.includes(id)
-    setPrePlayerIds(prev => isAdding ? [...prev, id] : prev.filter(p => p !== id))
-    // 勾选新球员时，自动追加到所有现有团课，并同步 dispatch 到全局 state
-    if (isAdding) {
-      setGroupSchedule(prev => {
-        const updated = {}
-        DAYS.forEach(({ key }) => {
-          updated[key] = (prev[key] || []).map(s => {
-            if (s.type === 'private' || (s.playerIds || []).includes(id)) return s
-            const mergedPlayerIds   = [...(s.playerIds || []), id]
-            const mergedPlayerNames = mergedPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
-            const updatedSession = { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
-            // ✅ 同步到全局 state
-            dispatch({ type: 'REMOVE_SESSION', id: s.id })
-            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
-            return updatedSession
-          })
+  // ── 勾选球员：追加到所有现有团课 ──
+  function togglePrePlayer(playerId) {
+    const isAdding = !prePlayerIds.includes(playerId)
+    setPrePlayerIds(prev => isAdding ? [...prev, playerId] : prev.filter(p => p !== playerId))
+    if (!isAdding) return
+
+    setGroupSchedule(prev => {
+      const updated = {}
+      DAYS.forEach(({ key }) => {
+        updated[key] = (prev[key] || []).map(s => {
+          if (s.type === 'private' || (s.playerIds || []).includes(playerId)) return s
+          const mergedPlayerIds   = [...(s.playerIds || []), playerId]
+          const mergedPlayerNames = mergedPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
+          return { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
         })
-        return updated
       })
-    }
+      return updated
+    })
   }
 
-  function selectAllPlayers() {
-    const newIds = players.map(p => p.id)
-    setPrePlayerIds(newIds)
-  }
+  function selectAllPlayers() { setPrePlayerIds(players.map(p => p.id)) }
   function clearAllPlayers()  { setPrePlayerIds([]) }
+
+  // ✅ 用 useEffect 监听 groupSchedule 变化，统一同步到全局 state
+  // 这样无论是 togglePreCoach/Player 还是其他修改，都能持久化到 autosave
+  const prevGroupScheduleRef = useRef(null)
+  useEffect(() => {
+    // 跳过首次挂载（首次是从全局 state 恢复，不需要重复 dispatch）
+    if (prevGroupScheduleRef.current === null) {
+      prevGroupScheduleRef.current = groupSchedule
+      return
+    }
+    // 只 dispatch 有变化的 session
+    DAYS.forEach(({ key }) => {
+      const prevSessions = (prevGroupScheduleRef.current[key] || []).filter(s => s.type !== 'private')
+      const nextSessions = (groupSchedule[key] || []).filter(s => s.type !== 'private')
+
+      // 找出被删除的 session
+      prevSessions.forEach(s => {
+        if (!nextSessions.find(ns => ns.id === s.id)) {
+          dispatch({ type: 'REMOVE_SESSION', id: s.id })
+        }
+      })
+      // 找出新增或修改的 session
+      nextSessions.forEach(s => {
+        const prev = prevSessions.find(ps => ps.id === s.id)
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(s)) {
+          if (prev) dispatch({ type: 'REMOVE_SESSION', id: s.id })
+          dispatch({ type: 'ADD_SESSION', day: key, session: s })
+        }
+      })
+    })
+    prevGroupScheduleRef.current = groupSchedule
+  }, [groupSchedule])
 
   const stats = useMemo(() => calcWeekStats(fullSchedule, players), [fullSchedule, players])
 
@@ -656,7 +653,7 @@ export default function SchedulePage() {
       DAYS.forEach(({ key }) => { u[key] = (u[key] || []).filter(s => s.id !== session.id) })
       return u
     })
-    dispatch({ type: 'REMOVE_SESSION', id: session.id })
+    // dispatch 由 groupSchedule useEffect 统一处理
     setSessionDetail(null)
   }
 
@@ -678,7 +675,7 @@ export default function SchedulePage() {
 
   function handleAdd(dayKey, slot, data) {
     setGroupSchedule(prev => ({ ...prev, [dayKey]: [...(prev[dayKey] || []), data] }))
-    dispatch({ type: 'ADD_SESSION', day: dayKey, session: data })
+    // dispatch 由 groupSchedule useEffect 统一处理
     setAddTarget(null)
   }
 
