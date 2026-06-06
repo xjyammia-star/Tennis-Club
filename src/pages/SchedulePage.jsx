@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { DAYS, courseTypes } from '../data/mockData'
 import { useGameCtx } from '../App'
 import { generatePrivateLessons } from '../utils/privateLesson'
@@ -542,17 +542,106 @@ export default function SchedulePage() {
   const [addTarget, setAddTarget]         = useState(null)
   const [view, setView]                   = useState('week')
 
-  // ✅ 第6条：全局预选教练/球员，点"+"直接带入弹窗
-  const [preCoachIds,   setPreCoachIds]   = useState([])
-  const [prePlayerIds,  setPrePlayerIds]  = useState([])
+  // ✅ 第6条：全局预选教练/球员，默认全选，点"+"直接带入弹窗
+  const [preCoachIds,   setPreCoachIds]   = useState(() => coaches.map(c => c.id))
+  const [prePlayerIds,  setPrePlayerIds]  = useState(() => players.map(p => p.id))
+
+  // 当教练/球员列表变化时（新招募），自动把新成员加入预选并追加到所有团课
+  const prevCoachIdsRef  = useRef(coaches.map(c => c.id))
+  const prevPlayerIdsRef = useRef(players.map(p => p.id))
+
+  useEffect(() => {
+    const currentCoachIds  = coaches.map(c => c.id)
+    const currentPlayerIds = players.map(p => p.id)
+    const newCoaches  = currentCoachIds.filter(id => !prevCoachIdsRef.current.includes(id))
+    const newPlayers  = currentPlayerIds.filter(id => !prevPlayerIdsRef.current.includes(id))
+
+    if (newCoaches.length > 0) {
+      setPreCoachIds(prev => [...new Set([...prev, ...newCoaches])])
+      // 把新教练追加到所有现有团课
+      if (newCoaches.length > 0) {
+        setGroupSchedule(prev => {
+          const updated = {}
+          DAYS.forEach(({ key }) => {
+            updated[key] = (prev[key] || []).map(s => {
+              if (s.type === 'private') return s
+              const mergedCoachIds = [...new Set([...(s.coachIds || []), ...newCoaches])]
+              return { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
+                ? coaches.find(c => c.id === mergedCoachIds[0])?.name || s.coachName
+                : `${mergedCoachIds.length}名教练` }
+            })
+          })
+          return updated
+        })
+      }
+    }
+
+    if (newPlayers.length > 0) {
+      setPrePlayerIds(prev => [...new Set([...prev, ...newPlayers])])
+      // 把新球员追加到所有现有团课
+      setGroupSchedule(prev => {
+        const updated = {}
+        DAYS.forEach(({ key }) => {
+          updated[key] = (prev[key] || []).map(s => {
+            if (s.type === 'private') return s
+            const mergedPlayerIds   = [...new Set([...(s.playerIds || []), ...newPlayers])]
+            const mergedPlayerNames = mergedPlayerIds.map(id => players.find(p => p.id === id)?.name || '')
+            return { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+          })
+        })
+        return updated
+      })
+    }
+
+    prevCoachIdsRef.current  = currentCoachIds
+    prevPlayerIdsRef.current = currentPlayerIds
+  }, [coaches, players])
 
   function togglePreCoach(id) {
-    setPreCoachIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+    const isAdding = !preCoachIds.includes(id)
+    setPreCoachIds(prev => isAdding ? [...prev, id] : prev.filter(c => c !== id))
+    // 勾选新教练时，自动追加到所有现有团课
+    if (isAdding) {
+      setGroupSchedule(prev => {
+        const updated = {}
+        DAYS.forEach(({ key }) => {
+          updated[key] = (prev[key] || []).map(s => {
+            if (s.type === 'private' || (s.coachIds || []).includes(id)) return s
+            const mergedCoachIds = [...(s.coachIds || []), id]
+            return { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
+              ? coaches.find(c => c.id === id)?.name || s.coachName
+              : `${mergedCoachIds.length}名教练` }
+          })
+        })
+        return updated
+      })
+    }
   }
+
   function togglePrePlayer(id) {
-    setPrePlayerIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+    const isAdding = !prePlayerIds.includes(id)
+    setPrePlayerIds(prev => isAdding ? [...prev, id] : prev.filter(p => p !== id))
+    // 勾选新球员时，自动追加到所有现有团课
+    if (isAdding) {
+      setGroupSchedule(prev => {
+        const updated = {}
+        DAYS.forEach(({ key }) => {
+          updated[key] = (prev[key] || []).map(s => {
+            if (s.type === 'private' || (s.playerIds || []).includes(id)) return s
+            const mergedPlayerIds   = [...(s.playerIds || []), id]
+            const mergedPlayerNames = mergedPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
+            return { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+          })
+        })
+        return updated
+      })
+    }
   }
-  function selectAllPlayers() { setPrePlayerIds(players.map(p => p.id)) }
+
+  function selectAllPlayers() {
+    const newIds = players.map(p => p.id)
+    setPrePlayerIds(newIds)
+  }
   function clearAllPlayers()  { setPrePlayerIds([]) }
 
   const stats = useMemo(() => calcWeekStats(fullSchedule, players), [fullSchedule, players])
