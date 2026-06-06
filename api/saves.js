@@ -9,11 +9,12 @@ export default async function handler(req, res) {
   const sql = getDb()
 
   // ── GET: 读取用户存档 ──────────────────────────────
-  // 两种用途：
-  //   1. ?userId=xxx           → 读取该用户所有槽位（用于存档选择界面）
-  //   2. ?userId=xxx&slot=1    → 读取指定槽位完整 state（用于加载游戏）
   if (req.method === 'GET') {
-    const { userId, slot } = req.query
+    // ✅ 用 URL API 替代已废弃的 url.parse()
+    const { searchParams } = new URL(req.url, `https://${req.headers.host}`)
+    const userId = searchParams.get('userId')
+    const slot   = searchParams.get('slot')
+
     if (!userId) return res.status(400).json({ error: '缺少 userId' })
 
     try {
@@ -62,7 +63,6 @@ export default async function handler(req, res) {
         `
 
         if (existing.length > 0) {
-          // 覆盖已有存档
           await sql`
             UPDATE game_saves SET
               club_name     = ${saveData.club_name},
@@ -77,7 +77,6 @@ export default async function handler(req, res) {
           `
           return res.status(200).json({ success: true, action: 'overwritten' })
         } else {
-          // 新建存档
           await sql`
             INSERT INTO game_saves
               (user_id, slot, club_name, current_year, current_week,
@@ -95,7 +94,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // check：检查槽位是否有存档（用于覆盖提示）
+    // check：检查槽位是否有存档
     if (action === 'check') {
       try {
         const existing = await sql`
