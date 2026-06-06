@@ -14,6 +14,15 @@ import styles from './FacilitiesPage.module.css'
 const LEVEL_COLOR = { 糟糕: styles.lvBad, 普通: styles.lvNormal, 高级: styles.lvGood, 顶级: styles.lvElite }
 const CATEGORY_LABEL = { training: '训练设施', service: '服务设施', empty: '空地' }
 
+// ✅ 服务设施每天疲劳恢复量（与 weekEngine.js 的 SERVICE_FATIGUE_RECOVERY 保持一致）
+const SERVICE_FATIGUE_RECOVERY = {
+  locker:    { 糟糕: 2, 普通: 4,  高级: 6,  顶级: 8  },
+  lounge:    { 糟糕: 2, 普通: 5,  高级: 8,  顶级: 12 },
+  physio:    { 糟糕: 0, 普通: 3,  高级: 5,  顶级: 8  },
+  dormitory: { 糟糕: 3, 普通: 5,  高级: 8,  顶级: 12 },
+}
+const SERVICE_TYPES = new Set(['locker', 'lounge', 'physio', 'dormitory', 'cafe', 'restaurant', 'shop'])
+
 function upgradeCost(type, currentLevel) {
   const levels = FACILITY_LEVELS
   const idx = levels.indexOf(currentLevel)
@@ -90,7 +99,7 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
               <i className="ti ti-bolt" aria-hidden="true" /> 主要效果
             </div>
             <p className={styles.effectDesc}>{facility.mainEffect}</p>
-            {facility.level && <EffectBar level={facility.level} />}
+            {facility.level && <EffectBar level={facility.level} facilityType={facility.type} />}
           </div>
 
           {/* 财务信息 */}
@@ -132,28 +141,40 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
           )}
 
           {/* 级别对比（升级前后） */}
-          {nextLevel && (
-            <div className={styles.upgradePreview}>
-              <div className={styles.upgradePreviewTitle}>升级效果对比</div>
-              <div className={styles.compareRow}>
-                <div className={styles.compareCol}>
-                  <LevelBadge level={facility.level} />
-                  <span className={styles.compareEff}>{LEVEL_TRAIN_EFFECT[facility.level] || 100}%</span>
-                  <span className={styles.compareLbl}>当前训练效果</span>
-                </div>
-                <div className={styles.compareArrow}>
-                  <i className="ti ti-arrow-right" aria-hidden="true" />
-                </div>
-                <div className={styles.compareCol}>
-                  <LevelBadge level={nextLevel} />
-                  <span className={`${styles.compareEff} ${styles.compareEffUp}`}>
-                    {LEVEL_TRAIN_EFFECT[nextLevel] || 100}%
-                  </span>
-                  <span className={styles.compareLbl}>升级后训练效果</span>
+          {nextLevel && (() => {
+            const isService = SERVICE_TYPES.has(facility.type)
+            const fatigue = SERVICE_FATIGUE_RECOVERY[facility.type]
+            const curVal  = fatigue
+              ? `每天 -${fatigue[facility.level] || 0} 疲劳`
+              : `${LEVEL_TRAIN_EFFECT[facility.level] || 100}%`
+            const nextVal = fatigue
+              ? `每天 -${fatigue[nextLevel] || 0} 疲劳`
+              : `${LEVEL_TRAIN_EFFECT[nextLevel] || 100}%`
+            const curLbl  = fatigue ? '当前疲劳恢复' : '当前训练效果'
+            const nextLbl = fatigue ? '升级后疲劳恢复' : '升级后训练效果'
+            return (
+              <div className={styles.upgradePreview}>
+                <div className={styles.upgradePreviewTitle}>升级效果对比</div>
+                <div className={styles.compareRow}>
+                  <div className={styles.compareCol}>
+                    <LevelBadge level={facility.level} />
+                    <span className={styles.compareEff}>{curVal}</span>
+                    <span className={styles.compareLbl}>{curLbl}</span>
+                  </div>
+                  <div className={styles.compareArrow}>
+                    <i className="ti ti-arrow-right" aria-hidden="true" />
+                  </div>
+                  <div className={styles.compareCol}>
+                    <LevelBadge level={nextLevel} />
+                    <span className={`${styles.compareEff} ${styles.compareEffUp}`}>
+                      {nextVal}
+                    </span>
+                    <span className={styles.compareLbl}>{nextLbl}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* 操作按钮 */}
           <div className={styles.actionRow}>
@@ -314,7 +335,7 @@ function FacilityCard({ facility, onClick }) {
 
       {/* 训练效果条（非空地、非服务设施） */}
       {facility.level && facility.category === 'training' && (
-        <EffectBar level={facility.level} />
+        <EffectBar level={facility.level} facilityType={facility.type} />
       )}
     </div>
   )

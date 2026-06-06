@@ -349,3 +349,101 @@
 }
 .btnAdd:hover { background: var(--forest-mid); }
 .btnAdd i { font-size: 15px; }
+
+/* ══════════════════════════════════════════
+   预选面板（第6条批量选教练/球员）
+   ══════════════════════════════════════════ */
+.preSelectPanel {
+  margin-top: 20px;
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--cream-dark);
+  padding: 16px;
+}
+.preSelectTitle {
+  font-size: 13px;
+  color: var(--ink-mid);
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: var(--cream);
+  border-radius: 8px;
+  line-height: 1.6;
+}
+.preSelectSection { margin-bottom: 16px; }
+.preSelectSection:last-child { margin-bottom: 0; }
+.preSelectLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preSelectAll {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid var(--cream-dark);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.preSelectAll:hover { background: var(--cream); }
+.preSelectList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.preSelectBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 8px;
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 0;
+}
+.preSelectBtn:hover {
+  border-color: var(--gold);
+  background: var(--cream);
+}
+.preSelectBtnActive {
+  border-color: var(--gold);
+  background: #f5edda;
+}
+.preSelectBtnTired { opacity: 0.65; }
+.preSelectAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: var(--gold-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.preSelectInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.preSelectName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.preSelectSub {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}

@@ -1076,10 +1076,8 @@ export const allEvents = [
   { id: 16, name: 'ITF青少年赛（六）',  level: 'itf',  levelLabel: 'ITF',    week: 45, duration: 2, qualify: '14-18岁',     surface: '硬地' },
 ]
 
-export const myEntries = [
-  { eventId: 2, playerIds: [1, 4, 7], status: 'upcoming' },
-  { eventId: 3, playerIds: [5, 12],   status: 'upcoming' },
-]
+// ✅ 新游戏默认无报名记录
+export const myEntries = []
 
 export const eventHistory = [
   {

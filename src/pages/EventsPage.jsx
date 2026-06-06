@@ -273,7 +273,8 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
   const isEntered = !!entry
   const weeksAway = weeksUntil(event.week, currentWeek)
   const status    = getStatus(event, currentWeek)
-  const [selectedPlayers, setSelectedPlayers] = useState(entry?.playerIds || [])
+  // ✅ 始终从空数组开始，已报名球员通过已选中状态标记显示，不预填
+  const [selectedPlayers, setSelectedPlayers] = useState(entry?.playerIds ? [...entry.playerIds] : [])
 
   function togglePlayer(id) {
     setSelectedPlayers(prev =>
@@ -359,20 +360,21 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
 
           {status !== 'past' && (
             <div className={styles.actionRow}>
-              {isEntered ? (
+              {/* ✅ 统一显示"确认报名"，可增删球员后重新提交 */}
+              <button
+                className={styles.btnEnter}
+                disabled={selectedPlayers.length === 0 || eligible.length === 0}
+                onClick={() => { onEnter(event.id, selectedPlayers); onClose() }}
+              >
+                <i className="ti ti-send" aria-hidden="true" />
+                {selectedPlayers.length > 0
+                  ? `确认报名（${selectedPlayers.length} 人）`
+                  : '请先选择球员'}
+              </button>
+              {/* ✅ 已报名时额外显示取消报名按钮 */}
+              {isEntered && (
                 <button className={styles.btnWithdraw} onClick={() => { onWithdraw(event.id); onClose() }}>
                   <i className="ti ti-x" aria-hidden="true" /> 取消报名
-                </button>
-              ) : (
-                <button
-                  className={styles.btnEnter}
-                  disabled={selectedPlayers.length === 0 || eligible.length === 0}
-                  onClick={() => { onEnter(event.id, selectedPlayers); onClose() }}
-                >
-                  <i className="ti ti-send" aria-hidden="true" />
-                  {selectedPlayers.length > 0
-                    ? `报名参赛（${selectedPlayers.length} 人）`
-                    : '请先选择球员'}
                 </button>
               )}
             </div>
