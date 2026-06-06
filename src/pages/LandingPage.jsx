@@ -275,88 +275,128 @@ function GuideModal({ onClose }) {
   )
 }
 
-// ── 难度选择弹窗（含游戏年限）────────────────────────
+// ── 难度选择弹窗（含游戏年限 + 俱乐部名称）────────────
 function DifficultyModal({ onClose, onConfirm }) {
+  const [step, setStep]         = useState(1)   // step1: 难度/年限  step2: 俱乐部名称
   const [selected, setSelected] = useState('normal')
   const [duration, setDuration] = useState(20)
+  const [clubName, setClubName] = useState('长青网球俱乐部')
   const cfg = DIFFICULTY_CONFIG[selected]
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.diffModal} onClick={e => e.stopPropagation()}>
         <div className={styles.savesHeader}>
-          <span className={styles.savesTitle}>新游戏设置</span>
+          <span className={styles.savesTitle}>{step === 1 ? '新游戏设置' : '俱乐部名称'}</span>
           <button className={styles.closeBtn} onClick={onClose}><i className="ti ti-x" /></button>
         </div>
 
-        <div className={styles.diffBody}>
-          {/* 难度选择 */}
-          <div className={styles.diffSectionLabel}>选择难度</div>
-          <div className={styles.diffTabs}>
-            {Object.entries(DIFFICULTY_CONFIG).map(([key, d]) => (
-              <button
-                key={key}
-                className={`${styles.diffTab} ${selected === key ? styles.diffTabActive : ''}`}
-                style={selected === key ? { borderColor: d.color, color: d.color } : {}}
-                onClick={() => setSelected(key)}
-              >
-                <i className={`ti ${d.icon}`} style={{ color: selected === key ? d.color : undefined }} />
-                {d.label}
-              </button>
-            ))}
-          </div>
+        {step === 1 ? (
+          <div className={styles.diffBody}>
+            {/* 难度选择 */}
+            <div className={styles.diffSectionLabel}>选择难度</div>
+            <div className={styles.diffTabs}>
+              {Object.entries(DIFFICULTY_CONFIG).map(([key, d]) => (
+                <button
+                  key={key}
+                  className={`${styles.diffTab} ${selected === key ? styles.diffTabActive : ''}`}
+                  style={selected === key ? { borderColor: d.color, color: d.color } : {}}
+                  onClick={() => setSelected(key)}
+                >
+                  <i className={`ti ${d.icon}`} style={{ color: selected === key ? d.color : undefined }} />
+                  {d.label}
+                </button>
+              ))}
+            </div>
 
-          {/* 难度说明 */}
-          <div className={styles.diffDesc} style={{ borderLeftColor: cfg.color }}>
-            {cfg.desc}
-          </div>
+            {/* 难度说明 */}
+            <div className={styles.diffDesc} style={{ borderLeftColor: cfg.color }}>
+              {cfg.desc}
+            </div>
 
-          {/* 初始条件 */}
-          <div className={styles.diffDetails}>
-            <div className={styles.diffDetailsTitle}>初始条件</div>
-            {cfg.details.map((d, i) => (
-              <div key={i} className={styles.diffDetailRow}>
-                <i className={`ti ${d.icon}`} style={{ color: cfg.color }} aria-hidden="true" />
-                <span>{d.text}</span>
-              </div>
-            ))}
-          </div>
+            {/* 初始条件 */}
+            <div className={styles.diffDetails}>
+              <div className={styles.diffDetailsTitle}>初始条件</div>
+              {cfg.details.map((d, i) => (
+                <div key={i} className={styles.diffDetailRow}>
+                  <i className={`ti ${d.icon}`} style={{ color: cfg.color }} aria-hidden="true" />
+                  <span>{d.text}</span>
+                </div>
+              ))}
+            </div>
 
-          {/* ✅ 游戏年限选择 */}
-          <div className={styles.diffSectionLabel} style={{ marginTop: 16 }}>游戏年限</div>
-          <div className={styles.durationRow}>
-            {DURATION_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                className={`${styles.durationBtn} ${duration === opt.value ? styles.durationBtnActive : ''}`}
-                onClick={() => setDuration(opt.value)}
-              >
-                <span className={styles.durationLabel}>{opt.label}</span>
-                <span className={styles.durationDesc}>{opt.desc}</span>
-              </button>
-            ))}
-          </div>
-          <div className={styles.durationNote}>
-            <i className="ti ti-info-circle" aria-hidden="true" />
-            游戏将在第 {1 + duration} 年结束，届时根据俱乐部综合评分判定最终成绩
-          </div>
+            {/* 游戏年限选择 */}
+            <div className={styles.diffSectionLabel} style={{ marginTop: 16 }}>游戏年限</div>
+            <div className={styles.durationRow}>
+              {DURATION_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`${styles.durationBtn} ${duration === opt.value ? styles.durationBtnActive : ''}`}
+                  onClick={() => setDuration(opt.value)}
+                >
+                  <span className={styles.durationLabel}>{opt.label}</span>
+                  <span className={styles.durationDesc}>{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+            <div className={styles.durationNote}>
+              <i className="ti ti-info-circle" aria-hidden="true" />
+              游戏将在第 {1 + duration} 年结束，届时根据俱乐部综合评分判定最终成绩
+            </div>
 
-          {/* 已选摘要 */}
-          <div className={styles.diffBadge} style={{ background: cfg.tagColor, color: cfg.color }}>
-            <i className={`ti ${cfg.icon}`} />
-            {cfg.label}难度 · {duration}年
+            {/* 已选摘要 */}
+            <div className={styles.diffBadge} style={{ background: cfg.tagColor, color: cfg.color }}>
+              <i className={`ti ${cfg.icon}`} />
+              {cfg.label}难度 · {duration}年
+            </div>
           </div>
-        </div>
+        ) : (
+          // ✅ Step 2：输入俱乐部名称
+          <div className={styles.diffBody}>
+            <div className={styles.clubNameHint}>
+              <i className="ti ti-building" style={{ fontSize: 32, color: 'var(--gold)', marginBottom: 8 }} />
+              <p>为你的俱乐部起一个名字吧</p>
+              <p style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 4 }}>
+                {cfg.label}难度 · {duration}年 · 可在设置中修改
+              </p>
+            </div>
+            <input
+              className={styles.clubNameInput}
+              value={clubName}
+              onChange={e => setClubName(e.target.value)}
+              maxLength={20}
+              placeholder="输入俱乐部名称（最多20字）"
+              autoFocus
+            />
+            <div className={styles.clubNameCount}>{clubName.length} / 20</div>
+          </div>
+        )}
 
         <div className={styles.diffFooter}>
-          <button className={styles.btnCancel} onClick={onClose}>取消</button>
-          <button
-            className={styles.btnStartGame}
-            style={{ background: cfg.color }}
-            onClick={() => onConfirm(selected, duration)}
-          >
-            <i className="ti ti-arrow-right" /> 开始游戏
-          </button>
+          {step === 1 ? (
+            <>
+              <button className={styles.btnCancel} onClick={onClose}>取消</button>
+              <button
+                className={styles.btnStartGame}
+                style={{ background: cfg.color }}
+                onClick={() => setStep(2)}
+              >
+                下一步 <i className="ti ti-arrow-right" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button className={styles.btnCancel} onClick={() => setStep(1)}>← 返回</button>
+              <button
+                className={styles.btnStartGame}
+                style={{ background: cfg.color }}
+                disabled={!clubName.trim()}
+                onClick={() => onConfirm(selected, duration, clubName.trim() || '长青网球俱乐部')}
+              >
+                <i className="ti ti-arrow-right" /> 开始游戏
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -469,14 +509,13 @@ export default function LandingPage() {
     setModal('difficulty')
   }
 
-  // ✅ 难度 + 年限确认后：先生成 state，显示初始化动画，动画结束后跳转
-  function handleDifficultyConfirm(difficulty, duration) {
+  // ✅ 难度 + 年限 + 俱乐部名称确认后：先生成 state，显示初始化动画，动画结束后跳转
+  function handleDifficultyConfirm(difficulty, duration, clubName = '长青网球俱乐部') {
     setModal(null)
 
     // 提前生成初始 state（这样动画里可以展示球员名字）
-    // 需要一个最小 INIT 结构，这里用空对象，App.jsx 会用 buildInitialState 的结果覆盖
     const tempState = buildInitialState(difficulty, {
-      gameState: { clubName: '长青网球俱乐部', year: 1, week: 1, dayOfWeek: '周一',
+      gameState: { clubName, year: 1, week: 1, dayOfWeek: '周一',
                    cash: 0, prestige: 0, prestigeTitle: '', prestigeChange: 0,
                    difficulty, clubSize: 'medium', loanMonthly: 0 },
       clubStats: { playerCount: 0, playerCapacity: 0, coachCount: 0, courtCount: 0, courtTypes: '', facilityCount: 0 },
@@ -490,6 +529,7 @@ export default function LandingPage() {
     // 存入 localStorage，App.jsx 读取后初始化
     localStorage.setItem('tcm_new_game_difficulty', difficulty)
     localStorage.setItem('tcm_new_game_duration', String(duration))
+    localStorage.setItem('tcm_new_game_clubname', clubName)
 
     // 启动动画，把球员/教练信息传进去展示
     setInitPlayers(tempState.players || [])

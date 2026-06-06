@@ -243,8 +243,10 @@ function GameProvider({ children }) {
       localStorage.removeItem('tcm_new_game_difficulty')
       const gameDuration = parseInt(localStorage.getItem('tcm_new_game_duration') || '20', 10)
       localStorage.removeItem('tcm_new_game_duration')
+      const clubName = localStorage.getItem('tcm_new_game_clubname') || '长青网球俱乐部'
+      localStorage.removeItem('tcm_new_game_clubname')
       try {
-        const newState = buildInitialState(newGameDifficulty, INIT, gameDuration)
+        const newState = buildInitialState(newGameDifficulty, INIT, gameDuration, clubName)
         dispatch({ type: 'LOAD_SAVE', data: newState })
         // ✅ 新游戏开始后立即存档到槽位1
         autoSave(newState)

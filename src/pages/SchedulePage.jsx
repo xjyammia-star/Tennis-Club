@@ -290,11 +290,12 @@ function SessionDetail({ session, onClose, onDelete, onEdit, players, coaches })
 }
 
 // ── 添加课程弹窗 ──────────────────────────────────────
-function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCount }) {
+function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCount, initCoachIds = [], initPlayerIds = [] }) {
   const [type, setType]         = useState('court_group')
-  const [coachIds, setCoachIds] = useState([coaches[0]?.id].filter(Boolean))
+  // ✅ 用预选数据初始化，没有预选时才用第一位教练
+  const [coachIds, setCoachIds] = useState(initCoachIds.length > 0 ? initCoachIds : [coaches[0]?.id].filter(Boolean))
   const [hours, setHours]       = useState(2)
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(initPlayerIds)
 
   const allowedTypes = courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private')
   const slotInfo     = FULL_SLOTS.find(s => s.key === slot)
@@ -527,6 +528,19 @@ export default function SchedulePage() {
   const [addTarget, setAddTarget]         = useState(null)
   const [view, setView]                   = useState('week')
 
+  // ✅ 第6条：全局预选教练/球员，点"+"直接带入弹窗
+  const [preCoachIds,   setPreCoachIds]   = useState([])
+  const [prePlayerIds,  setPrePlayerIds]  = useState([])
+
+  function togglePreCoach(id) {
+    setPreCoachIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+  }
+  function togglePrePlayer(id) {
+    setPrePlayerIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  }
+  function selectAllPlayers() { setPrePlayerIds(players.map(p => p.id)) }
+  function clearAllPlayers()  { setPrePlayerIds([]) }
+
   const stats = useMemo(() => calcWeekStats(fullSchedule, players), [fullSchedule, players])
 
   function handleClick(session) {
@@ -684,6 +698,64 @@ export default function SchedulePage() {
           <div className={styles.desktopOnly}><WeekView /></div>
           <div className={styles.mobileOnly}>{view==='week'?<WeekView />:<DayView />}</div>
         </div>
+
+        {/* ✅ 第6条：预选面板 */}
+        <div className={styles.preSelectPanel}>
+          <div className={styles.preSelectTitle}>
+            <i className="ti ti-hand-click" /> 选好教练和球员后，点击课表中的 <strong>+</strong> 快速添加课程
+          </div>
+
+          {/* 教练预选 */}
+          <div className={styles.preSelectSection}>
+            <div className={styles.preSelectLabel}>选择教练（已选 {preCoachIds.length} 名）</div>
+            <div className={styles.preSelectList}>
+              {coaches.map(c => (
+                <button
+                  key={c.id}
+                  className={`${styles.preSelectBtn} ${preCoachIds.includes(c.id) ? styles.preSelectBtnActive : ''}`}
+                  onClick={() => togglePreCoach(c.id)}
+                >
+                  <span className={styles.preSelectAvatar}>{c.name.charAt(0)}</span>
+                  <div className={styles.preSelectInfo}>
+                    <span className={styles.preSelectName}>{c.name}</span>
+                    <span className={styles.preSelectSub}>{c.levelLabel} · {c.expBonus}</span>
+                  </div>
+                  {preCoachIds.includes(c.id) && <i className="ti ti-check" style={{color:'var(--gold)'}} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 球员预选 */}
+          <div className={styles.preSelectSection}>
+            <div className={styles.preSelectLabel}>
+              选择球员（已选 {prePlayerIds.length} / {players.length} 名）
+              <button className={styles.preSelectAll} onClick={selectAllPlayers}>全选</button>
+              <button className={styles.preSelectAll} onClick={clearAllPlayers}>清空</button>
+            </div>
+            <div className={styles.preSelectList}>
+              {players.map(p => {
+                const hi = p.fatigue >= 70
+                return (
+                  <button
+                    key={p.id}
+                    className={`${styles.preSelectBtn} ${prePlayerIds.includes(p.id) ? styles.preSelectBtnActive : ''} ${hi ? styles.preSelectBtnTired : ''}`}
+                    onClick={() => togglePrePlayer(p.id)}
+                  >
+                    <span className={styles.preSelectAvatar}>{p.name.charAt(0)}</span>
+                    <div className={styles.preSelectInfo}>
+                      <span className={styles.preSelectName}>{p.name}</span>
+                      <span className={styles.preSelectSub}>
+                        Lv{p.level} · 疲劳{p.fatigue}%{hi ? ' ⚠️' : ''}
+                      </span>
+                    </div>
+                    {prePlayerIds.includes(p.id) && <i className="ti ti-check" style={{color:'var(--gold)'}} />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {sessionDetail && (
@@ -704,6 +776,8 @@ export default function SchedulePage() {
           onAdd={(data) => handleAdd(addTarget.day, addTarget.slot, data)}
           players={players} coaches={coaches}
           courtCount={clubStats.courtCount}
+          initCoachIds={preCoachIds}
+          initPlayerIds={prePlayerIds}
         />
       )}
     </div>

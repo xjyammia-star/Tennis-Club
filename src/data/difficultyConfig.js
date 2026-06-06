@@ -170,7 +170,7 @@ const EASY_FACILITIES = [
 // @param baseState    INIT 基础 state（来自 App.jsx）
 // @param gameDuration 游戏总年限：10 | 20 | 30（默认20）
 // ══════════════════════════════════════════════════════
-export function buildInitialState(difficulty, baseState, gameDuration = 20) {
+export function buildInitialState(difficulty, baseState, gameDuration = 20, clubName = '长青网球俱乐部') {
   const d = (difficulty || 'normal').toLowerCase().trim()
   difficulty = d
   const usedNames = new Set()
@@ -191,6 +191,7 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20) {
       ...baseState,
       gameState: {
         ...baseState.gameState,
+        clubName,
         difficulty:    'hard',
         clubSize:      'small',
         cash:          100000,
@@ -233,6 +234,7 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20) {
       ...baseState,
       gameState: {
         ...baseState.gameState,
+        clubName,
         difficulty:    'normal',
         clubSize:      'medium',
         cash:          200000,
@@ -276,6 +278,7 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20) {
     ...baseState,
     gameState: {
       ...baseState.gameState,
+      clubName,
       difficulty:    'easy',
       clubSize:      'medium',
       cash:          500000,
