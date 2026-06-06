@@ -114,7 +114,7 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
     try {
       if (mode === 'login') {
         if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-          const adminUser = { id: 'admin', email: ADMIN_EMAIL, username: '管理员', isAdmin: true }
+          const adminUser = { id: '00000000-0000-0000-0000-000000000001', email: ADMIN_EMAIL, username: '管理员', isAdmin: true }
           setLocal('tcm_user', adminUser)
           onSuccess(adminUser)
           return
