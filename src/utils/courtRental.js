@@ -5,13 +5,14 @@
 const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
 const PLAYERS_PER_COURT = 4
 
+// ── 时间段定义（与 SchedulePage 的 FULL_SLOTS 保持一致）──
+// 06-10点(4h) 10-12点(2h) 12-17点(5h) 17-20点(3h) 20-22点(2h)
+// 可外租时段：06-10点、12-17点、20-22点，共 4+5+2 = 11h/场/天
+const DAILY_RENTABLE_PER_COURT = 11
+
 // ══════════════════════════════════════════════════════
 // 共用参数提取函数
 // SchedulePage、ClubSettingsPage、weekEngine 全部调用此函数
-//
-// @param schedule       训练课表 { mon: [...], tue: [...], ... }
-// @param privateLessons 私教课表（可选）
-// @returns { weekPrivateCounts, weekGroupCounts }
 // ══════════════════════════════════════════════════════
 export function calcRentalParams(schedule, privateLessons = {}) {
   const weekPrivateCounts = {}
@@ -27,19 +28,14 @@ export function calcRentalParams(schedule, privateLessons = {}) {
     weekPrivateCounts[day] = privateHours
 
     // 团课占用：ceil(学员人数 / 4) × 课时小时数
-    // ✅ 关键：playerIds 为空时默认按 1 块场地计算（至少占1块）
     let courtHours = 0
     ;(schedule[day] || []).forEach(s => {
       if (s.type !== 'court_group') return
       const playerCount  = s.playerIds?.length || 0
-      // 有人数用人数算，没人数（异常情况）至少算1块场地
       const courtsNeeded = playerCount > 0
         ? Math.ceil(playerCount / PLAYERS_PER_COURT)
         : 1
       courtHours += courtsNeeded * (s.hours || 0)
-
-      // 调试日志（上线后可删除）
-      console.log(`[外租] ${day} 团课: ${playerCount}人, ${courtsNeeded}块场地, ${s.hours}h → 占用${courtsNeeded * (s.hours || 0)}h`)
     })
     weekGroupCounts[day] = courtHours
   })
@@ -47,9 +43,9 @@ export function calcRentalParams(schedule, privateLessons = {}) {
   return { weekPrivateCounts, weekGroupCounts }
 }
 
-// ── 声望加成（声望0~2000，加成0~20%）──────────────────
+// ── 声望加成（声望0~2000，加成0~15%）──────────────────
 function prestigeBonus(prestige) {
-  return Math.min(0.20, (prestige / 2000) * 0.20)
+  return Math.min(0.15, (prestige / 2000) * 0.15)
 }
 
 // ══════════════════════════════════════════════════════
@@ -63,16 +59,16 @@ export function calcCourtRentalIncome({
   weekGroupCounts   = {},
   eventModifier     = 0,
 }) {
-  const BASE_RATE = 0.60
+  // ✅ 第7条：基础出租率从60%降至40%
+  const BASE_RATE = 0.40
   const pBonus    = prestigeBonus(prestige)
-  const rentRate  = Math.min(0.95, Math.max(0.10, BASE_RATE + pBonus + eventModifier))
-
-  const DAILY_RENTABLE_PER_COURT = 12
+  const rentRate  = Math.min(0.85, Math.max(0.10, BASE_RATE + pBonus + eventModifier))
 
   let totalRentableHours = 0
   const breakdown = []
 
   DAYS_KEYS.forEach(day => {
+    // ✅ 第5条：可租总时长从12h改为11h（新时间段）
     const totalSlotHours = DAILY_RENTABLE_PER_COURT * courtCount
     const privateHours   = weekPrivateCounts[day] || 0
     const groupHours     = weekGroupCounts[day]   || 0
@@ -98,9 +94,9 @@ export function calcCourtRentalIncome({
 
 // ── 出租率描述文字 ────────────────────────────────────
 export function rentRateLabel(rate) {
-  if (rate >= 85) return '极佳'
-  if (rate >= 70) return '良好'
-  if (rate >= 55) return '一般'
-  if (rate >= 40) return '较低'
+  if (rate >= 75) return '极佳'
+  if (rate >= 60) return '良好'
+  if (rate >= 45) return '一般'
+  if (rate >= 30) return '较低'
   return '冷清'
 }

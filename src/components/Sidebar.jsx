@@ -1,5 +1,6 @@
-import { Link, useLocation } from 'react-router-dom'
-import { useGameCtx } from '../App'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useGameCtx, manualSave } from '../App'
+import { useState } from 'react'
 
 const allNavItems = [
   { id: 'home',          label: '主页总览',   icon: 'ti-home',          path: '/home'          },
@@ -11,14 +12,32 @@ const allNavItems = [
   { id: 'events',        label: '赛事管理',   icon: 'ti-trophy',        path: '/events'        },
   { id: 'rankings',      label: '世界排名',   icon: 'ti-list-numbers',  path: '/rankings'      },  // ✅ 新增
   { id: 'finance',       label: '财务收支',   icon: 'ti-chart-bar',     path: '/finance'       },
-  { id: 'club-settings', label: '俱乐部经营', icon: 'ti-adjustments',   path: '/club-settings' },
-  { id: 'settings',      label: '设置',       icon: 'ti-settings',      path: '/settings'      },
+  { id: 'club-settings', label: '俱乐部设置', icon: 'ti-adjustments',   path: '/club-settings' },
 ]
 
 export default function Sidebar() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const { state, advanceWeek, advancing } = useGameCtx()
   const { gameState } = state
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+
+  async function handleSaveAndExit() {
+    setSaving(true)
+    await manualSave(state, 1)
+    setSaving(false)
+    setSaveMsg('已保存')
+    setTimeout(() => { setSaveMsg(''); navigate('/landing') }, 800)
+  }
+
+  async function handleManualSave() {
+    setSaving(true)
+    await manualSave(state, 1)
+    setSaving(false)
+    setSaveMsg('✓ 已保存')
+    setTimeout(() => setSaveMsg(''), 2000)
+  }
 
   return (
     <aside className="sidebar">
@@ -54,6 +73,16 @@ export default function Sidebar() {
           <i className="ti ti-arrow-right" aria-hidden="true" />
           {advancing ? '结算中...' : '进入下一周'}
         </button>
+        <div className="sidebar-actions">
+          <button className="sidebar-save-btn" onClick={handleManualSave} disabled={saving}>
+            <i className="ti ti-device-floppy" aria-hidden="true" />
+            {saveMsg || '保存进度'}
+          </button>
+          <button className="sidebar-exit-btn" onClick={handleSaveAndExit} disabled={saving}>
+            <i className="ti ti-door-exit" aria-hidden="true" />
+            保存并退出
+          </button>
+        </div>
       </div>
     </aside>
   )

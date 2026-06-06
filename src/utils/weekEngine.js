@@ -681,11 +681,34 @@ export async function advanceWeekEngine(state) {
     playerUpdates[p.id] ? { ...p, skills: playerUpdates[p.id].skills } : p
   )
 
-  // 6. 教练合同处理
+  // 6. 教练合同处理 + 疲劳度更新
+  // ✅ 第4条：教练疲劳度 = 球员疲劳逻辑的50%
+  const COACH_FATIGUE_PER_HOUR = 4   // 球员约8，教练取50%
+  const COACH_FATIGUE_RECOVERY = 25  // 球员约50，教练取50%
+
+  function calcCoachFatigue(coach, schedule) {
+    let fatigue = coach.fatigue ?? 0
+    const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
+    DAYS_KEYS.forEach(day => {
+      let teachHours = 0
+      ;(schedule[day] || []).forEach(s => {
+        if (s.coachIds?.includes(coach.id) || s.coachId === coach.id) {
+          if (s.type !== 'rest') teachHours += s.hours || 0
+        }
+      })
+      fatigue = fatigue + teachHours * COACH_FATIGUE_PER_HOUR - COACH_FATIGUE_RECOVERY
+      fatigue = Math.min(100, Math.max(0, fatigue))
+    })
+    return Math.round(fatigue)
+  }
+
   const contractNews = []
   const updatedCoaches = []
   coaches.forEach(c => {
     const newWeeksLeft = Math.max(0, c.contractWeeksLeft - 1)
+    // ✅ 计算本周教练疲劳变化
+    const newFatigue = calcCoachFatigue(c, fullSchedule)
+
     if (newWeeksLeft === 0) {
       contractNews.push({
         id: Date.now() + Math.random(),
@@ -702,7 +725,16 @@ export async function advanceWeekEngine(state) {
           week: newWeek,
         })
       }
-      updatedCoaches.push({ ...c, contractWeeksLeft: newWeeksLeft })
+      // ✅ 疲劳度过高时发出警告
+      if (newFatigue >= 80 && (c.fatigue ?? 0) < 80) {
+        contractNews.push({
+          id: Date.now() + Math.random(),
+          type: 'coach',
+          text: `⚠️ 教练${c.name}疲劳度过高（${newFatigue}），建议减少排课。`,
+          week: newWeek,
+        })
+      }
+      updatedCoaches.push({ ...c, contractWeeksLeft: newWeeksLeft, fatigue: newFatigue })
     }
   })
 

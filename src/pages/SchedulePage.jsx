@@ -7,10 +7,11 @@ import { getClubSettings } from '../utils/clubSettings'
 import styles from './SchedulePage.module.css'
 
 const FULL_SLOTS = [
-  { key: 'private', label: '私教',  sublabel: '06–10点', clubOnly: false, rentable: true  },
-  { key: 'am',      label: '上午',  sublabel: '10–12点', clubOnly: true,  rentable: false },
-  { key: 'pm',      label: '下午',  sublabel: '12–19点', clubOnly: false, rentable: true  },
-  { key: 'eve',     label: '晚上',  sublabel: '19–22点', clubOnly: false, rentable: true  },
+  { key: 'private', label: '私教',   sublabel: '06–10点', clubOnly: false, rentable: true  },
+  { key: 'am',      label: '上午',   sublabel: '10–12点', clubOnly: true,  rentable: false },
+  { key: 'pm',      label: '下午',   sublabel: '12–17点', clubOnly: false, rentable: true  },
+  { key: 'eve1',    label: '傍晚',   sublabel: '17–20点', clubOnly: true,  rentable: false },
+  { key: 'eve2',    label: '夜间',   sublabel: '20–22点', clubOnly: false, rentable: true  },
 ]
 
 function getCourseType(id) {

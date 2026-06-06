@@ -140,11 +140,11 @@ export default function ClubSettingsPage() {
           <div className={styles.timeTable}>
             <div className={styles.timeTableTitle}>场地使用规则</div>
             {[
-              { time: '06:00–10:00', use: '私教专用（系统自动排课）', tag: 'mixed' },
+              { time: '06:00–10:00', use: '私教专用（系统自动排课）可外租', tag: 'mixed' },
               { time: '10:00–12:00', use: '俱乐部团课专用（不可外租）', tag: 'club' },
               { time: '12:00–17:00', use: '团课优先，剩余时间可外租', tag: 'mixed' },
-              { time: '17:00–19:00', use: '俱乐部团课专用（不可外租）', tag: 'club' },
-              { time: '19:00–22:00', use: '团课优先，剩余时间可外租', tag: 'mixed' },
+              { time: '17:00–20:00', use: '俱乐部团课专用（不可外租）', tag: 'club' },
+              { time: '20:00–22:00', use: '团课优先，剩余时间可外租', tag: 'mixed' },
             ].map((r, i) => (
               <div key={i} className={styles.timeRow}>
                 <span className={styles.timeSlot}>{r.time}</span>

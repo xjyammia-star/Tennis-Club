@@ -153,18 +153,15 @@ export default function SettingsPage() {
   const { gameState, clubStats } = state
 
   const [showRename,   setShowRename]   = useState(false)
-  const [showReset,    setShowReset]    = useState(false)
-  const [showNewGame,  setShowNewGame]  = useState(false)
   const [showExit,     setShowExit]     = useState(false)  // ✅ 退出确认
   const [saveMsg,      setSaveMsg]      = useState('')
+  const [autoSave,      setAutoSave]      = useState(() => getLocal('tcm_auto_save', true))
 
   // ✅ 通知/偏好设置：读写 localStorage，即时生效
   const [notifyFatigue,  setNotifyFatigue]  = useState(() => getLocal('tcm_notify_fatigue',  true))
   const [notifyContract, setNotifyContract] = useState(() => getLocal('tcm_notify_contract', true))
   const [notifyEvent,    setNotifyEvent]    = useState(() => getLocal('tcm_notify_event',    true))
   const [notifyRandom,   setNotifyRandom]   = useState(() => getLocal('tcm_notify_random',   true))
-  const [autoAdvance,    setAutoAdvance]    = useState(() => getLocal('tcm_auto_advance',    false))
-  const [showHiddenAttr, setShowHiddenAttr] = useState(() => getLocal('tcm_show_hidden',     false))
 
   // Toggle 变更时立即写 localStorage
   function handleToggle(key, setter, val) {
@@ -241,6 +238,11 @@ export default function SettingsPage() {
             right={<span className={styles.valueText}>{saveTime}</span>}
             onClick={handleManualSave}
           />
+          <Row
+            label="自动存档"
+            desc="每次进入下一周后自动保存进度"
+            right={<Toggle value={autoSave} onChange={v => handleToggle('tcm_auto_save', setAutoSave, v)} />}
+          />
           <Row label="游戏总时长" right={<span className={styles.valueText}>{totalWeeks} 周</span>} />
           <Row label="球员总数"   right={<span className={styles.valueText}>{clubStats.playerCount} 人</span>} />
           <Row label="球场数量"   right={<span className={styles.valueText}>{clubStats.courtCount} 片</span>} />
@@ -254,23 +256,9 @@ export default function SettingsPage() {
           <Row label="随机事件通知"  desc="有新随机事件时显示提示"          right={<Toggle value={notifyRandom}   onChange={v => handleToggle('tcm_notify_random',   setNotifyRandom,   v)} />} />
         </Section>
 
-        {/* ── ✅ 游戏偏好（即时写 localStorage）── */}
-        <Section title="游戏偏好" icon="ti-adjustments">
-          <Row label="自动推进周次"  desc="每次操作后自动进入下一周（慎用）"             right={<Toggle value={autoAdvance}    onChange={v => handleToggle('tcm_auto_advance', setAutoAdvance,    v)} />} />
-          <Row label="显示隐藏属性"  desc="在球员详情中展示天赋数值（破坏游戏体验）"    right={<Toggle value={showHiddenAttr} onChange={v => handleToggle('tcm_show_hidden',  setShowHiddenAttr, v)} />} />
-        </Section>
 
-        {/* ── 数据与账号 ── */}
-        <Section title="数据与账号" icon="ti-database">
-          <Row label="导出游戏数据" desc="下载当前存档的 JSON 文件"         onClick={() => alert('导出功能开发中')} />
-          <Row label="绑定账号"     desc="登录后数据可跨设备同步"           right={<span className={styles.tagComingSoon}>即将开放</span>} />
-        </Section>
 
-        {/* ── 危险操作 ── */}
-        <Section title="危险操作" icon="ti-alert-triangle">
-          <Row label="重置本局游戏" desc="保留难度设置，回到第1年第1周"     onClick={() => setShowReset(true)}   danger />
-          <Row label="开始新游戏"   desc="清除所有进度，重新选择难度开局"   onClick={() => setShowNewGame(true)} danger />
-        </Section>
+
 
         {/* ── 关于 ── */}
         <Section title="关于" icon="ti-info-circle">
@@ -293,24 +281,7 @@ export default function SettingsPage() {
           onSave={name => dispatch({ type: 'UPDATE_GAME_STATE', data: { clubName: name } })}
         />
       )}
-      {showReset && (
-        <ConfirmModal
-          title="重置本局游戏"
-          desc="所有球员、教练、设施、财务数据将被清除，回到第1年第1周。此操作不可撤销。"
-          confirmLabel="确认重置" danger
-          onClose={() => setShowReset(false)}
-          onConfirm={() => alert('重置功能开发中')}
-        />
-      )}
-      {showNewGame && (
-        <ConfirmModal
-          title="开始新游戏"
-          desc="将清除当前所有进度并重新开局。此操作不可撤销，请确保已存档。"
-          confirmLabel="确认开始新游戏" danger
-          onClose={() => setShowNewGame(false)}
-          onConfirm={() => { navigate('/landing') }}
-        />
-      )}
+
       {/* ✅ 退出弹窗 */}
       {showExit && (
         <ExitModal
