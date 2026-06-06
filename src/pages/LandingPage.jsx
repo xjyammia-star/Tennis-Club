@@ -219,7 +219,7 @@ function SaveSlotsModal({ user, onClose, onLoad }) {
               <div
                 key={idx}
                 className={`${styles.saveSlot} ${save ? styles.saveSlotFilled : styles.saveSlotEmpty}`}
-                onClick={() => save && onLoad(save)}
+                onClick={() => save && onLoad(save.slot)}
               >
                 <div className={styles.saveSlotNum}>存档 {idx + 1}</div>
                 {save ? (
@@ -451,9 +451,22 @@ export default function LandingPage() {
     localStorage.removeItem('tcm_user')
     setUser(null)
   }
-  function handleLoadSave(save) {
-    setLocal('tcm_current_save', save)
-    navigate('/home')
+  async function handleLoadSave(slot) {
+    try {
+      // 用 slot 编号去 API 拉取含完整 state_json 的存档
+      const res  = await fetch(`/api/saves?userId=${user.id}&slot=${slot}`)
+      const data = await res.json()
+      if (data.save?.state_json) {
+        // 存入 tcm_pending_load，App.jsx 会读取并加载
+        localStorage.setItem('tcm_pending_load', data.save.state_json)
+        navigate('/home')
+      } else {
+        alert('读取存档失败，存档数据不完整')
+      }
+    } catch (err) {
+      console.error('读档失败:', err)
+      alert('读取存档失败，请重试')
+    }
   }
 
   function handleNewGame() {
