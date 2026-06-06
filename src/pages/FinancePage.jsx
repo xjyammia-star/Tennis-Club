@@ -1,9 +1,6 @@
-import { useState } from 'react'
-import {
-  financeSummary, weekTransactions,
-  weeklyTrend, incomeBreakdown, expenseBreakdown,
-  gameState, formatCash,
-} from '../data/mockData'
+import { useState, useMemo } from 'react'
+import { formatCash } from '../data/mockData'
+import { useGameCtx } from '../App'
 import styles from './FinancePage.module.css'
 
 // ── 工具 ──────────────────────────────────────────────
@@ -126,12 +123,45 @@ function AdModal({ onClose }) {
 
 // ── 主页面 ────────────────────────────────────────────
 export default function FinancePage() {
-  const [tab, setTab]       = useState('week')   // week | breakdown | trend
+  const [tab, setTab]       = useState('week')
   const [showAd, setShowAd] = useState(false)
 
+  // ✅ 从全局 state 读取实时财务数据
+  const { state } = useGameCtx()
+  const { finance, transactions, gameState, weeklyTrend = [] } = state
+
+  const weekTransactions = transactions || []
   const incomeTotal  = weekTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expenseTotal = weekTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const netTotal     = incomeTotal - expenseTotal
+
+  // 动态计算收支构成（从本周 transactions 生成）
+  const CATEGORY_LABEL = {
+    court_rent:   '场地外租', group_class: '团课收费', private_cut: '私教分成',
+    cafe: '咖啡馆', physio: '理疗室', sponsor: '赞助收入',
+    coach_salary: '教练薪资', staff: '员工成本', insurance: '球员保险',
+    subsidy: '赞助补助', ad: '广告投放', prize: '比赛奖金',
+    maintenance: '设施维护', other: '其他',
+  }
+  const incomeBreakdown = useMemo(() => {
+    const incTx = weekTransactions.filter(t => t.type === 'income')
+    const total = incTx.reduce((s, t) => s + t.amount, 0) || 1
+    return incTx.map(t => ({
+      category: CATEGORY_LABEL[t.category] || t.label,
+      amount: t.amount,
+      pct: Math.round(t.amount / total * 100),
+    }))
+  }, [weekTransactions])
+
+  const expenseBreakdown = useMemo(() => {
+    const expTx = weekTransactions.filter(t => t.type === 'expense')
+    const total = expTx.reduce((s, t) => s + t.amount, 0) || 1
+    return expTx.map(t => ({
+      category: CATEGORY_LABEL[t.category] || t.label,
+      amount: t.amount,
+      pct: Math.round(t.amount / total * 100),
+    }))
+  }, [weekTransactions])
 
   return (
     <div className={styles.page}>
@@ -146,8 +176,8 @@ export default function FinancePage() {
         <div className={styles.cashCard}>
           <div className={styles.cashMain}>
             <span className={styles.cashLabel}>当前资金</span>
-            <span className={styles.cashVal}>{formatCash(financeSummary.cash)}</span>
-            <span className={styles.cashSub}>{gameState.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</span>
+            <span className={styles.cashVal}>{formatCash(finance?.cash ?? 0)}</span>
+            <span className={styles.cashSub}>{gameState?.loanMonthly > 0 ? `贷款 ¥${gameState.loanMonthly}/月` : '无贷款'}</span>
           </div>
           <div className={styles.cashStats}>
             <div className={styles.cashStatItem}>
@@ -254,23 +284,32 @@ export default function FinancePage() {
         {/* ── 走势图 ── */}
         {tab === 'trend' && (
           <div className={styles.trendSection}>
-            <div className={styles.trendLegend}>
-              <span className={styles.legendIncome}><span />收入</span>
-              <span className={styles.legendExpense}><span />支出</span>
-            </div>
-            <TrendChart data={weeklyTrend} />
-            <div className={styles.trendStats}>
-              {weeklyTrend.map((d, i) => (
-                <div key={i} className={styles.trendStatRow}>
-                  <span className={styles.trendStatWeek}>{d.week}</span>
-                  <span style={{ color: '#1a6010' }}>+{fmt(d.income)}</span>
-                  <span style={{ color: '#c0392b' }}>-{fmt(d.expense)}</span>
-                  <span style={{ color: d.income - d.expense >= 0 ? '#1a6010' : '#c0392b', fontWeight: 500 }}>
-                    {d.income - d.expense >= 0 ? '+' : ''}{fmt(d.income - d.expense)}
-                  </span>
+            {weeklyTrend.length === 0 ? (
+              <div style={{textAlign:'center',color:'var(--ink-muted)',padding:'32px 0',fontSize:14}}>
+                <i className="ti ti-chart-bar" style={{fontSize:32,display:'block',marginBottom:8}} />
+                走势数据将在推进几周后显示
+              </div>
+            ) : (
+              <>
+                <div className={styles.trendLegend}>
+                  <span className={styles.legendIncome}><span />收入</span>
+                  <span className={styles.legendExpense}><span />支出</span>
                 </div>
-              ))}
-            </div>
+                <TrendChart data={weeklyTrend} />
+                <div className={styles.trendStats}>
+                  {weeklyTrend.map((d, i) => (
+                    <div key={i} className={styles.trendStatRow}>
+                      <span className={styles.trendStatWeek}>{d.week}</span>
+                      <span style={{ color: '#1a6010' }}>+{fmt(d.income)}</span>
+                      <span style={{ color: '#c0392b' }}>-{fmt(d.expense)}</span>
+                      <span style={{ color: d.income - d.expense >= 0 ? '#1a6010' : '#c0392b', fontWeight: 500 }}>
+                        {d.income - d.expense >= 0 ? '+' : ''}{fmt(d.income - d.expense)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

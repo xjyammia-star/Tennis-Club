@@ -875,6 +875,11 @@ export async function advanceWeekEngine(state) {
       weekIncome: totalIncome, weekExpense: totalExpense, weekNet: totalIncome - totalExpense,
     },
     transactions:    newTx,
+    // ✅ 追加本周走势数据（最多保留26周）
+    weeklyTrend: [
+      ...(state.weeklyTrend || []),
+      { week: `第${newWeek}周`, income: totalIncome, expense: totalExpense },
+    ].slice(-26),
     recentNews:      newRecentNews,
     recruitPlayers:  newRecruitPlayers,
     recruitCoaches:  newRecruitCoaches,

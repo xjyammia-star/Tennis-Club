@@ -580,23 +580,8 @@ export default function SchedulePage() {
     }
 
     if (newPlayers.length > 0) {
-      setPrePlayerIds(prev => [...new Set([...prev, ...newPlayers])])
-      // 把新球员追加到所有现有团课，并同步 dispatch
-      setGroupSchedule(prev => {
-        const updated = {}
-        DAYS.forEach(({ key }) => {
-          updated[key] = (prev[key] || []).map(s => {
-            if (s.type === 'private') return s
-            const mergedPlayerIds   = [...new Set([...(s.playerIds || []), ...newPlayers])]
-            const mergedPlayerNames = mergedPlayerIds.map(id => players.find(p => p.id === id)?.name || '')
-            const updatedSession = { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
-            dispatch({ type: 'REMOVE_SESSION', id: s.id })
-            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
-            return updatedSession
-          })
-        })
-        return updated
-      })
+      // ✅ 新增球员默认不选中，需手动勾选才加入团课（不自动追加）
+      // setPrePlayerIds 不变，保持新球员为未选中状态
     }
 
     prevCoachIdsRef.current  = currentCoachIds
