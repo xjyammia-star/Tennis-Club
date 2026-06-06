@@ -6,22 +6,21 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',     // 有新版本自动更新 Service Worker
+      registerType: 'autoUpdate',
       includeAssets: [
         'favicon.ico',
         'icons/apple-touch-icon.png',
         'icons/icon-*.png',
       ],
 
-      // ── Web App Manifest ─────────────────────────────
       manifest: {
         name:             '网球俱乐部经营',
         short_name:       '网球经营',
         description:      '网球俱乐部经营模拟游戏 — Tennis Club Manager',
         theme_color:      '#1c3a1a',
         background_color: '#1c3a1a',
-        display:          'standalone',    // 全屏独立 App 模式，隐藏浏览器地址栏
-        orientation:      'portrait',      // 竖屏优先
+        display:          'standalone',
+        orientation:      'portrait',
         scope:            '/',
         start_url:        '/',
         icons: [
@@ -34,7 +33,7 @@ export default defineConfig({
             src:     'icons/icon-192x192.png',
             sizes:   '192x192',
             type:    'image/png',
-            purpose: 'any maskable',       // Android 自适应图标
+            purpose: 'any maskable',
           },
           { src: 'icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
           {
@@ -46,27 +45,15 @@ export default defineConfig({
         ],
       },
 
-      // ── Service Worker 缓存策略 ──────────────────────
       workbox: {
-        // 预缓存所有构建产物（JS/CSS/HTML）
+        // 预缓存所有构建产物
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
 
-        // 运行时缓存策略
+        // ✅ 关键：明确排除 /api/ 路径，不允许 Service Worker 缓存或拦截
+        navigateFallbackDenylist: [/^\/api\//],
+
         runtimeCaching: [
-          {
-            // API 请求：网络优先，失败时用缓存（5分钟有效）
-            urlPattern: /^\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName:          'api-cache',
-              networkTimeoutSeconds: 10,
-              expiration: {
-                maxEntries:    50,
-                maxAgeSeconds: 300,   // 5 分钟
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
+          // ✅ 删除了原来的 API 缓存策略，API 请求完全不经过 Service Worker
           {
             // 图标/字体等静态资源：缓存优先
             urlPattern: /\.(png|jpg|svg|woff2|ico)$/i,
@@ -75,7 +62,7 @@ export default defineConfig({
               cacheName: 'static-assets',
               expiration: {
                 maxEntries:    100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,  // 30 天
+                maxAgeSeconds: 30 * 24 * 60 * 60,
               },
             },
           },
@@ -97,7 +84,6 @@ export default defineConfig({
     }),
   ],
 
-  // API 代理（开发模式用，Vercel 部署自动处理）
   server: {
     proxy: {
       '/api': 'http://localhost:3000',
