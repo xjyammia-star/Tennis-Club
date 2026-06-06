@@ -11,8 +11,7 @@ function setLocal(key, val) {
   localStorage.setItem(key, JSON.stringify(val))
 }
 
-const ADMIN_EMAIL    = 'admin@tennisclub.com'
-const ADMIN_PASSWORD = 'admin888'
+const ADMIN_EMAIL    = 'xjheinz@qq.com'
 
 // ── 难度配置 ─────────────────────────────────────────
 const DIFFICULTY_CONFIG = {
@@ -113,17 +112,13 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
     setLoading(true)
     try {
       if (mode === 'login') {
-        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-          const adminUser = { id: '00000000-0000-0000-0000-000000000001', email: ADMIN_EMAIL, username: '管理员', isAdmin: true }
-          setLocal('tcm_user', adminUser)
-          onSuccess(adminUser)
-          return
-        }
         const res  = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email, password }) })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || '登录失败')
-        setLocal('tcm_user', data.user)
-        onSuccess(data.user)
+        // ✅ 如果是管理员邮箱，附加 isAdmin 标记
+        const user = { ...data.user, isAdmin: data.user.email === ADMIN_EMAIL }
+        setLocal('tcm_user', user)
+        onSuccess(user)
       } else {
         if (!username.trim()) { setError('请输入用户名'); setLoading(false); return }
         const res  = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', email, password, username }) })
