@@ -7,11 +7,11 @@ import { getClubSettings } from '../utils/clubSettings'
 import styles from './SchedulePage.module.css'
 
 const FULL_SLOTS = [
-  { key: 'private', label: '私教',   sublabel: '06–10点', clubOnly: false, rentable: true  },
-  { key: 'am',      label: '上午',   sublabel: '10–12点', clubOnly: true,  rentable: false },
-  { key: 'pm',      label: '下午',   sublabel: '12–17点', clubOnly: false, rentable: true  },
-  { key: 'eve1',    label: '傍晚',   sublabel: '17–20点', clubOnly: true,  rentable: false },
-  { key: 'eve2',    label: '夜间',   sublabel: '20–22点', clubOnly: false, rentable: true  },
+  { key: 'private', label: '私教',   sublabel: '06–10点', clubOnly: false, rentable: true,  maxHours: 4 },
+  { key: 'am',      label: '上午',   sublabel: '10–12点', clubOnly: true,  rentable: false, maxHours: 2 },
+  { key: 'pm',      label: '下午',   sublabel: '12–17点', clubOnly: false, rentable: true,  maxHours: 5 },
+  { key: 'eve1',    label: '傍晚',   sublabel: '17–20点', clubOnly: true,  rentable: false, maxHours: 3 },
+  { key: 'eve2',    label: '夜间',   sublabel: '20–22点', clubOnly: false, rentable: true,  maxHours: 2 },
 ]
 
 function getCourseType(id) {
@@ -290,7 +290,7 @@ function SessionDetail({ session, onClose, onDelete, onEdit, players, coaches })
 }
 
 // ── 添加课程弹窗 ──────────────────────────────────────
-function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCount, initCoachIds = [], initPlayerIds = [] }) {
+function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCount, initCoachIds = [], initPlayerIds = [], existingSessions = [] }) {
   const [type, setType]         = useState('court_group')
   // ✅ 用预选数据初始化，没有预选时才用第一位教练
   const [coachIds, setCoachIds] = useState(initCoachIds.length > 0 ? initCoachIds : [coaches[0]?.id].filter(Boolean))
@@ -300,6 +300,18 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCou
   const allowedTypes = courseTypes.filter(c => c.id !== 'rest' && c.id !== 'private')
   const slotInfo     = FULL_SLOTS.find(s => s.key === slot)
   const maxPlayers   = (courtCount || 6) * 4
+
+  // ✅ 计算该时段当天已用课时，限制可选小时数
+  // existingSessions 从外部传入（当天该时段已有的课程）
+  const slotMaxHours    = slotInfo?.maxHours || 4
+  const usedHours       = (existingSessions || []).reduce((sum, s) => sum + (s.hours || 0), 0)
+  const remainingHours  = Math.max(0, slotMaxHours - usedHours)
+  // 可选课时：只保留不超过剩余时间的选项
+  const hourOptions     = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5].filter(h => h <= remainingHours)
+  // 若当前选中的 hours 超出剩余时间，自动降为最大可选值
+  const safeHours = hourOptions.includes(hours)
+    ? hours
+    : (hourOptions.length > 0 ? hourOptions[hourOptions.length - 1] : 0)
 
   // 实时显示当前选择会占用多少场地小时
   const courtsNeeded = type === 'court_group' && selected.length > 0
@@ -321,6 +333,8 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCou
   function handleAdd() {
     if (!coachIds.length)  { alert('请至少选择一名教练'); return }
     if (!selected.length)  { alert('请至少选择一名球员'); return }
+    if (hours > remainingHours) { alert(`该时段剩余 ${remainingHours}h，无法添加 ${hours}h 的课程`); return }
+    if (hourOptions.length === 0) { alert('该时段已排满，无法继续添加'); return }
     const bestCoach = coaches
       .filter(c => coachIds.includes(c.id))
       .sort((a, b) => {
@@ -334,7 +348,7 @@ function AddSessionModal({ day, slot, onClose, onAdd, players, coaches, courtCou
       slot,
       type,
       label:       ct.label,
-      hours,
+      hours:       safeHours,
       coachIds,
       coachId:     bestCoach?.id,
       coachName:   coachIds.length === 1
@@ -778,6 +792,7 @@ export default function SchedulePage() {
           courtCount={clubStats.courtCount}
           initCoachIds={preCoachIds}
           initPlayerIds={prePlayerIds}
+          existingSessions={(fullSchedule[addTarget.day] || []).filter(s => s.slot === addTarget.slot)}
         />
       )}
     </div>
