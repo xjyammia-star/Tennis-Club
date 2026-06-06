@@ -566,9 +566,12 @@ export default function SchedulePage() {
             updated[key] = (prev[key] || []).map(s => {
               if (s.type === 'private') return s
               const mergedCoachIds = [...new Set([...(s.coachIds || []), ...newCoaches])]
-              return { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
+              const updatedSession = { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
                 ? coaches.find(c => c.id === mergedCoachIds[0])?.name || s.coachName
                 : `${mergedCoachIds.length}名教练` }
+              dispatch({ type: 'REMOVE_SESSION', id: s.id })
+              dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
+              return updatedSession
             })
           })
           return updated
@@ -578,7 +581,7 @@ export default function SchedulePage() {
 
     if (newPlayers.length > 0) {
       setPrePlayerIds(prev => [...new Set([...prev, ...newPlayers])])
-      // 把新球员追加到所有现有团课
+      // 把新球员追加到所有现有团课，并同步 dispatch
       setGroupSchedule(prev => {
         const updated = {}
         DAYS.forEach(({ key }) => {
@@ -586,7 +589,10 @@ export default function SchedulePage() {
             if (s.type === 'private') return s
             const mergedPlayerIds   = [...new Set([...(s.playerIds || []), ...newPlayers])]
             const mergedPlayerNames = mergedPlayerIds.map(id => players.find(p => p.id === id)?.name || '')
-            return { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+            const updatedSession = { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+            dispatch({ type: 'REMOVE_SESSION', id: s.id })
+            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
+            return updatedSession
           })
         })
         return updated
@@ -600,7 +606,7 @@ export default function SchedulePage() {
   function togglePreCoach(id) {
     const isAdding = !preCoachIds.includes(id)
     setPreCoachIds(prev => isAdding ? [...prev, id] : prev.filter(c => c !== id))
-    // 勾选新教练时，自动追加到所有现有团课
+    // 勾选新教练时，自动追加到所有现有团课，并同步 dispatch 到全局 state
     if (isAdding) {
       setGroupSchedule(prev => {
         const updated = {}
@@ -608,9 +614,13 @@ export default function SchedulePage() {
           updated[key] = (prev[key] || []).map(s => {
             if (s.type === 'private' || (s.coachIds || []).includes(id)) return s
             const mergedCoachIds = [...(s.coachIds || []), id]
-            return { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
+            const updatedSession = { ...s, coachIds: mergedCoachIds, coachName: mergedCoachIds.length === 1
               ? coaches.find(c => c.id === id)?.name || s.coachName
               : `${mergedCoachIds.length}名教练` }
+            // ✅ 同步到全局 state（先删后加，保证数据一致）
+            dispatch({ type: 'REMOVE_SESSION', id: s.id })
+            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
+            return updatedSession
           })
         })
         return updated
@@ -621,7 +631,7 @@ export default function SchedulePage() {
   function togglePrePlayer(id) {
     const isAdding = !prePlayerIds.includes(id)
     setPrePlayerIds(prev => isAdding ? [...prev, id] : prev.filter(p => p !== id))
-    // 勾选新球员时，自动追加到所有现有团课
+    // 勾选新球员时，自动追加到所有现有团课，并同步 dispatch 到全局 state
     if (isAdding) {
       setGroupSchedule(prev => {
         const updated = {}
@@ -630,7 +640,11 @@ export default function SchedulePage() {
             if (s.type === 'private' || (s.playerIds || []).includes(id)) return s
             const mergedPlayerIds   = [...(s.playerIds || []), id]
             const mergedPlayerNames = mergedPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
-            return { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+            const updatedSession = { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+            // ✅ 同步到全局 state
+            dispatch({ type: 'REMOVE_SESSION', id: s.id })
+            dispatch({ type: 'ADD_SESSION', day: key, session: updatedSession })
+            return updatedSession
           })
         })
         return updated
