@@ -542,13 +542,40 @@ export default function SchedulePage() {
   const [addTarget, setAddTarget]         = useState(null)
   const [view, setView]                   = useState('week')
 
-  // ── 预选面板：现有成员默认全选，新招募成员默认未选中 ──
-  // initCoachIds/initPlayerIds 只在组件首次挂载时取一次，之后不随 state 变化
+  // ── 预选面板：默认只选中「已出现在现有团课里」的教练和球员 ──
+  // 这样新招募的成员不会被默认勾选，与团课实际内容保持一致
   const initCoachIds  = useRef(coaches.map(c => c.id))
   const initPlayerIds = useRef(players.map(p => p.id))
 
-  const [preCoachIds,  setPreCoachIds]  = useState(() => coaches.map(c => c.id))
-  const [prePlayerIds, setPrePlayerIds] = useState(() => players.map(p => p.id))
+  const [preCoachIds, setPreCoachIds] = useState(() => {
+    // 收集所有团课里实际出现的教练 id
+    const usedCoachIds = new Set()
+    Object.values(schedule).forEach(sessions => {
+      sessions.forEach(s => {
+        if (s.type === 'private') return
+        ;(s.coachIds || (s.coachId ? [s.coachId] : [])).forEach(id => usedCoachIds.add(id))
+      })
+    })
+    // 如果还没有任何团课（新游戏第一周），默认全选所有教练
+    return usedCoachIds.size > 0
+      ? coaches.filter(c => usedCoachIds.has(c.id)).map(c => c.id)
+      : coaches.map(c => c.id)
+  })
+
+  const [prePlayerIds, setPrePlayerIds] = useState(() => {
+    // 收集所有团课里实际出现的球员 id
+    const usedPlayerIds = new Set()
+    Object.values(schedule).forEach(sessions => {
+      sessions.forEach(s => {
+        if (s.type === 'private') return
+        ;(s.playerIds || []).forEach(id => usedPlayerIds.add(id))
+      })
+    })
+    // 如果还没有任何团课（新游戏第一周），默认全选所有球员
+    return usedPlayerIds.size > 0
+      ? players.filter(p => usedPlayerIds.has(p.id)).map(p => p.id)
+      : players.map(p => p.id)
+  })
 
   // ── 勾选/取消教练：更新预选 + 同步到所有现有团课 ──
   function togglePreCoach(coachId) {
