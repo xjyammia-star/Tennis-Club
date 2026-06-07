@@ -250,6 +250,27 @@ function GameProvider({ children }) {
   useEffect(() => { stateRef.current = state }, [state])
 
   useEffect(() => {
+    // ✅ 版本检测：每次部署新版本时自动清理旧的临时缓存
+    // tcm_autosave（游戏存档）和 tcm_user（登录信息）不会被清除，玩家数据安全
+    try {
+      const currentVersion = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : 'dev'
+      const storedVersion = localStorage.getItem('tcm_build_version')
+      if (storedVersion && storedVersion !== currentVersion) {
+        // 版本变了，清掉可能导致兼容问题的临时 key
+        const keysToKeep = ['tcm_autosave', 'tcm_user']
+        const allKeys = Object.keys(localStorage)
+        allKeys.forEach(key => {
+          if (key.startsWith('tcm_') && !keysToKeep.includes(key)) {
+            localStorage.removeItem(key)
+          }
+        })
+        console.log(`[TCM] 版本更新 ${storedVersion} → ${currentVersion}，已清理旧缓存`)
+      }
+      localStorage.setItem('tcm_build_version', currentVersion)
+    } catch (err) {
+      console.warn('[TCM] 版本检测失败:', err)
+    }
+
     // ✅ 新游戏：读取难度 + 年限
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
     if (newGameDifficulty) {

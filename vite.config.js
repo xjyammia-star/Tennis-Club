@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// ✅ 每次构建自动生成新版本号（时间戳）
+// 部署到 Vercel 后，所有玩家访问时会检测到版本变化并自动清理旧缓存
+const BUILD_VERSION = Date.now().toString()
+
 export default defineConfig({
   plugins: [
     react(),
@@ -83,6 +87,11 @@ export default defineConfig({
       },
     }),
   ],
+
+  // ✅ 将版本号注入到前端代码中，App.jsx 通过 import.meta.env.VITE_BUILD_VERSION 读取
+  define: {
+    __BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
+  },
 
   server: {
     proxy: {
