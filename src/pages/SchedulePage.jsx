@@ -550,27 +550,34 @@ export default function SchedulePage() {
   const [preCoachIds,  setPreCoachIds]  = useState(() => coaches.map(c => c.id))
   const [prePlayerIds, setPrePlayerIds] = useState(() => players.map(p => p.id))
 
-  // ── 勾选教练：更新预选 + 直接 dispatch 到全局 ──
+  // ── 勾选/取消教练：更新预选 + 同步到所有现有团课 ──
   function togglePreCoach(coachId) {
     const isAdding = !preCoachIds.includes(coachId)
     setPreCoachIds(prev => isAdding ? [...prev, coachId] : prev.filter(c => c !== coachId))
-    if (!isAdding) return
 
-    // 追加到所有现有团课（本地 + 全局同步）
     setGroupSchedule(prev => {
       const updated = {}
       DAYS.forEach(({ key }) => {
         updated[key] = (prev[key] || []).map(s => {
-          if (s.type === 'private' || (s.coachIds || []).includes(coachId)) return s
-          const mergedCoachIds = [...(s.coachIds || []), coachId]
+          if (s.type === 'private') return s
+          let newCoachIds
+          if (isAdding) {
+            // 追加：如果已有则跳过
+            if ((s.coachIds || []).includes(coachId)) return s
+            newCoachIds = [...(s.coachIds || []), coachId]
+          } else {
+            // 移除：如果不存在则跳过
+            if (!(s.coachIds || []).includes(coachId)) return s
+            newCoachIds = (s.coachIds || []).filter(c => c !== coachId)
+            if (newCoachIds.length === 0) return s  // 至少保留一名教练，不移除
+          }
           const updatedS = {
             ...s,
-            coachIds: mergedCoachIds,
-            coachName: mergedCoachIds.length === 1
-              ? coaches.find(c => c.id === coachId)?.name || s.coachName
-              : `${mergedCoachIds.length}名教练`,
+            coachIds: newCoachIds,
+            coachName: newCoachIds.length === 1
+              ? coaches.find(c => c.id === newCoachIds[0])?.name || s.coachName
+              : `${newCoachIds.length}名教练`,
           }
-          // 直接 dispatch，不依赖 useEffect
           dispatch({ type: 'REMOVE_SESSION', id: s.id })
           dispatch({ type: 'ADD_SESSION', day: key, session: updatedS })
           return updatedS
@@ -580,20 +587,29 @@ export default function SchedulePage() {
     })
   }
 
-  // ── 勾选球员：更新预选 + 直接 dispatch 到全局 ──
+  // ── 勾选/取消球员：更新预选 + 同步到所有现有团课 ──
   function togglePrePlayer(playerId) {
     const isAdding = !prePlayerIds.includes(playerId)
     setPrePlayerIds(prev => isAdding ? [...prev, playerId] : prev.filter(p => p !== playerId))
-    if (!isAdding) return
 
     setGroupSchedule(prev => {
       const updated = {}
       DAYS.forEach(({ key }) => {
         updated[key] = (prev[key] || []).map(s => {
-          if (s.type === 'private' || (s.playerIds || []).includes(playerId)) return s
-          const mergedPlayerIds   = [...(s.playerIds || []), playerId]
-          const mergedPlayerNames = mergedPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
-          const updatedS = { ...s, playerIds: mergedPlayerIds, playerNames: mergedPlayerNames }
+          if (s.type === 'private') return s
+          let newPlayerIds
+          if (isAdding) {
+            // 追加：如果已有则跳过
+            if ((s.playerIds || []).includes(playerId)) return s
+            newPlayerIds = [...(s.playerIds || []), playerId]
+          } else {
+            // 移除：如果不存在则跳过
+            if (!(s.playerIds || []).includes(playerId)) return s
+            newPlayerIds = (s.playerIds || []).filter(p => p !== playerId)
+            if (newPlayerIds.length === 0) return s  // 至少保留一名球员，不移除
+          }
+          const newPlayerNames = newPlayerIds.map(pid => players.find(p => p.id === pid)?.name || '')
+          const updatedS = { ...s, playerIds: newPlayerIds, playerNames: newPlayerNames }
           dispatch({ type: 'REMOVE_SESSION', id: s.id })
           dispatch({ type: 'ADD_SESSION', day: key, session: updatedS })
           return updatedS
