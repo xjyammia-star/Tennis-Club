@@ -14,7 +14,6 @@ import styles from './FacilitiesPage.module.css'
 const LEVEL_COLOR = { 糟糕: styles.lvBad, 普通: styles.lvNormal, 高级: styles.lvGood, 顶级: styles.lvElite }
 const CATEGORY_LABEL = { training: '训练设施', service: '服务设施', empty: '空地' }
 
-// ✅ 服务设施每天疲劳恢复量（与 weekEngine.js 的 SERVICE_FATIGUE_RECOVERY 保持一致）
 const SERVICE_FATIGUE_RECOVERY = {
   locker:    { 糟糕: 2, 普通: 4,  高级: 6,  顶级: 8  },
   lounge:    { 糟糕: 2, 普通: 5,  高级: 8,  顶级: 12 },
@@ -141,7 +140,6 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
 
           {/* 级别对比（升级前后） */}
           {nextLevel && (() => {
-            const isService = SERVICE_TYPES.has(facility.type)
             const fatigue = SERVICE_FATIGUE_RECOVERY[facility.type]
             const curVal  = fatigue
               ? `每天 -${fatigue[facility.level] || 0} 疲劳`
@@ -211,10 +209,6 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
 function BuildModal({ emptyId, onClose, onBuild }) {
   const [selected, setSelected] = useState(null)
   const [level, setLevel]       = useState('普通')
-
-  const price = selected
-    ? ((FACILITY_PRICES[selected.type]?.[level] || 0) + 10) * 10000
-    : null
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -342,13 +336,13 @@ function FacilityCard({ facility, onClick }) {
 
 // ── 主页面 ────────────────────────────────────────────
 export default function FacilitiesPage() {
-  // ✅ 修复：从全局 GameCtx 读取设施数据，而非本地 useState(initFacilities)
+  // ✅ 从全局 GameCtx 读取设施数据
   const { state, dispatch } = useGameCtx()
   const facilityList = state.facilities || []
 
-  const [selected, setSelected]         = useState(null)
-  const [buildTarget, setBuildTarget]   = useState(null)
-  const [filterCat, setFilterCat]       = useState('all')
+  const [selected, setSelected]       = useState(null)
+  const [buildTarget, setBuildTarget] = useState(null)
+  const [filterCat, setFilterCat]     = useState('all')
 
   // 分组
   const grouped = useMemo(() => {
@@ -374,7 +368,7 @@ export default function FacilitiesPage() {
     return { total: real.length, unpaid: unpaid.length, courts: courts.length, totalMaint }
   }, [facilityList])
 
-  // ✅ 修复：升级通过 dispatch UPDATE_FACILITY 写入全局 state
+  // ✅ 升级：dispatch UPDATE_FACILITY，key 用 action.facility（与 reducer 一致）
   function handleUpgrade(id) {
     const facility = facilityList.find(f => f.id === id)
     if (!facility) return
@@ -382,40 +376,35 @@ export default function FacilitiesPage() {
     if (idx >= FACILITY_LEVELS.length - 1) return
     const newLevel = FACILITY_LEVELS[idx + 1]
     const cost = upgradeCost(facility.type, facility.level)
-    dispatch({
-      type: 'UPDATE_FACILITY',
-      payload: { ...facility, level: newLevel },
-    })
+    dispatch({ type: 'UPDATE_FACILITY', facility: { ...facility, level: newLevel } })
     if (cost) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        payload: { category: 'upgrade', amount: -cost, desc: `升级${facility.name}至${newLevel}` },
+        tx: { id: `tx_${Date.now()}`, category: 'upgrade', type: 'expense', amount: cost, desc: `升级${facility.name}至${newLevel}` },
       })
     }
   }
 
-  // ✅ 修复：缴纳维护费通过 dispatch UPDATE_FACILITY 写入全局 state
+  // ✅ 缴纳维护费：dispatch UPDATE_FACILITY
   function handleToggleMaintenance(id) {
     const facility = facilityList.find(f => f.id === id)
     if (!facility) return
     const maint = annualMaintenance(facility.type, facility.level)
-    dispatch({
-      type: 'UPDATE_FACILITY',
-      payload: { ...facility, maintenancePaid: !facility.maintenancePaid },
-    })
+    dispatch({ type: 'UPDATE_FACILITY', facility: { ...facility, maintenancePaid: !facility.maintenancePaid } })
     if (!facility.maintenancePaid && maint > 0) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        payload: { category: 'maintenance', amount: -maint, desc: `缴纳${facility.name}年维护费` },
+        tx: { id: `tx_${Date.now()}`, category: 'maintenance', type: 'expense', amount: maint, desc: `缴纳${facility.name}年维护费` },
       })
     }
   }
 
-  // ✅ 修复：新建设施通过 dispatch ADD_FACILITY 写入全局 state
+  // ✅ 新建设施：dispatch ADD_FACILITY 替换空地，key 用 action.facility（与 reducer 一致）
+  // reducer 里 ADD_FACILITY 是直接 push，所以先用 UPDATE_FACILITY 把空地替换成新设施
   function handleBuild(emptyId, buildType, level) {
     const buildPrice = ((FACILITY_PRICES[buildType.type]?.[level] || 0) + 10) * 10000
     const newFacility = {
-      id: `${buildType.type}_${Date.now()}`,
+      id: emptyId,   // 复用空地的 id，这样 UPDATE_FACILITY 能正确替换
       type: buildType.type,
       category: buildType.category,
       name: buildType.name,
@@ -424,13 +413,11 @@ export default function FacilitiesPage() {
       icon: buildType.icon,
       maintenancePaid: true,
     }
-    dispatch({
-      type: 'ADD_FACILITY',
-      payload: { emptyId, facility: newFacility },
-    })
+    // 用 UPDATE_FACILITY 替换空地（比 ADD_FACILITY 更安全，不会留下空地条目）
+    dispatch({ type: 'UPDATE_FACILITY', facility: newFacility })
     dispatch({
       type: 'ADD_TRANSACTION',
-      payload: { category: 'build', amount: -buildPrice, desc: `建造${buildType.name}（${level}）` },
+      tx: { id: `tx_${Date.now()}`, category: 'build', type: 'expense', amount: buildPrice, desc: `建造${buildType.name}（${level}）` },
     })
   }
 
