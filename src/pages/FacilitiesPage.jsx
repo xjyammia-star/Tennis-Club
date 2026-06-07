@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import {
-  facilities as initFacilities,
   buildableTypes,
   FACILITY_LEVELS,
   FACILITY_PRICES,
@@ -8,6 +7,7 @@ import {
   LEVEL_TRAIN_EFFECT,
   formatCash,
 } from '../data/mockData'
+import { useGameCtx } from '../App'
 import styles from './FacilitiesPage.module.css'
 
 // ── 工具 ──────────────────────────────────────────────
@@ -51,7 +51,6 @@ function LevelBadge({ level }) {
 function EffectBar({ level }) {
   if (!level) return null
   const pct = LEVEL_TRAIN_EFFECT[level] || 100
-  const isTraining = ['糟糕','普通','高级','顶级'].includes(level)
   return (
     <div className={styles.effectRow}>
       <span className={styles.effectLabel}>训练效果</span>
@@ -343,9 +342,12 @@ function FacilityCard({ facility, onClick }) {
 
 // ── 主页面 ────────────────────────────────────────────
 export default function FacilitiesPage() {
-  const [facilityList, setFacilityList] = useState(initFacilities)
+  // ✅ 修复：从全局 GameCtx 读取设施数据，而非本地 useState(initFacilities)
+  const { state, dispatch } = useGameCtx()
+  const facilityList = state.facilities || []
+
   const [selected, setSelected]         = useState(null)
-  const [buildTarget, setBuildTarget]   = useState(null) // empty slot id
+  const [buildTarget, setBuildTarget]   = useState(null)
   const [filterCat, setFilterCat]       = useState('all')
 
   // 分组
@@ -372,35 +374,64 @@ export default function FacilitiesPage() {
     return { total: real.length, unpaid: unpaid.length, courts: courts.length, totalMaint }
   }, [facilityList])
 
+  // ✅ 修复：升级通过 dispatch UPDATE_FACILITY 写入全局 state
   function handleUpgrade(id) {
-    setFacilityList(prev => prev.map(f => {
-      if (f.id !== id) return f
-      const idx = FACILITY_LEVELS.indexOf(f.level)
-      if (idx >= FACILITY_LEVELS.length - 1) return f
-      return { ...f, level: FACILITY_LEVELS[idx + 1] }
-    }))
+    const facility = facilityList.find(f => f.id === id)
+    if (!facility) return
+    const idx = FACILITY_LEVELS.indexOf(facility.level)
+    if (idx >= FACILITY_LEVELS.length - 1) return
+    const newLevel = FACILITY_LEVELS[idx + 1]
+    const cost = upgradeCost(facility.type, facility.level)
+    dispatch({
+      type: 'UPDATE_FACILITY',
+      payload: { ...facility, level: newLevel },
+    })
+    if (cost) {
+      dispatch({
+        type: 'ADD_TRANSACTION',
+        payload: { category: 'upgrade', amount: -cost, desc: `升级${facility.name}至${newLevel}` },
+      })
+    }
   }
 
+  // ✅ 修复：缴纳维护费通过 dispatch UPDATE_FACILITY 写入全局 state
   function handleToggleMaintenance(id) {
-    setFacilityList(prev => prev.map(f =>
-      f.id === id ? { ...f, maintenancePaid: !f.maintenancePaid } : f
-    ))
+    const facility = facilityList.find(f => f.id === id)
+    if (!facility) return
+    const maint = annualMaintenance(facility.type, facility.level)
+    dispatch({
+      type: 'UPDATE_FACILITY',
+      payload: { ...facility, maintenancePaid: !facility.maintenancePaid },
+    })
+    if (!facility.maintenancePaid && maint > 0) {
+      dispatch({
+        type: 'ADD_TRANSACTION',
+        payload: { category: 'maintenance', amount: -maint, desc: `缴纳${facility.name}年维护费` },
+      })
+    }
   }
 
+  // ✅ 修复：新建设施通过 dispatch ADD_FACILITY 写入全局 state
   function handleBuild(emptyId, buildType, level) {
-    setFacilityList(prev => prev.map(f => {
-      if (f.id !== emptyId) return f
-      return {
-        id: `${buildType.type}_${Date.now()}`,
-        type: buildType.type,
-        category: buildType.category,
-        name: buildType.name,
-        level,
-        mainEffect: buildType.desc,
-        icon: buildType.icon,
-        maintenancePaid: true,
-      }
-    }))
+    const buildPrice = ((FACILITY_PRICES[buildType.type]?.[level] || 0) + 10) * 10000
+    const newFacility = {
+      id: `${buildType.type}_${Date.now()}`,
+      type: buildType.type,
+      category: buildType.category,
+      name: buildType.name,
+      level,
+      mainEffect: buildType.desc,
+      icon: buildType.icon,
+      maintenancePaid: true,
+    }
+    dispatch({
+      type: 'ADD_FACILITY',
+      payload: { emptyId, facility: newFacility },
+    })
+    dispatch({
+      type: 'ADD_TRANSACTION',
+      payload: { category: 'build', amount: -buildPrice, desc: `建造${buildType.name}（${level}）` },
+    })
   }
 
   const renderSection = (cat) => {
