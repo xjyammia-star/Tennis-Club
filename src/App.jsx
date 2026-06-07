@@ -124,15 +124,30 @@ function reducer(state, action) {
       const withdrawId = action.entry?.eventId ?? action.eventId
       return { ...state, myEntries: state.myEntries.filter(e => e.eventId !== withdrawId) }
     }
-    case 'ADD_TRANSACTION':
+    case 'ADD_TRANSACTION': {
+      // ✅ 只追加记录，不直接修改 cash
+      // cash 统一由 weekEngine 在每周结算时计算，避免与 weekEngine 的覆盖逻辑冲突
+      // 即时扣款通过 DEDUCT_CASH 单独处理
       return {
         ...state,
         transactions: [...state.transactions, action.tx],
+      }
+    }
+    case 'DEDUCT_CASH': {
+      // ✅ 专门用于即时扣款（升级设施、缴纳维护费、新建设施等）
+      // 与 ADD_TRANSACTION 配合使用，两者分开以避免 weekEngine 覆盖问题
+      return {
+        ...state,
         finance: {
           ...state.finance,
-          cash: state.finance.cash + (action.tx.type === 'income' ? action.tx.amount : -action.tx.amount),
+          cash: state.finance.cash - action.amount,
+        },
+        gameState: {
+          ...state.gameState,
+          cash: (state.gameState.cash ?? state.finance.cash) - action.amount,
         },
       }
+    }
     case 'ADD_NEWS':
       return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 15) }
     default:
@@ -140,21 +155,17 @@ function reducer(state, action) {
   }
 }
 
-// ✅ 修复：autoSave 不再依赖 tcm_current_slot
-// 改为始终存入槽位 1（自动存档固定用槽位1）
-// 玩家手动存档时可以选择槽位2或3
+// ✅ autoSave 始终存入槽位 1（自动存档固定用槽位1）
 function autoSave(state) {
   try {
-    // 始终写入 localStorage 作为本地备份
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
 
     const userStr = localStorage.getItem('tcm_user')
-    if (!userStr) return  // 未登录则只存本地
+    if (!userStr) return
 
     const user = JSON.parse(userStr)
     if (!user?.id) return
 
-    // ✅ 自动存档固定用槽位 1
     const slot = 1
 
     const saveData = {
@@ -178,7 +189,6 @@ function autoSave(state) {
   }
 }
 
-// ✅ 手动存档：支持指定槽位（2或3），默认槽位1
 export async function manualSave(state, slot = 1) {
   try {
     localStorage.setItem('tcm_autosave', JSON.stringify(state))
@@ -235,6 +245,9 @@ function GameProvider({ children }) {
   const [summaryState, setSummaryState]     = useState(null)
   const [prevFinance, setPrevFinance]       = useState(null)
   const pendingStateRef = useRef(null)
+  // ✅ 用 ref 始终持有最新 state，避免 advanceWeek 闭包读到旧快照
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
 
   useEffect(() => {
     // ✅ 新游戏：读取难度 + 年限
@@ -248,7 +261,6 @@ function GameProvider({ children }) {
       try {
         const newState = buildInitialState(newGameDifficulty, INIT, gameDuration, clubName)
         dispatch({ type: 'LOAD_SAVE', data: newState })
-        // ✅ 新游戏开始后立即存档到槽位1
         autoSave(newState)
       } catch (err) {
         console.warn('难度初始化失败:', err)
@@ -270,12 +282,11 @@ function GameProvider({ children }) {
       return
     }
 
-    // ✅ 兜底：如果都没有，尝试读取本地自动存档（防止刷新丢失）
+    // 兜底：读取本地自动存档
     try {
       const autosave = localStorage.getItem('tcm_autosave')
       if (autosave) {
         const savedState = JSON.parse(autosave)
-        // 只有当本地存档不是默认 mockData 状态时才加载
         if (savedState?.gameState?.week > 1 || savedState?.gameState?.year > 1) {
           dispatch({ type: 'LOAD_SAVE', data: savedState })
         }
@@ -295,14 +306,16 @@ function GameProvider({ children }) {
 
   async function advanceWeek() {
     if (advancing) return
+    // ✅ 用 stateRef.current 而非闭包里的 state，确保拿到最新状态（含升级扣款后的 cash）
+    const currentState = stateRef.current
     setAdvancing(true)
-    setPrevFinance({ ...state.finance })
+    setPrevFinance({ ...currentState.finance })
     setShowTransition(true)
 
     const startTime = Date.now()
 
     try {
-      const newState = await advanceWeekEngine(state)
+      const newState = await advanceWeekEngine(currentState)
       pendingStateRef.current = newState
 
       const elapsed = Date.now() - startTime

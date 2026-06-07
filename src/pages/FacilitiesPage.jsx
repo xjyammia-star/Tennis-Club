@@ -368,7 +368,7 @@ export default function FacilitiesPage() {
     return { total: real.length, unpaid: unpaid.length, courts: courts.length, totalMaint }
   }, [facilityList])
 
-  // ✅ 升级：dispatch UPDATE_FACILITY，key 用 action.facility（与 reducer 一致）
+  // ✅ 升级：UPDATE_FACILITY 改级别 + ADD_TRANSACTION 记账 + DEDUCT_CASH 即时扣款
   function handleUpgrade(id) {
     const facility = facilityList.find(f => f.id === id)
     if (!facility) return
@@ -380,12 +380,14 @@ export default function FacilitiesPage() {
     if (cost) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}` },
+        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}` },
       })
+      // ✅ 即时扣款：与 ADD_TRANSACTION 分开，weekEngine 不会覆盖这笔扣款
+      dispatch({ type: 'DEDUCT_CASH', amount: cost })
     }
   }
 
-  // ✅ 缴纳维护费：dispatch UPDATE_FACILITY
+  // ✅ 缴纳维护费：UPDATE_FACILITY 标记已缴 + ADD_TRANSACTION 记账 + DEDUCT_CASH 即时扣款
   function handleToggleMaintenance(id) {
     const facility = facilityList.find(f => f.id === id)
     if (!facility) return
@@ -394,17 +396,18 @@ export default function FacilitiesPage() {
     if (!facility.maintenancePaid && maint > 0) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: maint, label: `缴纳${facility.name}年维护费` },
+        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: maint, label: `缴纳${facility.name}年维护费` },
       })
+      // ✅ 即时扣款
+      dispatch({ type: 'DEDUCT_CASH', amount: maint })
     }
   }
 
-  // ✅ 新建设施：dispatch ADD_FACILITY 替换空地，key 用 action.facility（与 reducer 一致）
-  // reducer 里 ADD_FACILITY 是直接 push，所以先用 UPDATE_FACILITY 把空地替换成新设施
+  // ✅ 新建设施：UPDATE_FACILITY 替换空地 + ADD_TRANSACTION 记账 + DEDUCT_CASH 即时扣款
   function handleBuild(emptyId, buildType, level) {
     const buildPrice = ((FACILITY_PRICES[buildType.type]?.[level] || 0) + 10) * 10000
     const newFacility = {
-      id: emptyId,   // 复用空地的 id，这样 UPDATE_FACILITY 能正确替换
+      id: emptyId,
       type: buildType.type,
       category: buildType.category,
       name: buildType.name,
@@ -413,12 +416,13 @@ export default function FacilitiesPage() {
       icon: buildType.icon,
       maintenancePaid: true,
     }
-    // 用 UPDATE_FACILITY 替换空地（比 ADD_FACILITY 更安全，不会留下空地条目）
     dispatch({ type: 'UPDATE_FACILITY', facility: newFacility })
     dispatch({
       type: 'ADD_TRANSACTION',
-      tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）` },
+      tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）` },
     })
+    // ✅ 即时扣款
+    dispatch({ type: 'DEDUCT_CASH', amount: buildPrice })
   }
 
   const renderSection = (cat) => {
