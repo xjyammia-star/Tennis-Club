@@ -250,27 +250,6 @@ function GameProvider({ children }) {
   useEffect(() => { stateRef.current = state }, [state])
 
   useEffect(() => {
-    // ✅ 版本检测：每次部署新版本时自动清理旧的临时缓存
-    // tcm_autosave（游戏存档）和 tcm_user（登录信息）不会被清除，玩家数据安全
-    try {
-      const currentVersion = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : 'dev'
-      const storedVersion = localStorage.getItem('tcm_build_version')
-      if (storedVersion && storedVersion !== currentVersion) {
-        // 版本变了，清掉可能导致兼容问题的临时 key
-        const keysToKeep = ['tcm_autosave', 'tcm_user']
-        const allKeys = Object.keys(localStorage)
-        allKeys.forEach(key => {
-          if (key.startsWith('tcm_') && !keysToKeep.includes(key)) {
-            localStorage.removeItem(key)
-          }
-        })
-        console.log(`[TCM] 版本更新 ${storedVersion} → ${currentVersion}，已清理旧缓存`)
-      }
-      localStorage.setItem('tcm_build_version', currentVersion)
-    } catch (err) {
-      console.warn('[TCM] 版本检测失败:', err)
-    }
-
     // ✅ 新游戏：读取难度 + 年限
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
     if (newGameDifficulty) {
@@ -303,12 +282,14 @@ function GameProvider({ children }) {
       return
     }
 
-    // 兜底：读取本地自动存档
+    // 兜底：读取本地自动存档（刷新页面时恢复）
+    // ✅ 修复：不再限制 week>1，只要有合法存档（有 gameState 和 difficulty）就恢复
+    // 第1周第1年刷新也能正确恢复，不会重置成 mockData 默认状态
     try {
       const autosave = localStorage.getItem('tcm_autosave')
       if (autosave) {
         const savedState = JSON.parse(autosave)
-        if (savedState?.gameState?.week > 1 || savedState?.gameState?.year > 1) {
+        if (savedState?.gameState?.difficulty) {
           dispatch({ type: 'LOAD_SAVE', data: savedState })
         }
       }
