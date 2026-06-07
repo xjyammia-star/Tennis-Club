@@ -165,21 +165,17 @@ const EASY_FACILITIES = [
 
 // ══════════════════════════════════════════════════════
 // 主函数：根据难度和游戏年限生成完整初始 state
-//
-// @param difficulty   'hard' | 'normal' | 'easy'
-// @param baseState    INIT 基础 state（来自 App.jsx）
-// @param gameDuration 游戏总年限：10 | 20 | 30（默认20）
 // ══════════════════════════════════════════════════════
 export function buildInitialState(difficulty, baseState, gameDuration = 20, clubName = '长青网球俱乐部') {
   const d = (difficulty || 'normal').toLowerCase().trim()
   difficulty = d
   const usedNames = new Set()
 
-  // 游戏结束年份 = 当前年(1) + 选择的年限
   const endYear = 1 + (Number(gameDuration) || 20)
 
   // ── 困难 ──────────────────────────────────────────
   if (difficulty === 'hard') {
+    const INIT_CASH = 100000
     const players = Array.from({ length: 6 }, (_, i) =>
       makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [50, 75], usedNames)
     )
@@ -194,12 +190,20 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
         clubName,
         difficulty:    'hard',
         clubSize:      'small',
-        cash:          100000,
+        cash:          INIT_CASH,   // ✅ 保留 gameState.cash 供兼容
         prestige:      0,
         prestigeTitle: '默默无闻',
         loanMonthly:   5000,
-        endYear,           // ✅ 游戏结束年份
-        gameDuration,      // ✅ 玩家选择的年限
+        endYear,
+        gameDuration,
+      },
+      // ✅ 修复：同步设置 finance.cash，weekEngine 和 FinancePage 都读这个字段
+      finance: {
+        ...baseState.finance,
+        cash: INIT_CASH,
+        weekIncome: 0,
+        weekExpense: 0,
+        weekNet: 0,
       },
       clubStats: {
         ...baseState.clubStats,
@@ -215,12 +219,14 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
       facilities:   HARD_FACILITIES,
       schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
       transactions: [],
+      weeklyTrend:  [],
       recentNews:   [{ id: 1, type: 'player', text: '欢迎来到困难模式！资金紧张，贷款压力大，每一分钱都要用在刀刃上。', week: 1 }],
     }
   }
 
   // ── 普通 ──────────────────────────────────────────
   if (difficulty === 'normal') {
+    const INIT_CASH = 200000
     const players = Array.from({ length: 12 }, (_, i) =>
       makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [55, 80], usedNames)
     )
@@ -237,12 +243,20 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
         clubName,
         difficulty:    'normal',
         clubSize:      'medium',
-        cash:          200000,
+        cash:          INIT_CASH,
         prestige:      1000,
         prestigeTitle: '当地闻名',
         loanMonthly:   0,
         endYear,
         gameDuration,
+      },
+      // ✅ 修复：同步设置 finance.cash
+      finance: {
+        ...baseState.finance,
+        cash: INIT_CASH,
+        weekIncome: 0,
+        weekExpense: 0,
+        weekNet: 0,
       },
       clubStats: {
         ...baseState.clubStats,
@@ -258,11 +272,13 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
       facilities:   NORMAL_FACILITIES,
       schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
       transactions: [],
+      weeklyTrend:  [],
       recentNews:   [{ id: 1, type: 'player', text: '欢迎来到普通模式！拥有一支小有规模的球队，合理规划经营策略，逐步走向顶峰。', week: 1 }],
     }
   }
 
   // ── 简单 ──────────────────────────────────────────
+  const INIT_CASH = 500000
   const players = Array.from({ length: 16 }, (_, i) =>
     makeYoungPlayer(i + 1, i % 2 === 0 ? 'male' : 'female', [65, 90], usedNames)
   )
@@ -281,12 +297,20 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
       clubName,
       difficulty:    'easy',
       clubSize:      'medium',
-      cash:          500000,
+      cash:          INIT_CASH,
       prestige:      3000,
       prestigeTitle: '省内知名',
       loanMonthly:   0,
       endYear,
       gameDuration,
+    },
+    // ✅ 修复：同步设置 finance.cash
+    finance: {
+      ...baseState.finance,
+      cash: INIT_CASH,
+      weekIncome: 0,
+      weekExpense: 0,
+      weekNet: 0,
     },
     clubStats: {
       ...baseState.clubStats,
@@ -302,6 +326,7 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
     facilities:   EASY_FACILITIES,
     schedule:     { mon:[], tue:[], wed:[], thu:[], fri:[], sat:[], sun:[] },
     transactions: [],
+    weeklyTrend:  [],
     recentNews:   [{ id: 1, type: 'player', text: '欢迎来到简单模式！资金充裕，设施完善，带领俱乐部走向辉煌！', week: 1 }],
   }
 }
