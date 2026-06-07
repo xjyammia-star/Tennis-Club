@@ -813,6 +813,9 @@ export async function advanceWeekEngine(state) {
   const weekExpense = coachSalary + insurance + subsidy + totalMaintenance  // ✅ 加入维护费
   const newCash     = finance.cash + weekIncome - weekExpense
 
+  // ✅ 保留本周已有的设施类消费记录（升级/建造/缴纳维护费），避免被覆盖
+  const prevFacilityTx = (state.transactions || []).filter(t => t.category === 'facility')
+
   const newTx = [
     { id: `tx_${newWeek}_1`, type: 'income',  category: 'court_rent',    label: '场地外租',   amount: rentalInfo.income },
     { id: `tx_${newWeek}_2`, type: 'income',  category: 'private_cut',   label: '私教分成',   amount: privateIncome     },
@@ -820,9 +823,10 @@ export async function advanceWeekEngine(state) {
     { id: `tx_${newWeek}_4`, type: 'expense', category: 'coach_salary',  label: '教练薪资',   amount: coachSalary       },
     { id: `tx_${newWeek}_5`, type: 'expense', category: 'insurance',     label: '球员保险',   amount: insurance         },
     { id: `tx_${newWeek}_6`, type: 'expense', category: 'subsidy',       label: '赞助球员补助', amount: subsidy          },
-    // ✅ 新增：设施维护费作为单独一条财务记录
     { id: `tx_${newWeek}_7`, type: 'expense', category: 'maintenance',   label: '设施维护费', amount: totalMaintenance  },
     ...matchTransactions,
+    // ✅ 把本周的设施消费（升级/建造/缴费）追加回来，不被覆盖
+    ...prevFacilityTx,
   ].filter(t => t.amount > 0)
 
   // 8. 随机事件
@@ -849,8 +853,10 @@ export async function advanceWeekEngine(state) {
     }
   }
 
-  const totalIncome  = newTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = newTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  // ✅ 周汇总只计算常规收支（不含设施升级/建造等即时消费，那些已通过 DEDUCT_CASH 单独扣除）
+  const regularTx    = newTx.filter(t => t.category !== 'facility')
+  const totalIncome  = regularTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = regularTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
   // 每周刷新招募市场
   const newRecruitPlayers = generateRecruitPlayers(newWeek)
