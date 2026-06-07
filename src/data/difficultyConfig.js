@@ -39,7 +39,7 @@ function talentLabel(t) {
 }
 
 function randAttr(base, spread = 12) {
-  return Math.min(85, Math.max(20, base + randInt(-spread, spread)))
+  return Math.round(Math.min(85, Math.max(20, base + randInt(-spread, spread))))
 }
 
 function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set()) {

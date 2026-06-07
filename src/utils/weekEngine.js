@@ -44,7 +44,7 @@ function getTalentLabel(talent) {
   return (TALENT_TIERS.find(t => talent >= t.min) || TALENT_TIERS[TALENT_TIERS.length - 1]).label
 }
 function randAttr(base, spread = 15) {
-  return Math.min(99, Math.max(1, base + randInt(-spread, spread)))
+  return Math.round(Math.min(99, Math.max(1, base + randInt(-spread, spread))))
 }
 
 // 生成招募球员（每周5人）
