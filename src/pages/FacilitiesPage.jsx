@@ -380,7 +380,7 @@ export default function FacilitiesPage() {
     if (cost) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: 'upgrade', type: 'expense', amount: cost, desc: `升级${facility.name}至${newLevel}` },
+        tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}` },
       })
     }
   }
@@ -394,7 +394,7 @@ export default function FacilitiesPage() {
     if (!facility.maintenancePaid && maint > 0) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: 'maintenance', type: 'expense', amount: maint, desc: `缴纳${facility.name}年维护费` },
+        tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: maint, label: `缴纳${facility.name}年维护费` },
       })
     }
   }
@@ -417,7 +417,7 @@ export default function FacilitiesPage() {
     dispatch({ type: 'UPDATE_FACILITY', facility: newFacility })
     dispatch({
       type: 'ADD_TRANSACTION',
-      tx: { id: `tx_${Date.now()}`, category: 'build', type: 'expense', amount: buildPrice, desc: `建造${buildType.name}（${level}）` },
+      tx: { id: `tx_${Date.now()}`, category: "facility", type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）` },
     })
   }
 
