@@ -912,6 +912,10 @@ export async function advanceWeekEngine(state) {
   const existingHistory = state.eventHistory || []
   const updatedEventHistory = [...newHistoryRecords, ...existingHistory].slice(0, 100)
 
+  // ✅ Bug1终极修复：强制清除设施类消费记录，确保不跨周保留
+  // 设施升级/建造/维护费通过 DEDUCT_CASH 即时扣款，tx 记录仅当周有效
+  const safeTx = newTx.filter(t => t.category !== 'facility')
+
   return {
     ...state,
     gameState: {
@@ -928,7 +932,7 @@ export async function advanceWeekEngine(state) {
       ...finance, cash: newCash,
       weekIncome: totalIncome, weekExpense: totalExpense, weekNet: totalIncome - totalExpense,
     },
-    transactions:    newTx,
+    transactions:    safeTx,
     // ✅ 追加本周走势数据（最多保留26周）
     weeklyTrend: [
       ...(state.weeklyTrend || []),

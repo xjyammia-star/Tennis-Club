@@ -57,8 +57,12 @@ function reducer(state, action) {
   switch (action.type) {
     case 'ADVANCE_WEEK':
       return state
-    case 'LOAD_SAVE':
-      return { ...INIT, ...action.data }
+    case 'LOAD_SAVE': {
+      // ✅ Bug1防御：加载存档时强制清除设施类消费记录，确保不跨周残留
+      const loadedData = action.data || {}
+      const cleanTransactions = (loadedData.transactions || []).filter(t => t.category !== 'facility')
+      return { ...INIT, ...loadedData, transactions: cleanTransactions }
+    }
     case 'ADD_SESSION': {
       const { day, session } = action
       return { ...state, schedule: { ...state.schedule, [day]: [...(state.schedule[day] || []), session] } }
