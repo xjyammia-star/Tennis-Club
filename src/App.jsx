@@ -162,7 +162,12 @@ function reducer(state, action) {
 // ✅ autoSave 始终存入槽位 1（自动存档固定用槽位1）
 function autoSave(state) {
   try {
-    localStorage.setItem('tcm_autosave', JSON.stringify(state))
+    // ✅ Bug1修复：存档时清除设施类消费记录，避免跨周残留
+    const stateToSave = {
+      ...state,
+      transactions: (state.transactions || []).filter(t => t.category !== 'facility'),
+    }
+    localStorage.setItem('tcm_autosave', JSON.stringify(stateToSave))
 
     const userStr = localStorage.getItem('tcm_user')
     if (!userStr) return
@@ -179,7 +184,7 @@ function autoSave(state) {
       funds:        state.finance.cash,
       reputation:   state.gameState.prestige,
       difficulty:   state.gameState.difficulty,
-      state_json:   JSON.stringify(state),
+      state_json:   JSON.stringify(stateToSave),
     }
 
     fetch('/api/saves', {
@@ -195,7 +200,12 @@ function autoSave(state) {
 
 export async function manualSave(state, slot = 1) {
   try {
-    localStorage.setItem('tcm_autosave', JSON.stringify(state))
+    // ✅ 手动存档也清除设施类消费记录
+    const stateToSave = {
+      ...state,
+      transactions: (state.transactions || []).filter(t => t.category !== 'facility'),
+    }
+    localStorage.setItem('tcm_autosave', JSON.stringify(stateToSave))
 
     const userStr = localStorage.getItem('tcm_user')
     const user = userStr ? JSON.parse(userStr) : null
@@ -208,7 +218,7 @@ export async function manualSave(state, slot = 1) {
       funds:        state.finance.cash,
       reputation:   state.gameState.prestige,
       difficulty:   state.gameState.difficulty,
-      state_json:   JSON.stringify(state),
+      state_json:   JSON.stringify(stateToSave),
     }
 
     const res = await fetch('/api/saves', {
