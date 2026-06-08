@@ -834,9 +834,6 @@ export async function advanceWeekEngine(state) {
   const weekExpense = coachSalary + insurance + subsidy + totalMaintenance  // ✅ 加入维护费
   const newCash     = finance.cash + weekIncome - weekExpense
 
-  // ✅ 保留本周已有的设施类消费记录（升级/建造/缴纳维护费），避免被覆盖
-  const prevFacilityTx = (state.transactions || []).filter(t => t.category === 'facility')
-
   const newTx = [
     { id: `tx_${newWeek}_1`, type: 'income',  category: 'court_rent',    label: '场地外租',   amount: rentalInfo.income },
     { id: `tx_${newWeek}_2`, type: 'income',  category: 'private_cut',   label: '私教分成',   amount: privateIncome     },
@@ -846,15 +843,13 @@ export async function advanceWeekEngine(state) {
     { id: `tx_${newWeek}_6`, type: 'expense', category: 'subsidy',       label: '赞助球员补助', amount: subsidy          },
     { id: `tx_${newWeek}_7`, type: 'expense', category: 'maintenance',   label: '设施维护费', amount: totalMaintenance  },
     ...matchTransactions,
-    // ✅ 把本周的设施消费（升级/建造/缴费）追加回来，不被覆盖
-    ...prevFacilityTx,
   ].filter(t => t.amount > 0)
 
   // 8. 随机事件
   let newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...(state.recentNews || [])].slice(0, 15)
   let finalPlayers  = playersAfterLoyalty
 
-  if (Math.random() < 0.35) {
+  if (true) { // ✅ Bug4修复：移除外层概率门槛，由各事件自身 probability 控制
     // 构造当前 state 快照供 pickRandomEvent 做触发条件判断
     const snapState = {
       gameState: { ...gameState, week: newWeek, year: newYear, prestige: gameState.prestige + (Math.random() < 0.5 ? 1 : 0) },

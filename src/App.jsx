@@ -250,6 +250,25 @@ function GameProvider({ children }) {
   useEffect(() => { stateRef.current = state }, [state])
 
   useEffect(() => {
+    // ✅ Bug2修复：版本检测，每次部署新版本自动清理旧缓存（含旧存档）
+    // 避免旧数据结构与新代码不兼容
+    try {
+      const currentVersion = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : 'dev'
+      const storedVersion  = localStorage.getItem('tcm_build_version')
+      if (storedVersion && storedVersion !== currentVersion) {
+        const allKeys = Object.keys(localStorage)
+        allKeys.forEach(key => {
+          if (key.startsWith('tcm_') && key !== 'tcm_user') {
+            localStorage.removeItem(key)
+          }
+        })
+        console.log(`[TCM] 版本更新 ${storedVersion} → ${currentVersion}，已清理所有旧缓存`)
+      }
+      localStorage.setItem('tcm_build_version', currentVersion)
+    } catch (err) {
+      console.warn('[TCM] 版本检测失败:', err)
+    }
+
     // ✅ 新游戏：读取难度 + 年限
     const newGameDifficulty = localStorage.getItem('tcm_new_game_difficulty')
     if (newGameDifficulty) {
