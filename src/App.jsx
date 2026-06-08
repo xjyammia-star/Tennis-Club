@@ -58,9 +58,16 @@ function reducer(state, action) {
     case 'ADVANCE_WEEK':
       return state
     case 'LOAD_SAVE': {
-      // ✅ Bug1防御：加载存档时强制清除设施类消费记录，确保不跨周残留
       const loadedData = action.data || {}
-      const cleanTransactions = (loadedData.transactions || []).filter(t => t.category !== 'facility')
+      const currentWeek = loadedData.gameState?.week ?? 1
+      // ✅ Bug1修复：只清除「上一周产生」的设施消费记录，保留当周的
+      // facility tx 带有 _week 字段标记产生的周次，与当前周不同则清除
+      const cleanTransactions = (loadedData.transactions || []).filter(t => {
+        if (t.category !== 'facility') return true
+        // 没有 _week 标记的旧记录，保守起见保留（当周产生的）
+        if (t._week === undefined) return true
+        return t._week === currentWeek
+      })
       return { ...INIT, ...loadedData, transactions: cleanTransactions }
     }
     case 'ADD_SESSION': {
@@ -162,12 +169,7 @@ function reducer(state, action) {
 // ✅ autoSave 始终存入槽位 1（自动存档固定用槽位1）
 function autoSave(state) {
   try {
-    // ✅ Bug1修复：存档时清除设施类消费记录，避免跨周残留
-    const stateToSave = {
-      ...state,
-      transactions: (state.transactions || []).filter(t => t.category !== 'facility'),
-    }
-    localStorage.setItem('tcm_autosave', JSON.stringify(stateToSave))
+    localStorage.setItem('tcm_autosave', JSON.stringify(state))
 
     const userStr = localStorage.getItem('tcm_user')
     if (!userStr) return
@@ -184,7 +186,7 @@ function autoSave(state) {
       funds:        state.finance.cash,
       reputation:   state.gameState.prestige,
       difficulty:   state.gameState.difficulty,
-      state_json:   JSON.stringify(stateToSave),
+      state_json:   JSON.stringify(state),
     }
 
     fetch('/api/saves', {
@@ -200,12 +202,7 @@ function autoSave(state) {
 
 export async function manualSave(state, slot = 1) {
   try {
-    // ✅ 手动存档也清除设施类消费记录
-    const stateToSave = {
-      ...state,
-      transactions: (state.transactions || []).filter(t => t.category !== 'facility'),
-    }
-    localStorage.setItem('tcm_autosave', JSON.stringify(stateToSave))
+    localStorage.setItem('tcm_autosave', JSON.stringify(state))
 
     const userStr = localStorage.getItem('tcm_user')
     const user = userStr ? JSON.parse(userStr) : null
@@ -218,7 +215,7 @@ export async function manualSave(state, slot = 1) {
       funds:        state.finance.cash,
       reputation:   state.gameState.prestige,
       difficulty:   state.gameState.difficulty,
-      state_json:   JSON.stringify(stateToSave),
+      state_json:   JSON.stringify(state),
     }
 
     const res = await fetch('/api/saves', {

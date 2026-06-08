@@ -380,7 +380,7 @@ export default function FacilitiesPage() {
     if (cost) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}` },
+        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}`, _week: state.gameState?.week ?? 1 },
       })
       // ✅ 即时扣款：与 ADD_TRANSACTION 分开，weekEngine 不会覆盖这笔扣款
       dispatch({ type: 'DEDUCT_CASH', amount: cost })
@@ -396,7 +396,7 @@ export default function FacilitiesPage() {
     if (!facility.maintenancePaid && maint > 0) {
       dispatch({
         type: 'ADD_TRANSACTION',
-        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: maint, label: `缴纳${facility.name}年维护费` },
+        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: maint, label: `缴纳${facility.name}年维护费`, _week: state.gameState?.week ?? 1 },
       })
       // ✅ 即时扣款
       dispatch({ type: 'DEDUCT_CASH', amount: maint })
@@ -419,7 +419,7 @@ export default function FacilitiesPage() {
     dispatch({ type: 'UPDATE_FACILITY', facility: newFacility })
     dispatch({
       type: 'ADD_TRANSACTION',
-      tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）` },
+      tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）`, _week: state.gameState?.week ?? 1 },
     })
     // ✅ 即时扣款
     dispatch({ type: 'DEDUCT_CASH', amount: buildPrice })
