@@ -188,45 +188,59 @@ function generateRecruitCoaches(currentWeek) {
   return result
 }
 
-// ── 随机事件库 ────────────────────────────────────────
-const RANDOM_EVENTS = [
-  { type: 'skill', weight: 3, gen: (players) => {
-    const p = players[Math.floor(Math.random() * players.length)]
-    const available = SKILL_NAMES.filter(s => !p.skills?.includes(s))
-    if (!available.length) return null
-    const skill = available[Math.floor(Math.random() * available.length)]
-    return { playerIds: [p.id], skill, text: `${p.name}在训练中突然领悟了「${skill}」技能，令人惊喜！` }
-  }},
-  { type: 'finance', weight: 4, gen: () => {
-    const bonus = Math.floor(Math.random() * 5000 + 1000)
-    return { amount: bonus, text: `本周收到一笔额外赞助收入 ¥${bonus.toLocaleString()}。` }
-  }},
-  { type: 'player', weight: 3, gen: (players) => {
-    const healthy = players.filter(p => p.health === 'healthy')
-    if (!healthy.length) return null
-    const p = healthy[Math.floor(Math.random() * healthy.length)]
-    return { playerIds: [p.id], text: `${p.name}本周训练状态极佳，疲劳恢复速度加快。` }
-  }},
-  { type: 'sponsor', weight: 2, gen: (players) => {
-    const unsponsored = players.filter(p => !p.isSponsored && p.talent >= 70)
-    if (!unsponsored.length) return null
-    const p = unsponsored[Math.floor(Math.random() * unsponsored.length)]
-    return { playerIds: [p.id], text: `赞助商对${p.name}表示兴趣，下周将进行赞助谈判。` }
-  }},
-]
+// ── applyEventEffect：将 eventLibrary 的 effect 字段映射到 state 变更 ──────
+// 返回 { players, coaches, cashDelta, prestigeDelta, newsTx }
+function applyEventEffect(effect, players, coaches, targetPlayer, targetCoach) {
+  let cashDelta     = 0
+  let prestigeDelta = 0
+  let newsTx        = null
+  const eff = effect || {}
 
-function randomEvent(players) {
-  const totalWeight = RANDOM_EVENTS.reduce((s, e) => s + e.weight, 0)
-  let r = Math.random() * totalWeight
-  for (const ev of RANDOM_EVENTS) {
-    r -= ev.weight
-    if (r <= 0) {
-      const result = ev.gen(players)
-      if (result) return { type: ev.type, ...result }
-      return null
+  // 现金
+  if (eff.cash) cashDelta += eff.cash
+
+  // 声望
+  if (eff.prestige) prestigeDelta += eff.prestige
+
+  // 球员：fatigue / loyalty / health / expBonus
+  let updatedPlayers = players
+  if (targetPlayer && (eff.fatigue || eff.loyalty || eff.health || eff.expBonus)) {
+    updatedPlayers = players.map(p => {
+      if (p.id !== targetPlayer.id) return p
+      const updated = { ...p }
+      if (eff.fatigue)  updated.fatigue  = Math.min(100, Math.max(0, (p.fatigue  || 0) + eff.fatigue))
+      if (eff.loyalty)  updated.loyalty  = Math.min(100, Math.max(0, (p.loyalty  || 50) + eff.loyalty))
+      if (eff.health)   updated.health   = eff.health
+      // expBonus：本周该球员额外经验倍率（临时标记，weekEngine 训练计算时可读取）
+      if (eff.expBonus) updated._eventExpBonus = eff.expBonus
+      return updated
+    })
+  }
+
+  // 教练：coachFatigue / coachLoyalty
+  let updatedCoaches = coaches
+  if (targetCoach && (eff.coachFatigue || eff.coachLoyalty)) {
+    updatedCoaches = coaches.map(c => {
+      if (c.id !== targetCoach.id) return c
+      const updated = { ...c }
+      if (eff.coachFatigue) updated.fatigue = Math.min(100, Math.max(0, (c.fatigue || 0) + eff.coachFatigue))
+      if (eff.coachLoyalty) updated.loyalty = Math.min(100, Math.max(0, (c.loyalty || 50) + eff.coachLoyalty))
+      return updated
+    })
+  }
+
+  // 现金变动 → 生成 tx 记录
+  if (cashDelta !== 0) {
+    newsTx = {
+      id:       `tx_evt_${Date.now()}`,
+      type:     cashDelta > 0 ? 'income' : 'expense',
+      category: 'other',
+      label:    '随机事件',
+      amount:   Math.abs(cashDelta),
     }
   }
-  return null
+
+  return { updatedPlayers, updatedCoaches, cashDelta, prestigeDelta, newsTx }
 }
 
 // ── 疲劳年龄系数 ──────────────────────────────────────
@@ -833,23 +847,53 @@ export async function advanceWeekEngine(state) {
   let newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...(state.recentNews || [])].slice(0, 15)
   let finalPlayers  = playersAfterLoyalty
 
-  if (Math.random() < 0.3) {
-    const ev = randomEvent(finalPlayers)
-    if (ev) {
-      if (ev.type === 'skill' && ev.skill && ev.playerIds?.length) {
-        finalPlayers = finalPlayers.map(p => {
-          if (!ev.playerIds.includes(p.id)) return p
-          if (p.skills?.includes(ev.skill)) return p
-          return { ...p, skills: [...(p.skills || []), ev.skill] }
-        })
-      }
+  if (Math.random() < 0.35) {
+    // 构造当前 state 快照供 pickRandomEvent 做触发条件判断
+    const snapState = {
+      gameState: { ...gameState, week: newWeek, year: newYear, prestige: gameState.prestige + (Math.random() < 0.5 ? 1 : 0) },
+      finance:   { ...finance, cash: newCash },
+      players:   finalPlayers,
+      coaches:   updatedCoaches,
+    }
+    const evt = pickRandomEvent(snapState)
+    if (evt) {
+      // 随机选取一名目标球员（player/sponsor 类事件）
+      const targetPlayer = finalPlayers.length > 0
+        ? finalPlayers[Math.floor(Math.random() * finalPlayers.length)]
+        : null
+      // 随机选取一名目标教练（staff 类事件）
+      const targetCoach = updatedCoaches.length > 0
+        ? updatedCoaches[Math.floor(Math.random() * updatedCoaches.length)]
+        : null
+
+      // 把 keywords 中的占位符替换为真实名字
+      const newsText = evt.keywords
+        .replace('{name}',  targetPlayer?.name || targetCoach?.name || '某球员')
+        .replace('{club}',  gameState.clubName || '俱乐部')
+        .replace('{value}', String(Math.abs(evt.effect?.loyalty || evt.effect?.cash || 10)))
+
+      // 执行 effect
+      const applied = applyEventEffect(
+        evt.effect, finalPlayers, updatedCoaches, targetPlayer, targetCoach
+      )
+      finalPlayers   = applied.updatedPlayers
+      updatedCoaches = applied.updatedCoaches
+
+      // 声望变动累加
+      const newPrestige = Math.max(0, (gameState.prestige || 0) + (applied.prestigeDelta || 0))
+
+      // 现金变动追加 tx
+      if (applied.newsTx) newTx.push(applied.newsTx)
+      newCash += applied.cashDelta
+
+      // 追加新闻
       newRecentNews = [
-        { id: Date.now(), type: ev.type, text: ev.text, week: newWeek },
+        { id: Date.now(), type: evt.category, text: newsText, week: newWeek },
         ...newRecentNews,
       ].slice(0, 15)
-      if (ev.type === 'finance' && ev.amount) {
-        newTx.push({ id: `tx_${newWeek}_bonus`, type: 'income', category: 'other', label: '随机事件收入', amount: ev.amount })
-      }
+
+      // 更新声望到 gameState（在 return 块里用）
+      gameState._eventPrestige = newPrestige
     }
   }
 
@@ -871,7 +915,9 @@ export async function advanceWeekEngine(state) {
     gameState: {
       ...gameState,
       week: newWeek, year: newYear, cash: newCash,
+      prestige: gameState._eventPrestige ?? gameState.prestige ?? 0,
       prestigeChange: Math.floor(Math.random() * 10 - 3),
+      _eventPrestige: undefined,
     },
     clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
     players:  finalPlayers,

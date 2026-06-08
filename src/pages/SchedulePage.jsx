@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { DAYS, courseTypes } from '../data/mockData'
 import { useGameCtx } from '../App'
 import { generatePrivateLessons } from '../utils/privateLesson'
@@ -547,35 +547,44 @@ export default function SchedulePage() {
   const initCoachIds  = useRef(coaches.map(c => c.id))
   const initPlayerIds = useRef(players.map(p => p.id))
 
-  const [preCoachIds, setPreCoachIds] = useState(() => {
-    // 收集所有团课里实际出现的教练 id
-    const usedCoachIds = new Set()
-    Object.values(schedule).forEach(sessions => {
+  // ── 计算「应被预选」的教练/球员：只选团课里实际出现过的 ──
+  function calcInitPreCoachIds(sch, coachesList) {
+    const used = new Set()
+    Object.values(sch).forEach(sessions => {
       sessions.forEach(s => {
         if (s.type === 'private') return
-        ;(s.coachIds || (s.coachId ? [s.coachId] : [])).forEach(id => usedCoachIds.add(id))
+        ;(s.coachIds || (s.coachId ? [s.coachId] : [])).forEach(id => used.add(id))
       })
     })
-    // 如果还没有任何团课（新游戏第一周），默认全选所有教练
-    return usedCoachIds.size > 0
-      ? coaches.filter(c => usedCoachIds.has(c.id)).map(c => c.id)
-      : coaches.map(c => c.id)
-  })
+    // 没有任何团课时（新游戏），默认全选
+    return used.size > 0
+      ? coachesList.filter(c => used.has(c.id)).map(c => c.id)
+      : coachesList.map(c => c.id)
+  }
 
-  const [prePlayerIds, setPrePlayerIds] = useState(() => {
-    // 收集所有团课里实际出现的球员 id
-    const usedPlayerIds = new Set()
-    Object.values(schedule).forEach(sessions => {
+  function calcInitPrePlayerIds(sch, playersList) {
+    const used = new Set()
+    Object.values(sch).forEach(sessions => {
       sessions.forEach(s => {
         if (s.type === 'private') return
-        ;(s.playerIds || []).forEach(id => usedPlayerIds.add(id))
+        ;(s.playerIds || []).forEach(id => used.add(id))
       })
     })
-    // 如果还没有任何团课（新游戏第一周），默认全选所有球员
-    return usedPlayerIds.size > 0
-      ? players.filter(p => usedPlayerIds.has(p.id)).map(p => p.id)
-      : players.map(p => p.id)
-  })
+    return used.size > 0
+      ? playersList.filter(p => used.has(p.id)).map(p => p.id)
+      : playersList.map(p => p.id)
+  }
+
+  const [preCoachIds,  setPreCoachIds]  = useState(() => calcInitPreCoachIds(schedule, coaches))
+  const [prePlayerIds, setPrePlayerIds] = useState(() => calcInitPrePlayerIds(schedule, players))
+
+  // ✅ 每次推进新一周后（week 变化），重置预选状态与团课实际内容同步
+  // 这样新招募的成员不会被误判为已选中
+  const currentWeek = state.gameState.week
+  useEffect(() => {
+    setPreCoachIds(calcInitPreCoachIds(schedule, coaches))
+    setPrePlayerIds(calcInitPrePlayerIds(schedule, players))
+  }, [currentWeek])
 
   // ── 勾选/取消教练：更新预选 + 同步到所有现有团课 ──
   function togglePreCoach(coachId) {
