@@ -188,6 +188,77 @@ function generateRecruitCoaches(currentWeek) {
   return result
 }
 
+// ── 随机事件库（内联，无需外部文件）─────────────────
+const EVENT_LIBRARY = [
+  // 球员类
+  { id:'EVT_P01', category:'player',  trigger:'fatigue>80',    probability:0.55, keywords:'球员{name}因长期高强度训练出现不适，本周强制减少训练量', effect:{ fatigue:-15, loyalty:-5 }, tone:'negative' },
+  { id:'EVT_P02', category:'player',  trigger:'fatigue>80',    probability:0.35, keywords:'球员{name}训练时突然崴脚，轻微扭伤需休息，但得到妥善照顾', effect:{ fatigue:-25, loyalty:+8 }, tone:'negative' },
+  { id:'EVT_P03', category:'player',  trigger:'loyalty<40',    probability:0.50, keywords:'球员{name}对训练安排不满，情绪低落，私下向队友抱怨', effect:{ loyalty:-8 }, tone:'negative' },
+  { id:'EVT_P04', category:'player',  trigger:'loyalty<30',    probability:0.35, keywords:'球员{name}提出转会意向，声称外部俱乐部开出了更好条件', effect:{ loyalty:-12 }, tone:'negative' },
+  { id:'EVT_P05', category:'player',  trigger:'',              probability:0.12, keywords:'球员{name}训练中突然开窍，技术动作一点就透，状态大幅提升', effect:{ loyalty:+10, expBonus:1.5 }, tone:'positive' },
+  { id:'EVT_P06', category:'player',  trigger:'',              probability:0.10, keywords:'球员{name}参加了省级青少年交流赛并获好成绩，信心大增', effect:{ loyalty:+12, fatigue:+10 }, tone:'positive' },
+  { id:'EVT_P07', category:'player',  trigger:'',              probability:0.08, keywords:'球员{name}的家长来访，对俱乐部环境高度赞扬并额外提供赞助', effect:{ loyalty:+15, cash:+5000 }, tone:'positive' },
+  { id:'EVT_P08', category:'player',  trigger:'',              probability:0.07, keywords:'球员{name}接受体育媒体采访，提到{club}的训练方式，声望提升', effect:{ prestige:+80 }, tone:'positive' },
+  { id:'EVT_P09', category:'player',  trigger:'',              probability:0.10, keywords:'球员{name}与队友发生冲突，训练时间分配不均引发矛盾', effect:{ loyalty:-6 }, tone:'negative' },
+  { id:'EVT_P10', category:'player',  trigger:'',              probability:0.08, keywords:'球员{name}生日，队友自发庆祝，球队气氛活跃，全队士气提升', effect:{ loyalty:+5 }, tone:'positive' },
+  { id:'EVT_P11', category:'player',  trigger:'prestige>2000', probability:0.12, keywords:'一名天赋出众的14岁少年主动联系{club}，希望加入训练', effect:{ cash:-8000, prestige:+50 }, tone:'neutral' },
+  { id:'EVT_P12', category:'player',  trigger:'',              probability:0.08, keywords:'球员{name}学习成绩下滑，家长要求减少训练时间，否则退出', effect:{ loyalty:-10 }, tone:'negative' },
+  { id:'EVT_P13', category:'player',  trigger:'',              probability:0.06, keywords:'球员{name}收到国家青少年集训队邀请，归来后带回宝贵经验', effect:{ loyalty:+20, expBonus:2.0 }, tone:'positive' },
+  { id:'EVT_P14', category:'player',  trigger:'loyalty>85',    probability:0.18, keywords:'球员{name}放弃另一家俱乐部的高薪邀请，对{club}充满感情', effect:{ loyalty:+10, prestige:+60 }, tone:'positive' },
+  { id:'EVT_P15', category:'player',  trigger:'',              probability:0.06, keywords:'球员{name}在社交媒体发布训练视频爆红，吸引大量关注', effect:{ prestige:+120, loyalty:+8 }, tone:'positive' },
+  // 财务类
+  { id:'EVT_F01', category:'finance', trigger:'prestige>1500', probability:0.18, keywords:'一家本地运动品牌主动联系{club}，希望冠名赞助本赛季', effect:{ cash:+20000, prestige:+100 }, tone:'positive' },
+  { id:'EVT_F02', category:'finance', trigger:'cash<20000',    probability:0.28, keywords:'{club}本月现金流告急，部分供应商催款，管理层紧急开会', effect:{ prestige:-50 }, tone:'negative' },
+  { id:'EVT_F03', category:'finance', trigger:'week%4==0',     probability:0.22, keywords:'本月场地利用率超出预期，外租收入比计划多出一笔额外收益', effect:{ cash:+8000 }, tone:'positive' },
+  { id:'EVT_F04', category:'finance', trigger:'',              probability:0.08, keywords:'税务部门例行检查，发现一处历史账目问题，需补缴罚款', effect:{ cash:-6000 }, tone:'negative' },
+  { id:'EVT_F05', category:'finance', trigger:'prestige>3000', probability:0.12, keywords:'一位成功商人看好{club}发展前景，主动提出小额注资合作', effect:{ cash:+50000, prestige:+150 }, tone:'positive' },
+  { id:'EVT_F06', category:'finance', trigger:'',              probability:0.10, keywords:'政府体育部门公布青少年体育补贴政策，{club}成功获批专项补贴', effect:{ cash:+15000 }, tone:'positive' },
+  { id:'EVT_F07', category:'finance', trigger:'',              probability:0.08, keywords:'一笔场地预订款遭遇退款纠纷，对方拒绝支付违约金', effect:{ cash:-5000 }, tone:'negative' },
+  { id:'EVT_F08', category:'finance', trigger:'prestige>1000', probability:0.15, keywords:'某学校希望与{club}合作定期包场开展青少年体验课', effect:{ cash:+12000, prestige:+80 }, tone:'positive' },
+  // 设施类
+  { id:'EVT_FA01', category:'facility', trigger:'',            probability:0.10, keywords:'暴雨天气导致{club}球场积水，需紧急排水修缮，本周外租受损', effect:{ cash:-4000 }, tone:'negative' },
+  { id:'EVT_FA02', category:'facility', trigger:'',            probability:0.08, keywords:'更衣室热水器突发故障，球员训练后无热水可用，需紧急维修', effect:{ cash:-3000, loyalty:-5 }, tone:'negative' },
+  { id:'EVT_FA03', category:'facility', trigger:'prestige>1500',probability:0.12,keywords:'一家体育设备公司主动联系{club}，愿以折扣价提供最新训练器材', effect:{ cash:-10000 }, tone:'neutral' },
+  { id:'EVT_FA04', category:'facility', trigger:'',            probability:0.07, keywords:'球场灯光系统老化，夜间训练多次出现闪烁故障，需全面更换', effect:{ cash:-8000 }, tone:'negative' },
+  { id:'EVT_FA05', category:'facility', trigger:'prestige>1500',probability:0.10,keywords:'地方政府将{club}列为青少年体育示范基地，拨款资助设施升级', effect:{ cash:+25000, prestige:+200 }, tone:'positive' },
+  { id:'EVT_FA06', category:'facility', trigger:'',            probability:0.09, keywords:'消防部门年度安检，指出部分设施存在安全隐患，需限期整改', effect:{ cash:-5000 }, tone:'negative' },
+  // 赞助商类
+  { id:'EVT_S01', category:'sponsor',  trigger:'prestige>1000',probability:0.18, keywords:'本地饮料品牌希望赞助{club}训练服，提供赞助资金和运动饮料', effect:{ cash:+10000, prestige:+60 }, tone:'positive' },
+  { id:'EVT_S02', category:'sponsor',  trigger:'prestige>2500',probability:0.12, keywords:'一家知名运动品牌主动提出成为{club}的官方装备赞助商', effect:{ cash:+40000, prestige:+250 }, tone:'positive' },
+  { id:'EVT_S03', category:'sponsor',  trigger:'',             probability:0.12, keywords:'原赞助商因自身业务调整提前终止合同，{club}损失预期赞助收入', effect:{ cash:-15000, prestige:-80 }, tone:'negative' },
+  { id:'EVT_S04', category:'sponsor',  trigger:'prestige>500', probability:0.15, keywords:'一位热心网球的本地企业家希望赞助天赋最高的球员', effect:{ cash:+8000, loyalty:+10 }, tone:'positive' },
+  { id:'EVT_S05', category:'sponsor',  trigger:'',             probability:0.10, keywords:'赞助商对{club}近期赛场表现不满意，威胁削减赞助金额', effect:{ cash:-5000, prestige:-40 }, tone:'negative' },
+  { id:'EVT_S06', category:'sponsor',  trigger:'prestige>3500',probability:0.10, keywords:'国际体育经纪公司看中{club}培养体系，主动接触合作意向', effect:{ prestige:+300 }, tone:'positive' },
+  // 教练/员工类
+  { id:'EVT_ST01', category:'staff',   trigger:'coachFatigue>80',probability:0.45,keywords:'教练{name}因长期高强度执教出现职业倦怠，执教质量有所下滑', effect:{ coachFatigue:-20, coachLoyalty:-8 }, tone:'negative' },
+  { id:'EVT_ST02', category:'staff',   trigger:'',             probability:0.08, keywords:'教练{name}参加了国际网球教练培训课程，带回全新训练理念', effect:{ coachLoyalty:+15 }, tone:'positive' },
+  { id:'EVT_ST03', category:'staff',   trigger:'',             probability:0.07, keywords:'另一家俱乐部向教练{name}抛来橄榄枝，开出更高薪资', effect:{ coachLoyalty:-15 }, tone:'negative' },
+  { id:'EVT_ST04', category:'staff',   trigger:'',             probability:0.08, keywords:'教练{name}带领球员在省级比赛取得佳绩，个人声誉大幅提升', effect:{ coachLoyalty:+20, prestige:+100 }, tone:'positive' },
+  { id:'EVT_ST05', category:'staff',   trigger:'',             probability:0.07, keywords:'教练{name}在家长群引发争议，部分家长对其执教方式提出质疑', effect:{ coachLoyalty:-10, prestige:-60 }, tone:'negative' },
+]
+
+function pickRandomEvent(state) {
+  const { gameState, finance, players, coaches } = state
+  const prestige     = gameState?.prestige   ?? 0
+  const cash         = finance?.cash         ?? 0
+  const week         = gameState?.week        ?? 1
+  const fatigue      = players?.length > 0 ? players.reduce((s,p) => s+(p.fatigue||0),0)/players.length : 0
+  const loyalty      = players?.length > 0 ? players.reduce((s,p) => s+(p.loyalty||50),0)/players.length : 70
+  const coachFatigue = coaches?.length > 0 ? coaches.reduce((s,c) => s+(c.fatigue||0),0)/coaches.length : 0
+
+  const candidates = EVENT_LIBRARY.filter(evt => {
+    if (Math.random() > evt.probability) return false
+    if (!evt.trigger) return true
+    try {
+      // eslint-disable-next-line no-new-func
+      return new Function('prestige','cash','week','fatigue','loyalty','coachFatigue',
+        `return !!(${evt.trigger})`)(prestige, cash, week, fatigue, loyalty, coachFatigue)
+    } catch { return false }
+  })
+  if (candidates.length === 0) return null
+  return candidates[Math.floor(Math.random() * candidates.length)]
+}
+
 // ── applyEventEffect：将 eventLibrary 的 effect 字段映射到 state 变更 ──────
 // 返回 { players, coaches, cashDelta, prestigeDelta, newsTx }
 function applyEventEffect(effect, players, coaches, targetPlayer, targetCoach) {
@@ -849,10 +920,10 @@ export async function advanceWeekEngine(state) {
   let newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...(state.recentNews || [])].slice(0, 15)
   let finalPlayers  = playersAfterLoyalty
 
-  if (true) { // ✅ Bug4修复：移除外层概率门槛，由各事件自身 probability 控制
-    // 构造当前 state 快照供 pickRandomEvent 做触发条件判断
+  // ✅ 随机事件：用 try-catch 保护，避免 eventLibrary 异常导致整个 weekEngine 崩溃
+  try { if (typeof pickRandomEvent === 'function') {
     const snapState = {
-      gameState: { ...gameState, week: newWeek, year: newYear, prestige: gameState.prestige + (Math.random() < 0.5 ? 1 : 0) },
+      gameState: { ...gameState, week: newWeek, year: newYear },
       finance:   { ...finance, cash: newCash },
       players:   finalPlayers,
       coaches:   updatedCoaches,
@@ -897,7 +968,7 @@ export async function advanceWeekEngine(state) {
       // 更新声望到 gameState（在 return 块里用）
       gameState._eventPrestige = newPrestige
     }
-  }
+  } } catch(e) { console.warn('[TCM] 随机事件处理失败（不影响游戏）:', e) }
 
   // ✅ 周汇总只计算常规收支（不含设施升级/建造等即时消费，那些已通过 DEDUCT_CASH 单独扣除）
   const regularTx    = newTx.filter(t => t.category !== 'facility')
