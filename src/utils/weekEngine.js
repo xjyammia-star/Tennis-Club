@@ -363,7 +363,7 @@ function getAgeMultiplier(age, attrType) {
   return 1.0
 }
 
-function calcPlayerExp(playerId, schedule, coaches, facilityMults) {
+function calcPlayerExp(playerId, schedule, coaches, facilityMults, eventExpBonus = 1.0) {
   let techExp = 0, physExp = 0, mentalExp = 0
   Object.values(schedule).forEach(sessions => {
     sessions.forEach(s => {
@@ -374,7 +374,8 @@ function calcPlayerExp(playerId, schedule, coaches, facilityMults) {
       const bonusStr = coach?.expBonus || '0%'
       const bonusNum = parseFloat(bonusStr.replace('%', '')) || 0
       const coachBonus = 1 + bonusNum / 100
-      const totalExp = expPerHour * hours * coachBonus
+      // ✅ 乘以随机事件的经验加成（如 EVT_P05 开窍×1.5，EVT_P13 集训×2.0）
+      const totalExp = expPerHour * hours * coachBonus * eventExpBonus
       const dist = COURSE_ATTR_DIST[s.type] || { tech: 0.5, phys: 0.5, mental: 0 }
       techExp   += totalExp * dist.tech   * facilityMults.techMult
       physExp   += totalExp * dist.phys   * facilityMults.physMult
@@ -676,7 +677,9 @@ export async function advanceWeekEngine(state) {
     const newFatigue = simulateFatigueByDay(
       player.fatigue, player.age, fullSchedule, extraFatigueRecovery
     )
-    const { techExp, physExp, mentalExp } = calcPlayerExp(player.id, fullSchedule, coaches, facilityMults)
+    // ✅ 传入随机事件经验加成（如开窍×1.5，集训×2.0），用完后清除
+    const eventExpBonus = player._eventExpBonus || 1.0
+    const { techExp, physExp, mentalExp } = calcPlayerExp(player.id, fullSchedule, coaches, facilityMults, eventExpBonus)
     const { updatedAttrs, newPool } = applyExpToPool(player, techExp, physExp, mentalExp)
 
     let newHealth = player.health
@@ -686,7 +689,11 @@ export async function advanceWeekEngine(state) {
       if (Math.random() < injuryChance) newHealth = 'minor'
     }
 
-    return { ...player, ...updatedAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth }
+    // 清除临时标记，避免下周继续生效
+    const cleanAttrs = { ...updatedAttrs }
+    delete cleanAttrs._eventExpBonus
+
+    return { ...player, ...cleanAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth, _eventExpBonus: undefined }
   })
 
   // 5. 技能检测（自主领悟 + 教练传授）
