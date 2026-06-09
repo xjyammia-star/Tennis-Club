@@ -931,6 +931,7 @@ export async function advanceWeekEngine(state) {
   let finalPlayers  = playersAfterLoyalty
 
   let eventPrestigeDelta = 0
+  let lastEvent = null  // ✅ 本周触发的随机事件，单独存储供 WeekSummary 专门展示
   // ✅ 随机事件：外层概率门槛 25%，约每3-4周触发一次
   try { if (Math.random() < 0.25 && typeof pickRandomEvent === 'function') {
     const snapState = {
@@ -970,11 +971,14 @@ export async function advanceWeekEngine(state) {
       if (applied.newsTx) newTx.push(applied.newsTx)
       newCash += applied.cashDelta
 
-      // 追加新闻
+      // 追加新闻（保留进 recentNews 作为历史记录）
       newRecentNews = [
         { id: Date.now(), type: evt.category, text: newsText, week: newWeek },
         ...newRecentNews,
       ].slice(0, 15)
+
+      // ✅ 单独记录本周随机事件，供 WeekSummary 专门展示（不受8条限制影响）
+      lastEvent = { type: evt.category, text: newsText, week: newWeek, effect: evt.effect }
 
       // 记录声望变动（用独立变量，避免修改 const gameState）
       eventPrestigeDelta = applied.prestigeDelta || 0
@@ -1024,6 +1028,7 @@ export async function advanceWeekEngine(state) {
       { week: `第${newWeek}周`, income: totalIncome, expense: totalExpense },
     ].slice(-26),
     recentNews:      newRecentNews,
+    lastEvent:       lastEvent,       // ✅ 本周随机事件，null 表示本周无事件
     recruitPlayers:  newRecruitPlayers,
     recruitCoaches:  newRecruitCoaches,
     // ✅ 新增：持久化 eventHistory（不再丢失战绩）

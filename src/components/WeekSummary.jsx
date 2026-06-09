@@ -11,7 +11,16 @@ const TYPE_CONFIG = {
   sponsor: { priority: 5, icon: 'ti-rosette',        color: '#2a5fa8', label: '赞助消息', bg: 'rgba(42,95,168,0.08)'  },
   finance: { priority: 6, icon: 'ti-currency-yen',   color: '#2a7a3a', label: '财务动态', bg: 'rgba(42,122,58,0.08)'  },
   player:  { priority: 7, icon: 'ti-user',           color: '#4a5a48', label: '球员动态', bg: 'rgba(74,90,72,0.06)'   },
+  staff:   { priority: 7, icon: 'ti-user-check',     color: '#4a5a48', label: '员工动态', bg: 'rgba(74,90,72,0.06)'   },
+  facility:{ priority: 7, icon: 'ti-building',       color: '#4a5a48', label: '设施事件', bg: 'rgba(74,90,72,0.06)'   },
   default: { priority: 8, icon: 'ti-bell',           color: '#4a5a48', label: '动态',     bg: 'rgba(74,90,72,0.06)'   },
+}
+
+// 随机事件专属样式（更醒目）
+const EVENT_TONE_CONFIG = {
+  positive: { icon: 'ti-sparkles',       color: '#2a7a3a', bg: 'rgba(42,122,58,0.12)',  border: '#2a7a3a' },
+  negative: { icon: 'ti-alert-circle',   color: '#e05a2b', bg: 'rgba(224,90,43,0.10)', border: '#e05a2b' },
+  neutral:  { icon: 'ti-info-circle',    color: '#2a5fa8', bg: 'rgba(42,95,168,0.10)', border: '#2a5fa8' },
 }
 
 function getCfg(type) { return TYPE_CONFIG[type] || TYPE_CONFIG.default }
@@ -19,13 +28,12 @@ function getCfg(type) { return TYPE_CONFIG[type] || TYPE_CONFIG.default }
 export default function WeekSummary({ visible, onClose, newState, prevFinance }) {
   const [tab, setTab] = useState('news')
 
-  // ✅ 每次弹窗出现时重置到 news 标签
   if (!visible || !newState) return null
 
-  const { gameState, finance, recentNews, allEvents } = newState
+  const { gameState, finance, recentNews, allEvents, lastEvent } = newState
   const currentWeek = gameState.week
 
-  // 本周新消息
+  // 本周新消息（排除随机事件，因为随机事件单独展示）
   const thisWeekNews = (recentNews || []).filter(n => n.week === currentWeek)
 
   // 赤字警告
@@ -43,6 +51,9 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
 
   // 下周赛事提醒
   const nextEvents = (allEvents || []).filter(ev => ev.week === currentWeek + 1)
+
+  // 随机事件角标（有事件时在标签上加红点）
+  const hasEvent = !!lastEvent
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -64,7 +75,9 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
           <button className={`${styles.tab} ${tab === 'news' ? styles.active : ''}`} onClick={() => setTab('news')}>
             <i className="ti ti-bell" />
             本周动态
-            {allMsgs.length > 0 && <span className={styles.badge}>{allMsgs.length}</span>}
+            {(allMsgs.length > 0 || hasEvent) && (
+              <span className={styles.badge}>{allMsgs.length + (hasEvent ? 1 : 0)}</span>
+            )}
           </button>
           <button className={`${styles.tab} ${tab === 'finance' ? styles.active : ''}`} onClick={() => setTab('finance')}>
             <i className="ti ti-chart-bar" />
@@ -77,7 +90,28 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
 
           {tab === 'news' && (
             <div className={styles.list}>
-              {allMsgs.length === 0 ? (
+
+              {/* ✅ 随机事件：固定在最顶部，独立展示，不受条数限制 */}
+              {lastEvent && (() => {
+                const tone = EVENT_TONE_CONFIG[lastEvent.tone] || EVENT_TONE_CONFIG.neutral
+                const cfg = getCfg(lastEvent.type)
+                return (
+                  <div
+                    className={styles.eventBanner}
+                    style={{ background: tone.bg, borderLeft: `3px solid ${tone.border}` }}
+                  >
+                    <div className={styles.eventBannerHeader}>
+                      <i className={`ti ${tone.icon}`} style={{ color: tone.color }} />
+                      <span className={styles.eventBannerLabel} style={{ color: tone.color }}>
+                        随机事件 · {cfg.label}
+                      </span>
+                    </div>
+                    <p className={styles.eventBannerText}>{lastEvent.text}</p>
+                  </div>
+                )
+              })()}
+
+              {allMsgs.length === 0 && !lastEvent ? (
                 <div className={styles.empty}>
                   <i className="ti ti-check" />
                   <span>本周一切正常，无特别消息</span>

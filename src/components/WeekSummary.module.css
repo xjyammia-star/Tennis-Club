@@ -232,3 +232,29 @@
 }
 .continueBtn:hover { background: #2a4e28; }
 .continueBtn:active { transform: scale(0.98); }
+
+/* 随机事件横幅 */
+.eventBanner {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  animation: newsIn 0.28s ease both;
+}
+.eventBannerHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.eventBannerLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.eventBannerText {
+  margin: 0;
+  font-size: 13px;
+  color: #1a2a18;
+  line-height: 1.5;
+}

@@ -114,7 +114,8 @@ function simulatePlayerTournament(player, event, opponents) {
   const prizeTable  = PRIZE_TABLE[levelKey]  || PRIZE_TABLE['250']
   const maxRanking  = event.level === 'itf' ? 400 : (event.level === 'slam' ? 150 : 500)
 
-  const drawSize = Math.min(opponents.length + 1, 32)
+  // drawSize 由外层按赛事级别传入，直接用对手数推算
+  const drawSize = opponents.length + 1
   const rounds = getRounds(drawSize)
 
   let eliminated = false
@@ -178,13 +179,24 @@ function simulatePlayerTournament(player, event, opponents) {
   }
 }
 
+// ── 赛事级别对应签位数 ───────────────────────────────
+// slam: 128签(7轮，r1起), 500/1000: 64签(7轮，r1起)
+// 250/itf: 32签(6轮，r2起)
+const DRAW_SIZE_BY_LEVEL = {
+  slam: 128, '1000': 64, '500': 64, '250': 32, itf: 32,
+}
+
 // ── 主函数：模拟一场赛事所有我方参赛球员 ──────────────
 export function simulateTournament(players, event, worldPlayers) {
   return players.map(player => {
     const pool = buildOpponentPool(event, worldPlayers, player.gender)
 
+    const drawSize   = DRAW_SIZE_BY_LEVEL[event.level] || 32
+    const rounds     = getRounds(drawSize)
+    const neededOpps = rounds.length - 1
+
     if (pool.length === 0) {
-      const fallbackOpponents = Array(7).fill(null).map((_, i) => ({
+      const fallbackOpponents = Array(neededOpps).fill(null).map((_, i) => ({
         id: `fallback_${i}`,
         name: `对手${i + 1}`,
         ranking: 200 + i * 30,
@@ -198,7 +210,7 @@ export function simulateTournament(players, event, worldPlayers) {
       }
     }
 
-    const opponents = pickOpponents(pool, 7)
+    const opponents = pickOpponents(pool, neededOpps)
 
     return {
       playerId:   player.id,
