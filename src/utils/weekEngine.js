@@ -360,7 +360,9 @@ function calcInjuryChance(player) {
 }
 
 // ── 按天模拟疲劳 ────────────────────────────────────
-function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay = 0) {
+// ✅ 修复：新增 playerId 参数，只统计该球员实际参与的课程时长
+// 修复前：把当天所有课程时长全部累加，导致疲劳被严重高估，无法正常恢复
+function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay = 0, playerId = null) {
   const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
   const fatiguePerHour = getFatiguePerHour(age)
   let fatigue = startFatigue
@@ -370,6 +372,11 @@ function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay =
     let trainingHours = 0
     sessions.forEach(s => {
       if (s.type !== 'match' && s.type !== 'rest') {
+        // ✅ 关键修复：如果传入了 playerId，只统计该球员实际参与的课程
+        if (playerId !== null) {
+          const inSession = s.playerIds?.includes(playerId) || s.playerId === playerId
+          if (!inSession) return
+        }
         trainingHours += s.hours || 0
       }
     })
@@ -745,8 +752,9 @@ export async function advanceWeekEngine(state) {
       return { ...player, fatigue: Math.max(0, Math.round(matchFatigue)) }
     }
 
+    // ✅ 修复：传入 player.id，确保只统计该球员实际参与的课程时长
     const newFatigue = simulateFatigueByDay(
-      player.fatigue, player.age, fullSchedule, extraFatigueRecovery
+      player.fatigue, player.age, fullSchedule, extraFatigueRecovery, player.id
     )
     // ✅ 传入随机事件经验加成（如开窍×1.5，集训×2.0），用完后清除
     const eventExpBonus = player._eventExpBonus || 1.0
