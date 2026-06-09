@@ -497,7 +497,8 @@ function checkSkills(players, coaches, schedule, newWeek) {
     SKILL_NAMES.forEach(skillName => {
       const chance = getSelfLearnChance(player, skillName)
       if (chance <= 0) return
-      if (Math.random() < chance) {
+      // ✅ 概率降低一半
+      if (Math.random() < chance * 0.5) {
         if (!playerUpdates[player.id]) {
           playerUpdates[player.id] = { skills: [...(player.skills || [])] }
         }
@@ -531,7 +532,8 @@ function checkSkills(players, coaches, schedule, newWeek) {
         const currentSkills = playerUpdates[player.id]?.skills || player.skills || []
         if (currentSkills.includes(skillName)) return
         if (!canCoachTeach(player, skillName)) return
-        const teachChance = sessionType === 'private' ? 0.30 : 0.05
+        // ✅ 概率降低一半：私教 0.15（原0.30），团课 0.025（原0.05）
+        const teachChance = sessionType === 'private' ? 0.15 : 0.025
         if (Math.random() < teachChance) {
           if (!playerUpdates[player.id]) {
             playerUpdates[player.id] = { skills: [...(player.skills || [])] }
@@ -929,8 +931,8 @@ export async function advanceWeekEngine(state) {
   let finalPlayers  = playersAfterLoyalty
 
   let eventPrestigeDelta = 0
-  // ✅ 随机事件：用 try-catch 保护，避免 eventLibrary 异常导致整个 weekEngine 崩溃
-  try { if (typeof pickRandomEvent === 'function') {
+  // ✅ 随机事件：外层概率门槛 25%，约每3-4周触发一次
+  try { if (Math.random() < 0.25 && typeof pickRandomEvent === 'function') {
     const snapState = {
       gameState: { ...gameState, week: newWeek, year: newYear },
       finance:   { ...finance, cash: newCash },
