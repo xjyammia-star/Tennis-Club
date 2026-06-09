@@ -795,7 +795,7 @@ export async function advanceWeekEngine(state) {
   }
 
   const contractNews = []
-  const updatedCoaches = []
+  let updatedCoaches = []
   coaches.forEach(c => {
     const newWeeksLeft = Math.max(0, c.contractWeeksLeft - 1)
     // ✅ 计算本周教练疲劳变化
@@ -903,7 +903,7 @@ export async function advanceWeekEngine(state) {
 
   const weekIncome  = rentalInfo.income + privateIncome + groupIncome + prizeIncome
   const weekExpense = coachSalary + insurance + subsidy + totalMaintenance  // ✅ 加入维护费
-  const newCash     = finance.cash + weekIncome - weekExpense
+  let newCash       = finance.cash + weekIncome - weekExpense
 
   const newTx = [
     { id: `tx_${newWeek}_1`, type: 'income',  category: 'court_rent',    label: '场地外租',   amount: rentalInfo.income },
