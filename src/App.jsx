@@ -365,15 +365,18 @@ function GameProvider({ children }) {
 
       if (matchResults.length > 0) {
         // 把 eventHistory 里本周的记录转成动画需要的格式
-        const animData = matchResults.flatMap(record =>
-          (record.matchResults || []).map(pr => ({
-            playerId:    pr.playerId,
-            playerName:  pr.playerName,
-            eventName:   record.eventName,
-            level:       record.level,
-            matchResults: pr.matchResults || [],
-          }))
-        ).filter(pr => pr.matchResults.length > 0)
+        const animData = matchResults.flatMap(record => {
+          const playerResults = record.matchResults || []
+          return playerResults
+            .filter(pr => pr && Array.isArray(pr.matchResults) && pr.matchResults.length > 0)
+            .map(pr => ({
+              playerId:     pr.playerId,
+              playerName:   pr.playerName || '未知球员',
+              eventName:    record.eventName || '赛事',
+              level:        record.level || 'itf',
+              matchResults: pr.matchResults,
+            }))
+        })
 
         if (animData.length > 0) {
           setMatchAnimData(animData)

@@ -21,35 +21,34 @@ const LEVEL_COLOR = {
 // 把所有球员的所有轮次拍平成一个播放队列
 // 按轮次分组：同一轮所有球员打完再进下一轮
 function buildPlayQueue(matchData) {
-  // matchData = [{ playerId, playerName, matchResults: [...], eventName, level, ... }]
   if (!matchData || matchData.length === 0) return []
 
-  // 找出所有轮次的并集，按 ROUND_ORDER 排序
   const ROUND_ORDER = ['r1', 'r2', 'r3', 'qf', 'sf', 'runner_up', 'champion']
 
   // 收集所有实际出现的轮次
   const allRounds = new Set()
   matchData.forEach(player => {
-    player.matchResults.forEach(m => allRounds.add(m.round))
+    (player.matchResults || []).forEach(m => {
+      if (m && m.round) allRounds.add(m.round)
+    })
   })
 
-  // 按顺序排列
   const sortedRounds = ROUND_ORDER.filter(r => allRounds.has(r))
 
-  // 构建队列：每个元素是一场比赛的完整信息
   const queue = []
   sortedRounds.forEach(round => {
     matchData.forEach(player => {
-      const match = player.matchResults.find(m => m.round === round)
-      if (match) {
+      const match = (player.matchResults || []).find(m => m && m.round === round)
+      // ✅ 必须有 match 且有轮次标签才加入队列
+      if (match && match.round) {
         queue.push({
-          playerName:  player.playerName,
+          playerName:  player.playerName || '未知球员',
           playerId:    player.playerId,
-          eventName:   player.eventName,
-          level:       player.level,
+          eventName:   player.eventName || '赛事',
+          level:       player.level || 'itf',
           round,
           roundLabel:  ROUND_LABEL[round] || round,
-          match,       // { result, opponent, winProb, myPower, oppPower, score, narrative }
+          match,
         })
       }
     })
@@ -268,6 +267,11 @@ export default function MatchAnimation({ visible, matchData, onComplete }) {
   if (!visible || queue.length === 0) return null
 
   const current = queue[index]
+  // ✅ 保护：index 越界时直接关闭动画
+  if (!current) {
+    onComplete()
+    return null
+  }
   const isLast  = index === queue.length - 1
 
   function handleNext() {
