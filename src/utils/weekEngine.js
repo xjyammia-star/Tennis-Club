@@ -920,6 +920,7 @@ export async function advanceWeekEngine(state) {
   let newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...(state.recentNews || [])].slice(0, 15)
   let finalPlayers  = playersAfterLoyalty
 
+  let eventPrestigeDelta = 0
   // ✅ 随机事件：用 try-catch 保护，避免 eventLibrary 异常导致整个 weekEngine 崩溃
   try { if (typeof pickRandomEvent === 'function') {
     const snapState = {
@@ -965,8 +966,8 @@ export async function advanceWeekEngine(state) {
         ...newRecentNews,
       ].slice(0, 15)
 
-      // 更新声望到 gameState（在 return 块里用）
-      gameState._eventPrestige = newPrestige
+      // 记录声望变动（用独立变量，避免修改 const gameState）
+      eventPrestigeDelta = applied.prestigeDelta || 0
     }
   } } catch(e) { console.warn('[TCM] 随机事件处理失败（不影响游戏）:', e) }
 
@@ -996,9 +997,8 @@ export async function advanceWeekEngine(state) {
     gameState: {
       ...gameState,
       week: newWeek, year: newYear, cash: newCash,
-      prestige: gameState._eventPrestige ?? gameState.prestige ?? 0,
+      prestige: Math.max(0, (gameState.prestige || 0) + eventPrestigeDelta),
       prestigeChange: Math.floor(Math.random() * 10 - 3),
-      _eventPrestige: undefined,
     },
     clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
     players:  finalPlayers,

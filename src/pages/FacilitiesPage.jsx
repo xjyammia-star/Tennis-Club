@@ -377,15 +377,12 @@ export default function FacilitiesPage() {
     const newLevel = FACILITY_LEVELS[idx + 1]
     const cost = upgradeCost(facility.type, facility.level)
     dispatch({ type: 'UPDATE_FACILITY', facility: { ...facility, level: newLevel } })
-    console.log('[TCM] handleUpgrade cost:', cost, 'facility:', facility.type, facility.level, '→', newLevel)
     if (cost) {
-      const txObj = { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}`, _week: state.gameState?.week ?? 1 }
-      console.log('[TCM] dispatching ADD_TRANSACTION:', txObj)
-      dispatch({ type: 'ADD_TRANSACTION', tx: txObj })
+      dispatch({
+        type: 'ADD_TRANSACTION',
+        tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: cost, label: `升级${facility.name}至${newLevel}`, _week: state.gameState?.week ?? 1 },
+      })
       dispatch({ type: 'DEDUCT_CASH', amount: cost })
-      console.log('[TCM] dispatch done, state.transactions length:', state.transactions.length)
-    } else {
-      console.log('[TCM] cost is falsy, skipping dispatch')
     }
   }
 
