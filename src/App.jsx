@@ -57,19 +57,10 @@ function reducer(state, action) {
   switch (action.type) {
     case 'ADVANCE_WEEK':
       return state
-    case 'LOAD_SAVE': {
-      const loadedData = action.data || {}
-      const currentWeek = loadedData.gameState?.week ?? 1
-      // ✅ Bug1修复：只清除「上一周产生」的设施消费记录，保留当周的
-      // facility tx 带有 _week 字段标记产生的周次，与当前周不同则清除
-      const cleanTransactions = (loadedData.transactions || []).filter(t => {
-        if (t.category !== 'facility') return true
-        // 没有 _week 标记的旧记录，保守起见保留（当周产生的）
-        if (t._week === undefined) return true
-        return t._week === currentWeek
-      })
-      return { ...INIT, ...loadedData, transactions: cleanTransactions }
-    }
+    case 'LOAD_SAVE':
+      // ✅ 不过滤 facility 记录，由 weekEngine 的自然替换机制控制：
+      // weekEngine 每周重建 newTx + thisWeekFacilityTx，下次推进时旧 facility 记录自然消失
+      return { ...INIT, ...action.data }
     case 'ADD_SESSION': {
       const { day, session } = action
       return { ...state, schedule: { ...state.schedule, [day]: [...(state.schedule[day] || []), session] } }
