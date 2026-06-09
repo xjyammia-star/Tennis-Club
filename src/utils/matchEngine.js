@@ -66,8 +66,76 @@ function calcOpponentPower(opponent, maxRanking = 500) {
   return Math.max(10, base)
 }
 
+// ── 模拟比赛比分（3盘2胜或5盘3胜）────────────────────
+function simulateScore(winProb, isFiveSet = false) {
+  const setsToWin = isFiveSet ? 3 : 2
+  const playerSets = []
+  const oppSets    = []
+  let playerSetWins = 0
+  let oppSetWins    = 0
+
+  while (playerSetWins < setsToWin && oppSetWins < setsToWin) {
+    // 每盘胜率略有波动（模拟状态起伏）
+    const setWinProb = Math.min(0.92, Math.max(0.08, winProb + (Math.random() * 0.2 - 0.1)))
+    const playerWinsSet = Math.random() < setWinProb
+
+    // 生成比分
+    let pg, og  // player games, opponent games
+    if (playerWinsSet) {
+      // 赢的一方得分模式
+      const patterns = [[6,0],[6,1],[6,2],[6,3],[6,4],[7,5],[7,6]]
+      // 胜率越高越容易赢得漂亮
+      const idx = Math.floor(Math.random() * Math.max(1, patterns.length * (1 - setWinProb + 0.3)))
+      const p = patterns[Math.min(idx, patterns.length - 1)]
+      pg = p[0]; og = p[1]
+      playerSetWins++
+    } else {
+      const patterns = [[0,6],[1,6],[2,6],[3,6],[4,6],[5,7],[6,7]]
+      const idx = Math.floor(Math.random() * Math.max(1, patterns.length * setWinProb))
+      const p = patterns[Math.min(idx, patterns.length - 1)]
+      pg = p[0]; og = p[1]
+      oppSetWins++
+    }
+    playerSets.push(pg)
+    oppSets.push(og)
+  }
+
+  const playerWon = playerSetWins >= setsToWin
+  return { playerSets, oppSets, playerSetWins, oppSetWins, playerWon }
+}
+
+// ── 根据比分生成描述文字 ──────────────────────────────
+function generateMatchNarrative(playerName, opponentName, score, winProb) {
+  const { playerSets, oppSets, playerWon } = score
+  const scoreStr = playerSets.map((g, i) => `${g}-${oppSets[i]}`).join(', ')
+  const totalSets = playerSets.length
+
+  if (playerWon) {
+    // 分析胜利方式
+    const lostSets = oppSets.filter((g, i) => g > playerSets[i]).length
+    if (lostSets === 0) {
+      return `${playerName}以 ${scoreStr} 横扫${opponentName}，全程占据主动。`
+    } else if (lostSets >= 1 && playerSets[0] < oppSets[0]) {
+      return `${playerName}先失一盘后奋起直追，以 ${scoreStr} 逆转${opponentName}。`
+    } else if (totalSets === 3 || totalSets === 5) {
+      return `${playerName}与${opponentName}苦战${totalSets}盘，最终以 ${scoreStr} 险胜。`
+    } else {
+      return `${playerName}以 ${scoreStr} 击败${opponentName}，晋级下一轮。`
+    }
+  } else {
+    const lostSets = playerSets.filter((g, i) => g < oppSets[i]).length
+    if (playerSets[0] > oppSets[0]) {
+      return `${playerName}先赢一盘后体力下滑，以 ${scoreStr} 遗憾不敌${opponentName}。`
+    } else if (lostSets === playerSets.length) {
+      return `${playerName}以 ${scoreStr} 不敌${opponentName}，发挥欠佳。`
+    } else {
+      return `${playerName}与${opponentName}鏖战${totalSets}盘，最终以 ${scoreStr} 饮恨出局。`
+    }
+  }
+}
+
 // ── 单场比赛模拟 ─────────────────────────────────────
-function simulateMatch(player, opponent, maxRanking) {
+function simulateMatch(player, opponent, maxRanking, isFiveSet = false) {
   const myPower  = calcPlayerPower(player)
   const oppPower = calcOpponentPower(opponent, maxRanking)
 
@@ -75,13 +143,15 @@ function simulateMatch(player, opponent, maxRanking) {
   const randomFactor = 1 + (Math.random() * 0.30 - 0.15)
   winProb = Math.min(0.95, Math.max(0.05, winProb * randomFactor))
 
-  const win = Math.random() < winProb
+  const score = simulateScore(winProb, isFiveSet)
+  const win   = score.playerWon
 
   return {
-    winner:  win ? 'player' : 'opponent',
-    winProb: Math.round(winProb * 100),
+    winner:   win ? 'player' : 'opponent',
+    winProb:  Math.round(winProb * 100),
     myPower:  Math.round(myPower * 10) / 10,
     oppPower: Math.round(oppPower * 10) / 10,
+    score,
   }
 }
 
@@ -108,14 +178,13 @@ function pickOpponents(pool, count) {
 }
 
 // ── 单名球员完整赛事模拟 ─────────────────────────────
-function simulatePlayerTournament(player, event, opponents) {
+// drawSize 由外层直接传入，确保轮次结构正确
+function simulatePlayerTournament(player, event, opponents, drawSize) {
   const levelKey = event.level
   const pointsTable = POINTS_TABLE[levelKey] || POINTS_TABLE['250']
   const prizeTable  = PRIZE_TABLE[levelKey]  || PRIZE_TABLE['250']
   const maxRanking  = event.level === 'itf' ? 400 : (event.level === 'slam' ? 150 : 500)
 
-  // drawSize 由外层按赛事级别传入，直接用对手数推算
-  const drawSize = opponents.length + 1
   const rounds = getRounds(drawSize)
 
   let eliminated = false
@@ -129,8 +198,11 @@ function simulatePlayerTournament(player, event, opponents) {
       break
     }
 
-    const opponent = opponents[i] || opponents[opponents.length - 1]
-    const result   = simulateMatch(player, opponent, maxRanking)
+    const opponent   = opponents[i] || opponents[opponents.length - 1]
+    // 大满贯决赛用5盘3胜
+    const isFiveSet  = event.level === 'slam' && roundKey === 'sf'
+    const result     = simulateMatch(player, opponent, maxRanking, isFiveSet)
+    const narrative  = generateMatchNarrative(player.name, opponent.name, result.score, result.winProb / 100)
 
     matchResults.push({
       round:       roundKey,
@@ -140,6 +212,8 @@ function simulatePlayerTournament(player, event, opponents) {
       winProb:     result.winProb,
       myPower:     result.myPower,
       oppPower:    result.oppPower,
+      score:       result.score,      // { playerSets, oppSets }
+      narrative,                      // 描述文字
     })
 
     if (result.winner !== 'player') {
@@ -180,8 +254,6 @@ function simulatePlayerTournament(player, event, opponents) {
 }
 
 // ── 赛事级别对应签位数 ───────────────────────────────
-// slam: 128签(7轮，r1起), 500/1000: 64签(7轮，r1起)
-// 250/itf: 32签(6轮，r2起)
 const DRAW_SIZE_BY_LEVEL = {
   slam: 128, '1000': 64, '500': 64, '250': 32, itf: 32,
 }
@@ -191,9 +263,10 @@ export function simulateTournament(players, event, worldPlayers) {
   return players.map(player => {
     const pool = buildOpponentPool(event, worldPlayers, player.gender)
 
-    const drawSize   = DRAW_SIZE_BY_LEVEL[event.level] || 32
-    const rounds     = getRounds(drawSize)
-    const neededOpps = rounds.length - 1
+    const drawSize = DRAW_SIZE_BY_LEVEL[event.level] || 32
+    const rounds   = getRounds(drawSize)
+    // runner_up 和 champion 都不需要真实对手，只统计需要实际对打的轮次
+    const neededOpps = rounds.filter(r => r !== 'runner_up' && r !== 'champion').length
 
     if (pool.length === 0) {
       const fallbackOpponents = Array(neededOpps).fill(null).map((_, i) => ({
@@ -206,7 +279,7 @@ export function simulateTournament(players, event, worldPlayers) {
       return {
         playerId:   player.id,
         playerName: player.name,
-        ...simulatePlayerTournament(player, event, fallbackOpponents),
+        ...simulatePlayerTournament(player, event, fallbackOpponents, drawSize),
       }
     }
 
@@ -215,7 +288,7 @@ export function simulateTournament(players, event, worldPlayers) {
     return {
       playerId:   player.id,
       playerName: player.name,
-      ...simulatePlayerTournament(player, event, opponents),
+      ...simulatePlayerTournament(player, event, opponents, drawSize),
     }
   })
 }

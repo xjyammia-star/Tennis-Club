@@ -17,6 +17,7 @@ import ClubSettingsPage from './pages/ClubSettingsPage'
 import RankingsPage from './pages/RankingsPage'
 import WeekTransition from './components/WeekTransition'
 import WeekSummary from './components/WeekSummary'
+import MatchAnimation from './components/MatchAnimation'
 import { advanceWeekEngine } from './utils/weekEngine'
 import { buildInitialState } from './data/difficultyConfig'
 
@@ -241,11 +242,13 @@ const TRANSITION_MIN_MS = 3800
 
 function GameProvider({ children }) {
   const [state, dispatch]                   = useReducer(reducer, INIT)
-  const [advancing, setAdvancing]           = useState(false)
-  const [showTransition, setShowTransition] = useState(false)
-  const [showSummary, setShowSummary]       = useState(false)
-  const [summaryState, setSummaryState]     = useState(null)
-  const [prevFinance, setPrevFinance]       = useState(null)
+  const [advancing, setAdvancing]               = useState(false)
+  const [showTransition, setShowTransition]     = useState(false)
+  const [showMatchAnim, setShowMatchAnim]       = useState(false)
+  const [matchAnimData, setMatchAnimData]       = useState(null)
+  const [showSummary, setShowSummary]           = useState(false)
+  const [summaryState, setSummaryState]         = useState(null)
+  const [prevFinance, setPrevFinance]           = useState(null)
   const pendingStateRef = useRef(null)
   // ✅ 用 ref 始终持有最新 state，避免 advanceWeek 闭包读到旧快照
   const stateRef = useRef(state)
@@ -317,6 +320,12 @@ function GameProvider({ children }) {
     } catch {}
   }, [])
 
+  function handleMatchAnimComplete() {
+    setShowMatchAnim(false)
+    setMatchAnimData(null)
+    setShowSummary(true)
+  }
+
   function handleSummaryClose() {
     setShowSummary(false)
     if (pendingStateRef.current) {
@@ -348,6 +357,33 @@ function GameProvider({ children }) {
       }
 
       setShowTransition(false)
+
+      // ✅ 如果本周有比赛结果，先播放比赛动画，再显示周总结
+      const matchResults = newState.eventHistory?.filter(
+        h => h.week === newState.gameState.week
+      ) ?? []
+
+      if (matchResults.length > 0) {
+        // 把 eventHistory 里本周的记录转成动画需要的格式
+        const animData = matchResults.flatMap(record =>
+          (record.matchResults || []).map(pr => ({
+            playerId:    pr.playerId,
+            playerName:  pr.playerName,
+            eventName:   record.eventName,
+            level:       record.level,
+            matchResults: pr.matchResults || [],
+          }))
+        ).filter(pr => pr.matchResults.length > 0)
+
+        if (animData.length > 0) {
+          setMatchAnimData(animData)
+          setSummaryState(newState)
+          setShowMatchAnim(true)
+          return  // 等动画完成后再显示 summary
+        }
+      }
+
+      // 无比赛直接显示周总结
       setSummaryState(newState)
       setShowSummary(true)
 
@@ -370,6 +406,11 @@ function GameProvider({ children }) {
         visible={showTransition}
         year={transitionYear}
         week={transitionWeek}
+      />
+      <MatchAnimation
+        visible={showMatchAnim}
+        matchData={matchAnimData}
+        onComplete={handleMatchAnimComplete}
       />
       <WeekSummary
         visible={showSummary}
