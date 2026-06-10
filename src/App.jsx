@@ -15,6 +15,7 @@ import FinancePage from './pages/FinancePage'
 import SettingsPage from './pages/SettingsPage'
 import ClubSettingsPage from './pages/ClubSettingsPage'
 import RankingsPage from './pages/RankingsPage'
+import ShopPage from './pages/ShopPage'
 import WeekTransition from './components/WeekTransition'
 import WeekSummary from './components/WeekSummary'
 import MatchAnimation from './components/MatchAnimation'
@@ -546,6 +547,7 @@ function GameLayout() {
               <Route path="/settings"      element={<SettingsPage />}    />
               <Route path="/club-settings" element={<ClubSettingsPage />}/>
               <Route path="/rankings"      element={<RankingsPage />}    />
+              <Route path="/shop"          element={<ShopPage />}        />
             </Routes>
           </main>
         </div>

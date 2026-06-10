@@ -1,0 +1,505 @@
+.page {
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── 顶部标题栏 ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title i { color: var(--gold); font-size: 22px; }
+
+/* ── 研发点数卡片 ── */
+.researchBar {
+  background: var(--forest);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.researchPointsBlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
+}
+.researchPointsBlock i {
+  color: var(--gold);
+  font-size: 20px;
+}
+.researchLabel {
+  font-size: 12px;
+  color: var(--gold-pale);
+  opacity: 0.7;
+}
+.researchPoints {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+}
+.researchRate {
+  font-size: 11px;
+  color: var(--gold-pale);
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* ── Tab 切换 ── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--cream-dark);
+  background: var(--white);
+  color: var(--ink-muted);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.tab:hover { border-color: var(--forest); color: var(--forest); }
+.tabActive {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--gold-pale);
+  font-weight: 500;
+}
+
+/* ── 主体两列布局 ── */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .body { grid-template-columns: 1fr; }
+}
+
+/* ── 区块标题 ── */
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sectionTitle i { color: var(--gold); font-size: 15px; }
+
+/* ── 研发面板 ── */
+.researchPanel { display: flex; flex-direction: column; gap: 10px; }
+
+.researchProjectCard {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cream-dark);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-card);
+}
+.projectHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.projectName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  flex: 1;
+}
+.projectWeeks {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.progressBarBg {
+  height: 6px;
+  background: var(--cream-dark);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progressBarFill {
+  height: 100%;
+  background: var(--forest);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.projectMeta {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+/* 可研发的道具列表 */
+.researchableList { display: flex; flex-direction: column; gap: 6px; }
+
+.researchableItem {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cream-dark);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-card);
+}
+.researchableItem:hover { border-color: var(--forest); }
+.researchableItem.disabled { opacity: 0.5; cursor: not-allowed; }
+.researchableItem.disabled:hover { border-color: var(--cream-dark); }
+
+.rarityDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.itemBasicInfo { flex: 1; min-width: 0; }
+.itemName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemWeeks { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+.startBtn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--forest);
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.startBtn:hover { background: var(--forest); color: var(--gold-pale); }
+.startBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.startBtn:disabled:hover { background: transparent; color: var(--forest); }
+
+.doneTag {
+  font-size: 11px;
+  color: #3B6D11;
+  background: #EAF3DE;
+  border-radius: 10px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.inProgressTag {
+  font-size: 11px;
+  color: var(--forest);
+  background: var(--gold-pale);
+  border-radius: 10px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+/* ── 货架面板 ── */
+.shopPanel { display: flex; flex-direction: column; gap: 8px; }
+
+.shopItemCard {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cream-dark);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s;
+}
+.shopItemCard:hover { border-color: var(--cream-dark); }
+
+.shopItemHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.rarityBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.shopItemName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  flex: 1;
+}
+.shopItemPrice {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest);
+  white-space: nowrap;
+}
+.shopItemEffect {
+  font-size: 12px;
+  color: var(--ink-mid);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.shopItemFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shopItemMeta {
+  font-size: 11px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 10px;
+}
+.buyBtn {
+  padding: 5px 14px;
+  border-radius: 14px;
+  border: none;
+  background: var(--forest);
+  color: var(--gold-pale);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.buyBtn:hover { background: var(--forest-mid); }
+.buyBtn:disabled { background: var(--cream-dark); color: var(--ink-muted); cursor: not-allowed; }
+
+.lockedMsg {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* ── 仓库面板（底部全宽） ── */
+.inventorySection {
+  margin-top: 8px;
+}
+.inventoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.inventoryCard {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cream-dark);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-card);
+}
+.inventoryItemName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.inventoryItemEffect {
+  font-size: 11px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.useBtn {
+  width: 100%;
+  padding: 5px 0;
+  border-radius: 10px;
+  border: 1px solid var(--forest);
+  background: transparent;
+  color: var(--forest);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.useBtn:hover { background: var(--forest); color: var(--gold-pale); }
+
+.emptyInventory {
+  padding: 20px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--cream-dark);
+}
+
+/* ── 使用道具弹窗 ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+  padding: 0;
+}
+@media (min-width: 500px) {
+  .modalOverlay { align-items: center; padding: 20px; }
+}
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 20px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+@media (min-width: 500px) {
+  .modal { border-radius: var(--radius-xl); }
+}
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.modalSubtitle {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 16px;
+}
+.modalEffect {
+  background: var(--cream);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.playerSelectList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.playerSelectItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--cream-dark);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--white);
+}
+.playerSelectItem:hover { border-color: var(--forest); }
+.playerSelectItemActive {
+  border-color: var(--forest);
+  background: #f0f5ef;
+}
+.playerSelectItemDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.playerSelectItemDisabled:hover { border-color: var(--cream-dark); }
+.playerAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: var(--gold-pale);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.playerSelectName { font-size: 13px; font-weight: 500; color: var(--ink); }
+.playerSelectMeta { font-size: 11px; color: var(--ink-muted); }
+.cooldownNote { font-size: 11px; color: var(--red-soft); margin-top: 2px; }
+
+.modalActions {
+  display: flex;
+  gap: 8px;
+}
+.modalCancelBtn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--cream-dark);
+  background: transparent;
+  color: var(--ink-mid);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.modalConfirmBtn {
+  flex: 2;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--forest);
+  color: var(--gold-pale);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.15s;
+}
+.modalConfirmBtn:hover { background: var(--forest-mid); }
+.modalConfirmBtn:disabled { background: var(--cream-dark); color: var(--ink-muted); cursor: not-allowed; }
+
+/* 稀有度颜色 */
+.legendary { color: #993C1D; background: #FAECE7; }
+.epic      { color: #3C3489; background: #EEEDFE; }
+.rare      { color: #185FA5; background: #E6F1FB; }
+.common    { color: #3B6D11; background: #EAF3DE; }
+
+.dotLegendary { background: #E8593C; }
+.dotEpic      { background: #7F77DD; }
+.dotRare      { background: #378ADD; }
+.dotCommon    { background: #639922; }
+
+.emptyState {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.emptyState i { font-size: 32px; color: var(--cream-dark); display: block; margin-bottom: 8px; }
