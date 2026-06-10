@@ -1195,9 +1195,36 @@ export async function advanceWeekEngine(state) {
     points: 0, pointsPerWeek: 3, activeProjects: [], completedItems: [],
   }
 
-  // 研发点数每周自动增加，声望每满1000额外+1点
-  const researchPrestige  = gameState?.prestige || 0
-  const earnedPoints      = (currentResearch.pointsPerWeek || 3) + Math.floor(researchPrestige / 1000)
+  // ── 研发点数：按俱乐部实力多维度计算 ──────────────────
+  // 基础
+  let earnedPoints = 10
+
+  // 教练贡献（按级别）
+  const COACH_RESEARCH_POINTS = { assistant: 0, normal: 5, senior: 12, elite: 20 }
+  ;(state.coaches || []).forEach(c => {
+    earnedPoints += COACH_RESEARCH_POINTS[c.level] || 0
+  })
+
+  // 设施贡献（按等级，糟糕等级不贡献）
+  const FACILITY_RESEARCH_POINTS = { 普通: 3, 高级: 8, 顶级: 15 }
+  ;(state.facilities || []).forEach(f => {
+    if (f.type === 'empty' || !f.level) return
+    earnedPoints += FACILITY_RESEARCH_POINTS[f.level] || 0
+  })
+
+  // 声望：每满1000额外+5点
+  earnedPoints += Math.floor((gameState?.prestige || 0) / 1000) * 5
+
+  // 比赛胜利：本周每场胜利+8点（从 newHistoryRecords 里统计）
+  const weekWins = newHistoryRecords.reduce((total, record) => {
+    return total + (record.matchResults || []).reduce((t, r) => {
+      return t + (r.matchResults || []).filter(m => m.result === 'win').length
+    }, 0)
+  }, 0)
+  earnedPoints += weekWins * 8
+
+  // 点数上限 2000
+  const newPoints = Math.min(2000, (currentResearch.points || 0) + earnedPoints)
 
   // 推进所有进行中项目，判断是否完成
   const researchNews   = []
@@ -1224,7 +1251,7 @@ export async function advanceWeekEngine(state) {
 
   const updatedResearch = {
     ...currentResearch,
-    points:         currentResearch.points + earnedPoints,
+    points:         newPoints,
     activeProjects: newActiveProjects,
     completedItems: newCompletedItems,
   }

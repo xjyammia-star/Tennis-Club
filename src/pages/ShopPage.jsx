@@ -8,7 +8,13 @@ import { useGameCtx } from '../App'
 import { ITEM_DEFS, ITEM_CATEGORIES, getItemsByCategory } from '../data/itemDefs'
 import styles from './ShopPage.module.css'
 
-// ── 稀有度配置 ────────────────────────────────────────
+// ── 研发点数消耗（按稀有度）────────────────────────────
+const RESEARCH_POINT_COST = {
+  common:    100,
+  rare:      250,
+  epic:      500,
+  legendary: 1000,
+}
 const RARITY_CFG = {
   legendary: { label: '传奇', badgeClass: 'legendary', dotClass: 'dotLegendary' },
   epic:      { label: '卓越', badgeClass: 'epic',      dotClass: 'dotEpic'      },
@@ -100,11 +106,16 @@ export default function ShopPage() {
       showNotification('该项目已在研发中', false)
       return
     }
+    const cost = RESEARCH_POINT_COST[itemDef.rarity] || 100
+    if (currentResearch.points < cost) {
+      showNotification(`研发点数不足（需要 ${cost} 点，当前 ${currentResearch.points} 点）`, false)
+      return
+    }
     dispatch({
       type: 'START_RESEARCH',
-      project: { itemId: itemDef.id, requiredWeeks: itemDef.researchWeeks },
+      project: { itemId: itemDef.id, requiredWeeks: itemDef.researchWeeks, pointCost: cost },
     })
-    showNotification(`已开始研发「${itemDef.name}」，预计 ${itemDef.researchWeeks} 周完成`)
+    showNotification(`已开始研发「${itemDef.name}」，消耗 ${cost} 点，预计 ${itemDef.researchWeeks} 周完成`)
   }
 
   // ── 购买道具 ─────────────────────────────────────────
@@ -215,8 +226,16 @@ export default function ShopPage() {
           <i className="ti ti-flask" />
           <div>
             <div className={styles.researchLabel}>研发点数</div>
-            <div className={styles.researchPoints}>{currentResearch.points}</div>
-            <div className={styles.researchRate}>每周 +{currentResearch.pointsPerWeek + Math.floor((gameState?.prestige || 0) / 1000)} 点</div>
+            <div className={styles.researchPoints}>{currentResearch.points} / 2000</div>
+            <div className={styles.researchRate}>每周约 +{(() => {
+              const COACH_PTS = { assistant: 0, normal: 5, senior: 12, elite: 20 }
+              const FAC_PTS   = { 普通: 3, 高级: 8, 顶级: 15 }
+              let est = 10
+              ;(state.coaches || []).forEach(c => { est += COACH_PTS[c.level] || 0 })
+              ;(state.facilities || []).forEach(f => { if (f.type !== 'empty' && f.level) est += FAC_PTS[f.level] || 0 })
+              est += Math.floor((gameState?.prestige || 0) / 1000) * 5
+              return est
+            })()} 点（上限2000）</div>
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 120 }}>
@@ -355,11 +374,13 @@ export default function ShopPage() {
           </div>
           <div className={styles.researchableList}>
             {tabItems.map(itemDef => {
-              const rCfg       = RARITY_CFG[itemDef.rarity]
-              const isDone     = completedItems.includes(itemDef.id)
-              const inProgress = activeProjects.find(p => p.itemId === itemDef.id)
-              const isFull     = activeProjects.length >= 3
-              const disabled   = isDone || !!inProgress || isFull
+              const rCfg         = RARITY_CFG[itemDef.rarity]
+              const isDone       = completedItems.includes(itemDef.id)
+              const inProgress   = activeProjects.find(p => p.itemId === itemDef.id)
+              const isFull       = activeProjects.length >= 3
+              const cost         = RESEARCH_POINT_COST[itemDef.rarity] || 100
+              const canAffordPts = currentResearch.points >= cost
+              const disabled     = isDone || !!inProgress || isFull || !canAffordPts
 
               return (
                 <div
@@ -370,7 +391,16 @@ export default function ShopPage() {
                   <div className={styles.itemBasicInfo}>
                     <div className={styles.itemName}>{itemDef.name}</div>
                     <div className={styles.itemWeeks}>
-                      {isDone ? '已完成' : `需 ${itemDef.researchWeeks} 周`} · {rCfg.label}
+                      {isDone ? '已完成' : `${itemDef.researchWeeks} 周`} · {rCfg.label}
+                      {!isDone && !inProgress && (
+                        <span style={{
+                          marginLeft: 6,
+                          color: canAffordPts ? 'var(--forest)' : 'var(--red-soft)',
+                          fontWeight: 500,
+                        }}>
+                          · {cost} 点
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isDone ? (
@@ -380,10 +410,10 @@ export default function ShopPage() {
                   ) : (
                     <button
                       className={styles.startBtn}
-                      disabled={isFull}
+                      disabled={isFull || !canAffordPts}
                       onClick={() => handleStartResearch(itemDef)}
                     >
-                      {isFull ? '队列已满' : '开始'}
+                      {isFull ? '队列已满' : !canAffordPts ? '点数不足' : '开始研发'}
                     </button>
                   )}
                 </div>

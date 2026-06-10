@@ -156,8 +156,11 @@ function reducer(state, action) {
       return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 15) }
 
     // ── 装备：开始研发项目 ──
-    // action.project = { itemId, requiredWeeks }
+    // action.project = { itemId, requiredWeeks, pointCost }
     case 'START_RESEARCH': {
+      const currentPoints = state.research?.points || 0
+      const cost = action.project.pointCost || 0
+      if (currentPoints < cost) return state  // 点数不足，拒绝（UI层已拦截，这里兜底）
       const newProject = {
         itemId:        action.project.itemId,
         progressWeeks: 0,
@@ -167,6 +170,7 @@ function reducer(state, action) {
         ...state,
         research: {
           ...state.research,
+          points:         currentPoints - cost,
           activeProjects: [...(state.research?.activeProjects || []), newProject],
         },
       }
