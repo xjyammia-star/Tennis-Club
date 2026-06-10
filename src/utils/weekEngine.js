@@ -774,7 +774,16 @@ export async function advanceWeekEngine(state) {
     const cleanAttrs = { ...updatedAttrs }
     delete cleanAttrs._eventExpBonus
 
-    return { ...player, ...cleanAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth, _eventExpBonus: undefined }
+    // 清除已过期的道具效果
+    const cleanActiveItems = (player.activeItems || []).filter(item => {
+      if (item.duration === 'event') return player.inMatch === true
+      if (typeof item.duration === 'number' && item.duration > 0) {
+        return (newWeek - item.usedWeek) < item.duration
+      }
+      return false  // duration: 0 的即时效果用完即清
+    })
+
+    return { ...player, ...cleanAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth, _eventExpBonus: undefined, activeItems: cleanActiveItems }
   })
 
   // 5. 技能检测（自主领悟 + 教练传授）
@@ -990,6 +999,57 @@ export async function advanceWeekEngine(state) {
   const totalIncome  = regularTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense = regularTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
+  // ── 研发系统：每周推进 ──────────────────────────────
+  const currentResearch = state.research || {
+    points: 0, pointsPerWeek: 3, activeProjects: [], completedItems: [],
+  }
+
+  // 研发点数每周自动增加，声望每满1000额外+1点
+  const researchPrestige  = gameState?.prestige || 0
+  const earnedPoints      = (currentResearch.pointsPerWeek || 3) + Math.floor(researchPrestige / 1000)
+
+  // 推进所有进行中项目，判断是否完成
+  const researchNews   = []
+  let newActiveProjects = []
+  let newCompletedItems = [...(currentResearch.completedItems || [])]
+
+  for (const proj of (currentResearch.activeProjects || [])) {
+    const newProgress = (proj.progressWeeks || 0) + 1
+    if (newProgress >= proj.requiredWeeks) {
+      // 研发完成，加入已完成列表（避免重复）
+      if (!newCompletedItems.includes(proj.itemId)) {
+        newCompletedItems.push(proj.itemId)
+      }
+      researchNews.push({
+        id:   Date.now() + Math.random(),
+        type: 'research',
+        text: `🔬 研发完成！新道具已解锁，可在装备店购买。`,
+        week: newWeek,
+      })
+    } else {
+      newActiveProjects.push({ ...proj, progressWeeks: newProgress })
+    }
+  }
+
+  const updatedResearch = {
+    ...currentResearch,
+    points:         currentResearch.points + earnedPoints,
+    activeProjects: newActiveProjects,
+    completedItems: newCompletedItems,
+  }
+
+  // 把研发新闻合并进本周动态
+  newRecentNews = [...researchNews, ...newRecentNews].slice(0, 15)
+
+  // ── 设施道具过期清理 ──────────────────────────────
+  const updatedFacilityItems = (state.activeFacilityItems || []).filter(item => {
+    if (item.duration === 'event') return true  // 赛事道具由比赛系统管理
+    if (typeof item.duration === 'number' && item.duration > 0) {
+      return (newWeek - item.usedWeek) < item.duration
+    }
+    return false  // duration: 0 的即时道具不保留
+  })
+
   // 每周刷新招募市场
   const newRecruitPlayers = generateRecruitPlayers(newWeek)
   const newRecruitCoaches = generateRecruitCoaches(newWeek)
@@ -1033,5 +1093,8 @@ export async function advanceWeekEngine(state) {
     recruitCoaches:  newRecruitCoaches,
     // ✅ 新增：持久化 eventHistory（不再丢失战绩）
     eventHistory:    updatedEventHistory,
+    // ── 装备系统 ──
+    research:            updatedResearch,
+    activeFacilityItems: updatedFacilityItems,
   }
 }

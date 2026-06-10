@@ -221,6 +221,15 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
       transactions: [],
       weeklyTrend:  [],
       recentNews:   [{ id: 1, type: 'player', text: '欢迎来到困难模式！资金紧张，贷款压力大，每一分钱都要用在刀刃上。', week: 1 }],
+      // ── 装备系统初始状态 ──
+      research: {
+        points: 0,
+        pointsPerWeek: 2,       // 困难模式研发慢
+        activeProjects: [],
+        completedItems: [],
+      },
+      inventory: [],
+      activeFacilityItems: [],
     }
   }
 
@@ -274,6 +283,15 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
       transactions: [],
       weeklyTrend:  [],
       recentNews:   [{ id: 1, type: 'player', text: '欢迎来到普通模式！拥有一支小有规模的球队，合理规划经营策略，逐步走向顶峰。', week: 1 }],
+      // ── 装备系统初始状态 ──
+      research: {
+        points: 0,
+        pointsPerWeek: 3,       // 普通模式研发速度
+        activeProjects: [],
+        completedItems: [],
+      },
+      inventory: [],
+      activeFacilityItems: [],
     }
   }
 
@@ -328,5 +346,14 @@ export function buildInitialState(difficulty, baseState, gameDuration = 20, club
     transactions: [],
     weeklyTrend:  [],
     recentNews:   [{ id: 1, type: 'player', text: '欢迎来到简单模式！资金充裕，设施完善，带领俱乐部走向辉煌！', week: 1 }],
+    // ── 装备系统初始状态 ──
+    research: {
+      points: 0,
+      pointsPerWeek: 4,         // 简单模式研发最快
+      activeProjects: [],
+      completedItems: [],
+    },
+    inventory: [],
+    activeFacilityItems: [],
   }
 }

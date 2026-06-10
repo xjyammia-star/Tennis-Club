@@ -153,6 +153,107 @@ function reducer(state, action) {
     }
     case 'ADD_NEWS':
       return { ...state, recentNews: [action.news, ...state.recentNews].slice(0, 15) }
+
+    // ── 装备：开始研发项目 ──
+    // action.project = { itemId, requiredWeeks }
+    case 'START_RESEARCH': {
+      const newProject = {
+        itemId:        action.project.itemId,
+        progressWeeks: 0,
+        requiredWeeks: action.project.requiredWeeks,
+      }
+      return {
+        ...state,
+        research: {
+          ...state.research,
+          activeProjects: [...(state.research?.activeProjects || []), newProject],
+        },
+      }
+    }
+
+    // ── 装备：购买道具进仓库 ──
+    // action.itemId, action.price, action.instanceId
+    case 'BUY_ITEM': {
+      const newInvItem = {
+        instanceId:    action.instanceId,
+        itemId:        action.itemId,
+        purchasedWeek: state.gameState.week,
+      }
+      return {
+        ...state,
+        inventory: [...(state.inventory || []), newInvItem],
+        finance: {
+          ...state.finance,
+          cash: state.finance.cash - action.price,
+        },
+        gameState: {
+          ...state.gameState,
+          cash: (state.gameState.cash ?? state.finance.cash) - action.price,
+        },
+      }
+    }
+
+    // ── 装备：使用道具 ──
+    // action.instanceId  要使用的仓库实例ID
+    // action.playerId    目标球员ID（设施道具传 null）
+    // action.itemDef     道具定义对象（来自 itemDefs.js）
+    case 'USE_ITEM': {
+      const usedItem = (state.inventory || []).find(i => i.instanceId === action.instanceId)
+      if (!usedItem) return state
+
+      // 从仓库移除
+      const newInventory = (state.inventory || []).filter(i => i.instanceId !== action.instanceId)
+
+      // 针对球员的道具：写入球员 activeItems + 记录冷却
+      let newPlayers = state.players
+      if (action.playerId) {
+        newPlayers = state.players.map(p => {
+          if (p.id !== action.playerId) return p
+          const activeItems = p.activeItems || []
+          return {
+            ...p,
+            activeItems: [
+              ...activeItems,
+              {
+                instanceId:    action.instanceId,
+                itemId:        usedItem.itemId,
+                usedWeek:      state.gameState.week,
+                duration:      action.itemDef.duration,
+                effect:        action.itemDef.effect,
+                cooldownWeeks: action.itemDef.cooldownWeeks,
+              },
+            ],
+            // cooldowns：{ [itemId]: 冷却结束的周次 }
+            cooldowns: {
+              ...(p.cooldowns || {}),
+              [usedItem.itemId]: state.gameState.week + (action.itemDef.cooldownWeeks || 0),
+            },
+          }
+        })
+      }
+
+      // 设施道具：写入全局 activeFacilityItems
+      const newFacilityItems = action.playerId
+        ? (state.activeFacilityItems || [])
+        : [
+            ...(state.activeFacilityItems || []),
+            {
+              instanceId: action.instanceId,
+              itemId:     usedItem.itemId,
+              usedWeek:   state.gameState.week,
+              duration:   action.itemDef.duration,
+              effect:     action.itemDef.effect,
+            },
+          ]
+
+      return {
+        ...state,
+        inventory:           newInventory,
+        players:             newPlayers,
+        activeFacilityItems: newFacilityItems,
+      }
+    }
+
     default:
       return state
   }
