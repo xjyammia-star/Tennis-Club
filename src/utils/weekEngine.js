@@ -362,7 +362,7 @@ function calcInjuryChance(player) {
 // ── 按天模拟疲劳 ────────────────────────────────────
 // ✅ 修复：新增 playerId 参数，只统计该球员实际参与的课程时长
 // 修复前：把当天所有课程时长全部累加，导致疲劳被严重高估，无法正常恢复
-function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay = 0, playerId = null) {
+function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay = 0, playerId = null, fatigueGainMult = 1.0) {
   const DAYS_KEYS = ['mon','tue','wed','thu','fri','sat','sun']
   const fatiguePerHour = getFatiguePerHour(age)
   let fatigue = startFatigue
@@ -380,7 +380,9 @@ function simulateFatigueByDay(startFatigue, age, schedule, extraRecoveryPerDay =
         trainingHours += s.hours || 0
       }
     })
-    fatigue = fatigue + trainingHours * fatiguePerHour - DAILY_FATIGUE_RECOVERY - extraRecoveryPerDay
+    // ✅ 道具：fatigueGainMult 可降低疲劳增量（如肌肉松弛膏 ×0.8）
+    const fatigueGain = trainingHours * fatiguePerHour * fatigueGainMult
+    fatigue = fatigue + fatigueGain - DAILY_FATIGUE_RECOVERY - extraRecoveryPerDay
     fatigue = Math.min(100, Math.max(0, fatigue))
   })
 
@@ -493,26 +495,53 @@ function checkSkills(players, coaches, schedule, newWeek) {
   const playerUpdates = {}
 
   players.forEach(player => {
-    // 1. 自主领悟
-    SKILL_NAMES.forEach(skillName => {
-      const chance = getSelfLearnChance(player, skillName)
-      if (chance <= 0) return
-      // ✅ 概率降低一半
-      if (Math.random() < chance * 0.5) {
-        if (!playerUpdates[player.id]) {
-          playerUpdates[player.id] = { skills: [...(player.skills || [])] }
-        }
-        if (!playerUpdates[player.id].skills.includes(skillName)) {
-          playerUpdates[player.id].skills.push(skillName)
+    // 道具：技能领悟概率倍率 + 额外检测机会
+    const skillChanceMult   = player.activeItems?.reduce((m, ai) => m * (ai.effect?.skillChanceMult || 1), 1) ?? 1
+    const extraSkillCheck   = player._extraSkillCheck === true
+    const hasInstantSkill   = player.activeItems?.some(ai => ai.effect?.instantSkill) ?? false
+
+    // instantSkill 道具：立即领悟一个球员还没有的技能（随机）
+    if (hasInstantSkill) {
+      const known = player.skills || []
+      const unknown = SKILL_NAMES.filter(s => !known.includes(s))
+      if (unknown.length > 0) {
+        const picked = unknown[Math.floor(Math.random() * unknown.length)]
+        if (!playerUpdates[player.id]) playerUpdates[player.id] = { skills: [...known] }
+        if (!playerUpdates[player.id].skills.includes(picked)) {
+          playerUpdates[player.id].skills.push(picked)
           skillNews.push({
             id: Date.now() + Math.random(),
             type: 'skill',
-            text: `${player.name}通过刻苦训练自主领悟了「${skillName}」技能！`,
+            text: `${player.name}使用了天赋觉醒石，瞬间领悟了「${picked}」技能！`,
             week: newWeek,
           })
         }
       }
-    })
+    }
+
+    // 1. 自主领悟（含道具倍率 + 额外检测机会）
+    const selfLearnRuns = extraSkillCheck ? 2 : 1   // 额外检测道具触发两次
+    for (let run = 0; run < selfLearnRuns; run++) {
+      SKILL_NAMES.forEach(skillName => {
+        const chance = getSelfLearnChance(player, skillName)
+        if (chance <= 0) return
+        // ✅ 概率降低一半，再乘以道具加成
+        if (Math.random() < chance * 0.5 * skillChanceMult) {
+          if (!playerUpdates[player.id]) {
+            playerUpdates[player.id] = { skills: [...(player.skills || [])] }
+          }
+          if (!playerUpdates[player.id].skills.includes(skillName)) {
+            playerUpdates[player.id].skills.push(skillName)
+            skillNews.push({
+              id: Date.now() + Math.random(),
+              type: 'skill',
+              text: `${player.name}通过刻苦训练自主领悟了「${skillName}」技能！`,
+              week: newWeek,
+            })
+          }
+        }
+      })
+    }
 
     // 2. 教练技能传授
     const coachesTeaching = []
@@ -532,8 +561,8 @@ function checkSkills(players, coaches, schedule, newWeek) {
         const currentSkills = playerUpdates[player.id]?.skills || player.skills || []
         if (currentSkills.includes(skillName)) return
         if (!canCoachTeach(player, skillName)) return
-        // ✅ 概率降低一半：私教 0.15（原0.30），团课 0.025（原0.05）
-        const teachChance = sessionType === 'private' ? 0.15 : 0.025
+        // ✅ 概率降低一半，再乘以道具加成：私教 0.15，团课 0.025
+        const teachChance = (sessionType === 'private' ? 0.15 : 0.025) * skillChanceMult
         if (Math.random() < teachChance) {
           if (!playerUpdates[player.id]) {
             playerUpdates[player.id] = { skills: [...(player.skills || [])] }
@@ -632,7 +661,32 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
     }
 
     const participatingPlayers = updatedPlayers.filter(p => entry.playerIds.includes(p.id))
-    const results = simulateTournament(participatingPlayers, event, worldPlayers)
+
+    // ── 道具：叠加竞技系列加成到参赛球员（临时字段，matchEngine 读取后不持久化）──
+    const boostedPlayers = participatingPlayers.map(p => {
+      const combatItems = (p.activeItems || []).filter(ai =>
+        ai.duration === 'event' || (typeof ai.duration === 'number' && ai.duration > 0)
+      )
+      let powerBonus   = 0
+      let winProbBonus = 0
+      let extraPrestige = 0
+      combatItems.forEach(ai => {
+        const eff = ai.effect || {}
+        if (eff.combatPower)   powerBonus   += eff.combatPower
+        if (eff.winProbBonus)  winProbBonus += eff.winProbBonus
+        if (eff.prestige)      extraPrestige = eff.prestige      // 赢球后额外声望
+        if (eff.tacticsBonus)  powerBonus   += eff.tacticsBonus * 0.3  // 战术加成折算战力
+      })
+      if (powerBonus === 0 && winProbBonus === 0 && extraPrestige === 0) return p
+      return {
+        ...p,
+        _itemPowerBonus:    powerBonus,
+        _itemWinProbBonus:  winProbBonus,
+        _itemExtraPrestige: extraPrestige,
+      }
+    })
+
+    const results = simulateTournament(boostedPlayers, event, worldPlayers)
 
     let totalPrize = 0
     let totalPrestige = 0
@@ -645,6 +699,11 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
       if (player) {
         const newPoints = (player.points || 0) + result.points
         const { updatedAttrs, newPool } = applyMatchExp(player, result.expGained)
+        // ── 道具：赢球后额外声望（冠军基因激活剂）──
+        const wonMatch = result.finalRound !== result.finalRound  // 有晋级则为赢
+        const extraPrestige = (player._itemExtraPrestige || 0) *
+          (result.matchResults?.filter(m => m.result === 'win').length || 0)
+        totalPrestige += extraPrestige
         updatedPlayers = updatedPlayers.map(p =>
           p.id !== result.playerId ? p : {
             ...p, ...updatedAttrs, expPool: newPool,
@@ -732,7 +791,15 @@ export async function advanceWeekEngine(state) {
   })
 
   const facilityMults = getFacilityMultipliers(facilities || [])
-  const extraFatigueRecovery = getServiceFatigueRecovery(facilities || [])
+  let extraFatigueRecovery = getServiceFatigueRecovery(facilities || [])
+
+  // ── 道具：全场能量优化包 / 环境净化系统 → 服务设施恢复加成 ──
+  ;(state.activeFacilityItems || []).forEach(item => {
+    const eff = item.effect || {}
+    if (eff.serviceRecoveryBonus && eff.serviceRecoveryBonus > 1) {
+      extraFatigueRecovery = Math.round(extraFatigueRecovery * eff.serviceRecoveryBonus)
+    }
+  })
 
   // 3. 处理比赛事件
   const {
@@ -754,28 +821,119 @@ export async function advanceWeekEngine(state) {
       return { ...player, fatigue: Math.max(0, Math.round(matchFatigue)) }
     }
 
+    // ── 道具效果：汇总本球员当前所有生效中的 activeItems ──
+    const activeItems = player.activeItems || []
+    let itemExpMult           = 1.0   // 经验倍率叠加
+    let itemFatigueFlat       = 0     // 即时疲劳修正（负数=减疲劳）
+    let itemFatigueRecovery   = 0     // 每天额外恢复加成
+    let itemFatigueGainMult   = 1.0   // 疲劳增量倍率
+    let itemHealAccel         = 1     // 伤病恢复加速倍率
+    let itemHealInstant       = false // 是否立即消除轻伤
+    let itemSkillChanceMult   = 1.0   // 技能领悟概率倍率
+    let itemExtraSkillCheck   = false // 额外触发一次技能检测
+    let itemLoyaltyDelta      = 0     // 忠诚度即时变化
+    let itemAttrBonus         = null  // { amount, extraChance } 弱势属性强化
+    let itemBalanceBoost      = false // 均衡发展：偏低属性额外+5%
+    let itemTargetTrainType   = null  // 指定训练类型经验加成
+
+    activeItems.forEach(ai => {
+      const eff = ai.effect || {}
+      // 即时效果（duration:0）已在 USE_ITEM 时记录，本周首次推进时执行一次
+      // 持续效果（duration>0 或 'event'）每周都叠加
+      const isInstant = ai.duration === 0
+
+      if (eff.expMult)             itemExpMult           *= eff.expMult
+      if (eff.seasonExpMult)       itemExpMult           *= eff.seasonExpMult
+      if (eff.fatigueRecoveryPerDay) itemFatigueRecovery += eff.fatigueRecoveryPerDay
+      if (eff.fatigueGainMult)     itemFatigueGainMult   *= eff.fatigueGainMult
+      if (eff.skillChanceMult)     itemSkillChanceMult   *= eff.skillChanceMult
+      if (eff.extraSkillCheck)     itemExtraSkillCheck    = true
+      if (eff.balanceBoost)        itemBalanceBoost       = true
+      if (eff.targetTrainType && eff.targetTrainType !== 'choose') itemTargetTrainType = eff.targetTrainType
+
+      // 即时效果：只在道具使用当周（usedWeek === newWeek-1，即上周使用本周首次结算）生效一次
+      // 用 usedWeek 比较：使用时 week=W，下一周推进时 newWeek=W+1，所以 usedWeek === newWeek-1
+      const isFirstWeek = ai.usedWeek === newWeek - 1
+      if (isFirstWeek || isInstant) {
+        if (eff.fatigue)           itemFatigueFlat      += eff.fatigue
+        if (eff.loyalty)           itemLoyaltyDelta     += eff.loyalty
+        if (eff.attrBonus)         itemAttrBonus         = { amount: eff.attrBonus, extraChance: eff.attrBonusChance || 0 }
+        if (eff.healAccel >= 100)  itemHealInstant       = true
+        else if (eff.healAccel > 1) itemHealAccel        = Math.max(itemHealAccel, eff.healAccel)
+        if (eff.instantSkill)      itemExtraSkillCheck   = true  // instantSkill 由 checkSkills 处理
+      }
+    })
+
     // ✅ 修复：传入 player.id，确保只统计该球员实际参与的课程时长
-    const newFatigue = simulateFatigueByDay(
-      player.fatigue, player.age, fullSchedule, extraFatigueRecovery, player.id
+    // 同时叠加道具的每天额外恢复和疲劳增量倍率
+    const totalExtraRecovery = extraFatigueRecovery + itemFatigueRecovery
+    let newFatigue = simulateFatigueByDay(
+      player.fatigue, player.age, fullSchedule, totalExtraRecovery, player.id,
+      itemFatigueGainMult  // 新增第6个参数，疲劳增量倍率
     )
-    // ✅ 传入随机事件经验加成（如开窍×1.5，集训×2.0），用完后清除
+    // 叠加即时疲劳修正（如恢复针 -40）
+    if (itemFatigueFlat !== 0) {
+      newFatigue = Math.min(100, Math.max(0, newFatigue + itemFatigueFlat))
+    }
+
+    // ✅ 传入随机事件经验加成 + 道具经验加成，两者叠乘
     const eventExpBonus = player._eventExpBonus || 1.0
-    const { techExp, physExp, mentalExp } = calcPlayerExp(player.id, fullSchedule, coaches, facilityMults, eventExpBonus)
+    const totalExpMult  = eventExpBonus * itemExpMult
+    const { techExp: rawTech, physExp: rawPhys, mentalExp: rawMental } =
+      calcPlayerExp(player.id, fullSchedule, coaches, facilityMults, totalExpMult)
+
+    // 均衡发展道具：让偏低方向额外+5%
+    let techExp = rawTech, physExp = rawPhys, mentalExp = rawMental
+    if (itemBalanceBoost) {
+      const avgAttr = (
+        (player.serve + player.forehand + player.backhand + player.footwork) / 4 +
+        (player.strength + player.stamina + player.agility) / 3 +
+        (player.pressure + player.willpower + player.focus) / 3
+      ) / 3
+      const techAvg   = (player.serve + player.forehand + player.backhand + player.footwork) / 4
+      const physAvg   = (player.strength + player.stamina + player.agility) / 3
+      const mentalAvg = (player.pressure + player.willpower + player.focus) / 3
+      if (techAvg   < avgAttr) techExp   *= 1.05
+      if (physAvg   < avgAttr) physExp   *= 1.05
+      if (mentalAvg < avgAttr) mentalExp *= 1.05
+    }
+    // 专项训练手册：指定方向额外×1.2（在 itemExpMult 基础上再乘）
+    if (itemTargetTrainType === 'tech')   techExp   *= 1.2
+    if (itemTargetTrainType === 'phys')   physExp   *= 1.2
+    if (itemTargetTrainType === 'mental') mentalExp *= 1.2
+
     const { updatedAttrs, newPool } = applyExpToPool(player, techExp, physExp, mentalExp)
 
+    // 弱势属性强化胶囊：立即永久+N（触发一次）
+    if (itemAttrBonus) {
+      const allAttrs = [...TECH_ATTRS, ...PHYS_ATTRS, ...MENTAL_ATTRS]
+      // 找到球员最弱的属性
+      const weakest = allAttrs.reduce((w, a) => (player[a] || 0) < (player[w] || 0) ? a : w, allAttrs[0])
+      const bonus = itemAttrBonus.amount + (Math.random() < itemAttrBonus.extraChance ? 5 : 0)
+      updatedAttrs[weakest] = Math.min(99, (updatedAttrs[weakest] ?? player[weakest] ?? 0) + bonus)
+    }
+
     let newHealth = player.health
-    if (player.health === 'minor' && Math.random() < 0.4) newHealth = 'healthy'
+    // 道具立即消除轻伤
+    if (itemHealInstant && newHealth === 'minor') newHealth = 'healthy'
+    // 伤病自然恢复（加速倍率）
+    if (newHealth === 'minor' && Math.random() < 0.4 * itemHealAccel) newHealth = 'healthy'
     if (newHealth === 'healthy' && newFatigue >= 85) {
       const injuryChance = calcInjuryChance(player)
       if (Math.random() < injuryChance) newHealth = 'minor'
     }
+
+    // 忠诚度即时变化（来自道具）
+    const newLoyalty = itemLoyaltyDelta !== 0
+      ? Math.min(100, Math.max(0, (player.loyalty || 50) + itemLoyaltyDelta))
+      : player.loyalty
 
     // 清除临时标记，避免下周继续生效
     const cleanAttrs = { ...updatedAttrs }
     delete cleanAttrs._eventExpBonus
 
     // 清除已过期的道具效果
-    const cleanActiveItems = (player.activeItems || []).filter(item => {
+    const cleanActiveItems = activeItems.filter(item => {
       if (item.duration === 'event') return player.inMatch === true
       if (typeof item.duration === 'number' && item.duration > 0) {
         return (newWeek - item.usedWeek) < item.duration
@@ -783,7 +941,20 @@ export async function advanceWeekEngine(state) {
       return false  // duration: 0 的即时效果用完即清
     })
 
-    return { ...player, ...cleanAttrs, expPool: newPool, fatigue: newFatigue, health: newHealth, _eventExpBonus: undefined, activeItems: cleanActiveItems }
+    // 把需要额外技能检测的标记写回球员（供步骤5读取）
+    const extraSkillFlag = (itemExtraSkillCheck || activeItems.some(ai => ai.effect?.instantSkill))
+      ? { _extraSkillCheck: true } : {}
+
+    return {
+      ...player, ...cleanAttrs,
+      expPool:     newPool,
+      fatigue:     newFatigue,
+      health:      newHealth,
+      loyalty:     newLoyalty,
+      activeItems: cleanActiveItems,
+      _eventExpBonus: undefined,
+      ...extraSkillFlag,
+    }
   })
 
   // 5. 技能检测（自主领悟 + 教练传授）
@@ -918,7 +1089,27 @@ export async function advanceWeekEngine(state) {
   const prizeIncome = matchTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
 
   // ✅ 新增：计算设施维护费
-  const { totalMaintenance, maintenanceDetails } = calcFacilityMaintenance(facilities || [])
+  const { totalMaintenance: rawMaintenance, maintenanceDetails } = calcFacilityMaintenance(facilities || [])
+
+  // ── 道具：设施系列道具对维护费的折扣 ──────────────────
+  let maintenanceMult = 1.0
+  let operationCostMult = 1.0
+  ;(state.activeFacilityItems || []).forEach(item => {
+    const eff = item.effect || {}
+    if (eff.maintenanceMult) {
+      // 按 scope 决定折扣力度：'all' 全额折扣，'court'/'gym' 折扣一半（只影响部分）
+      const scope = eff.maintenanceScope || 'all'
+      if (scope === 'all') {
+        maintenanceMult *= eff.maintenanceMult
+      } else {
+        // court/gym/service 范围：按比例估算约占总维护费 50%，折扣打在该部分
+        const partialDiscount = 1 - (1 - eff.maintenanceMult) * 0.5
+        maintenanceMult *= partialDiscount
+      }
+    }
+    if (eff.operationCostMult) operationCostMult *= eff.operationCostMult
+  })
+  const totalMaintenance = Math.round(rawMaintenance * maintenanceMult * operationCostMult)
 
   const weekIncome  = rentalInfo.income + privateIncome + groupIncome + prizeIncome
   const weekExpense = coachSalary + insurance + subsidy + totalMaintenance  // ✅ 加入维护费

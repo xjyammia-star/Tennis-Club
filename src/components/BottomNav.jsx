@@ -8,7 +8,7 @@ const navItems = [
   { id: 'players',  label: '球员', icon: 'ti-users',         path: '/players'  },
   { id: 'schedule', label: '训练', icon: 'ti-calendar-week', path: '/schedule' },
   { id: 'events',   label: '赛事', icon: 'ti-trophy',        path: '/events'   },
-  { id: 'settings', label: '设置', icon: 'ti-settings',      path: '/settings' },
+  { id: 'shop',     label: '装备', icon: 'ti-shopping-bag',  path: '/shop'     },
 ]
 
 export default function BottomNav() {

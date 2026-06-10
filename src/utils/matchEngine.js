@@ -56,6 +56,9 @@ function calcPlayerPower(player) {
   if (player.health === 'minor') power *= 0.9
   if (player.health === 'major') power *= 0.7
 
+  // ── 道具：竞技系列战力加成（_itemPowerBonus 由 weekEngine 临时写入）──
+  if (player._itemPowerBonus) power += player._itemPowerBonus
+
   return Math.max(1, power)
 }
 
@@ -142,6 +145,11 @@ function simulateMatch(player, opponent, maxRanking, isFiveSet = false) {
   let winProb = myPower / (myPower + oppPower)
   const randomFactor = 1 + (Math.random() * 0.30 - 0.15)
   winProb = Math.min(0.95, Math.max(0.05, winProb * randomFactor))
+
+  // ── 道具：竞技系列胜率加成（_itemWinProbBonus 由 weekEngine 临时写入）──
+  if (player._itemWinProbBonus) {
+    winProb = Math.min(0.95, winProb + player._itemWinProbBonus)
+  }
 
   const score = simulateScore(winProb, isFiveSet)
   const win   = score.playerWon
