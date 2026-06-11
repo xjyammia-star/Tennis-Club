@@ -143,7 +143,23 @@ function MatchReportModal({ record, onClose }) {
             </div>
           )}
 
-          {/* ── 完整格式：逐轮战报 ── */}
+          {/* ✅ 赛事冠军 */}
+          {record.champion && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'linear-gradient(135deg, #f5edda, #fdf6e3)',
+              border: '1px solid var(--gold)', borderRadius: 10,
+              padding: '10px 14px', marginBottom: 12,
+            }}>
+              <span style={{ fontSize: 18 }}>🏆</span>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--ink-muted)' }}>本届冠军</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>
+                  {record.champion}
+                </div>
+              </div>
+            </div>
+          )}
           {isFullReport && currentReport && (
             <div className={styles.reportRounds}>
               <div className={styles.reportRoundsTitle}>
@@ -228,6 +244,53 @@ function MatchReportModal({ record, onClose }) {
                                 <div className={styles.reportWinProb}>
                                   胜率 {match.winProb}%
                                 </div>
+                              </div>
+                            )}
+
+                            {/* ✅ 比分展示 */}
+                            {match.score?.playerSets?.length > 0 && (
+                              <div className={styles.reportScore}>
+                                <div className={styles.reportScoreRow}>
+                                  <span className={styles.reportScoreName}>
+                                    {currentReport.playerName}
+                                  </span>
+                                  <div className={styles.reportScoreSets}>
+                                    {match.score.playerSets.map((g, si) => (
+                                      <span
+                                        key={si}
+                                        className={`${styles.reportScoreSet} ${
+                                          g > match.score.oppSets[si]
+                                            ? styles.reportScoreSetWin
+                                            : styles.reportScoreSetLose
+                                        }`}
+                                      >{g}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className={styles.reportScoreRow}>
+                                  <span className={styles.reportScoreName}>
+                                    {match.opponent?.name}
+                                  </span>
+                                  <div className={styles.reportScoreSets}>
+                                    {match.score.oppSets.map((g, si) => (
+                                      <span
+                                        key={si}
+                                        className={`${styles.reportScoreSet} ${
+                                          g > match.score.playerSets[si]
+                                            ? styles.reportScoreSetWin
+                                            : styles.reportScoreSetLose
+                                        }`}
+                                      >{g}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* ✅ 叙述文字 */}
+                            {match.narrative && (
+                              <div className={styles.reportNarrative}>
+                                {match.narrative}
                               </div>
                             )}
                           </div>
