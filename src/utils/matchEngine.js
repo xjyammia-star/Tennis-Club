@@ -165,16 +165,37 @@ function simulateMatch(player, opponent, maxRanking, isFiveSet = false) {
 
 // ── 生成对手池 ───────────────────────────────────────
 function buildOpponentPool(event, worldPlayers, playerGender) {
+  if (!worldPlayers || worldPlayers.length === 0) return []
+
   const genderMap = { male: 'ATP', female: 'WTA' }
   const tour = genderMap[playerGender] || 'ATP'
 
-  let pool = worldPlayers.filter(wp => wp.tour === tour || wp.tour === 'ITF_JUNIOR')
+  // ITF 赛事单独处理
+  if (event.level === 'itf') {
+    const itfPool = worldPlayers.filter(wp =>
+      wp.tour === 'ITF_JUNIOR' || wp.tour === 'itf_junior'
+    )
+    return itfPool.length > 0 ? itfPool : worldPlayers.slice(0, 100)
+  }
 
-  if (event.level === 'slam')  pool = pool.filter(wp => wp.ranking <= 150)
-  if (event.level === '1000')  pool = pool.filter(wp => wp.ranking <= 300)
-  if (event.level === '500')   pool = pool.filter(wp => wp.ranking <= 500)
-  if (event.level === '250')   pool = pool.filter(wp => wp.ranking <= 500)
-  if (event.level === 'itf')   pool = worldPlayers.filter(wp => wp.tour === 'ITF_JUNIOR')
+  // 先按 tour 精确过滤
+  let pool = worldPlayers.filter(wp =>
+    wp.tour === tour || wp.tour === tour.toLowerCase()
+  )
+
+  // tour 过滤失败时兜底：直接用全部 worldPlayers（数据库返回的已经按 level 限制了排名）
+  if (pool.length === 0) {
+    console.warn(`[matchEngine] tour 过滤后为空（tour=${tour}），使用全部 worldPlayers 兜底`)
+    pool = [...worldPlayers]
+  }
+
+  // 按赛事级别限制排名范围
+  if (event.level === 'slam')  pool = pool.filter(wp => (wp.ranking || 999) <= 150)
+  if (event.level === '1000')  pool = pool.filter(wp => (wp.ranking || 999) <= 300)
+  // 500/250 已经在 API 层限制了 rankingLimit=500，这里不再重复过滤
+
+  // 如果过滤后还是空，再次兜底用全部
+  if (pool.length === 0) pool = [...worldPlayers]
 
   return pool
 }
@@ -277,13 +298,19 @@ export function simulateTournament(players, event, worldPlayers) {
     const neededOpps = rounds.filter(r => r !== 'runner_up' && r !== 'champion').length
 
     if (pool.length === 0) {
+      // API 完全失败时的最终兜底，用随机风格名字替代"对手N"
+      const FALLBACK_NAMES = [
+        'A.Garcia','B.Smith','C.Johnson','D.Martinez','E.Williams',
+        'F.Brown','G.Davis','H.Wilson','I.Anderson','J.Taylor',
+      ]
       const fallbackOpponents = Array(neededOpps).fill(null).map((_, i) => ({
-        id: `fallback_${i}`,
-        name: `对手${i + 1}`,
-        ranking: 200 + i * 30,
+        id:          `fallback_${i}`,
+        name:        FALLBACK_NAMES[i % FALLBACK_NAMES.length],
+        ranking:     150 + i * 20,
         nationality: '未知',
-        tour: 'ATP',
+        tour:        'ATP',
       }))
+      console.warn(`[matchEngine] pool 为空，使用 fallback 对手 (level=${event.level})`)
       return {
         playerId:   player.id,
         playerName: player.name,

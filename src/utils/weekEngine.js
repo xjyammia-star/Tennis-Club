@@ -653,11 +653,24 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
     try {
       const firstPlayer = updatedPlayers.find(p => entry.playerIds.includes(p.id))
       const gender = firstPlayer?.gender || 'male'
-      const res = await fetch(`/api/worldplayers?level=${event.level}&gender=${gender}`)
-      const data = await res.json()
-      worldPlayers = data.players || []
+      const url = `/api/worldplayers?level=${event.level}&gender=${gender}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        console.warn(`[weekEngine] worldplayers API 返回非200: ${res.status} ${res.statusText}`)
+      } else {
+        const data = await res.json()
+        worldPlayers = data.players || []
+        if (worldPlayers.length === 0) {
+          console.warn(`[weekEngine] worldplayers 返回空数组，level=${event.level} gender=${gender}`)
+        } else {
+          // 打印前3个球员的 tour 字段，便于排查 tour 不匹配问题
+          console.log(`[weekEngine] worldplayers 获取成功: ${worldPlayers.length} 人，前3: ${
+            worldPlayers.slice(0, 3).map(p => `${p.name}(${p.tour})`).join(', ')
+          }`)
+        }
+      }
     } catch (err) {
-      console.warn('获取世界球员失败，使用虚拟对手:', err)
+      console.warn('[weekEngine] 获取世界球员失败，使用虚拟对手:', err)
     }
 
     const participatingPlayers = updatedPlayers.filter(p => entry.playerIds.includes(p.id))
