@@ -284,6 +284,10 @@ export default function ShopPage() {
             · 并行{shopConfig?.maxSlots ?? 3}项
           </div>
         </div>
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <div style={{ fontSize: 12, color: 'var(--gold-pale)', opacity: 0.7, marginBottom: 4 }}>
+            进行中研发
+          </div>
           {activeProjects.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--gold-pale)', opacity: 0.5 }}>暂无</div>
             : activeProjects.map(proj => {
