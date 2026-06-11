@@ -486,6 +486,28 @@ export default function LandingPage() {
     localStorage.removeItem('tcm_user')
     setUser(null)
   }
+
+  async function handleClearCache() {
+    // 保存登录状态
+    const savedUser = localStorage.getItem('tcm_user')
+
+    // 清除所有 tcm_* 开头的 localStorage
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('tcm_'))
+      .forEach(k => localStorage.removeItem(k))
+
+    // 恢复登录状态
+    if (savedUser) localStorage.setItem('tcm_user', savedUser)
+
+    // 清除 Service Worker 缓存（PWA）
+    if ('caches' in window) {
+      const cacheNames = await caches.keys()
+      await Promise.all(cacheNames.map(name => caches.delete(name)))
+    }
+
+    // 刷新页面
+    window.location.reload()
+  }
   async function handleLoadSave(slot) {
     try {
       // 用 slot 编号去 API 拉取含完整 state_json 的存档
@@ -601,6 +623,13 @@ export default function LandingPage() {
         >
           <span>游戏说明</span>
           <i className="ti ti-info-circle" />
+        </button>
+        <button
+          className={`${styles.menuBtn} ${styles.menuBtnClear}`}
+          onClick={handleClearCache}
+        >
+          <span>清除缓存</span>
+          <i className="ti ti-refresh" />
         </button>
       </div>
 
