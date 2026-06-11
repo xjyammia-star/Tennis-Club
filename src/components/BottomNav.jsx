@@ -4,11 +4,11 @@ import { Link, useLocation } from 'react-router-dom'
 // 其余页面（教练、招募、设施、财务、排名、经营）通过主页功能菜单或设置进入
 // 每个图标下有文字标签，active 时高亮
 const navItems = [
-  { id: 'home',     label: '主页', icon: 'ti-home',          path: '/home'     },
-  { id: 'players',  label: '球员', icon: 'ti-users',         path: '/players'  },
-  { id: 'schedule', label: '训练', icon: 'ti-calendar-week', path: '/schedule' },
-  { id: 'events',   label: '赛事', icon: 'ti-trophy',        path: '/events'   },
-  { id: 'shop',     label: '装备', icon: 'ti-shopping-bag',  path: '/shop'     },
+  { id: 'home',      label: '主页', icon: 'ti-home',          path: '/home'      },
+  { id: 'players',   label: '球员', icon: 'ti-users',         path: '/players'   },
+  { id: 'schedule',  label: '训练', icon: 'ti-calendar-week', path: '/schedule'  },
+  { id: 'events',    label: '赛事', icon: 'ti-trophy',        path: '/events'    },
+  { id: 'facilities',label: '设施', icon: 'ti-building',      path: '/facilities'},
 ]
 
 export default function BottomNav() {

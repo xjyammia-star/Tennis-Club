@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   buildableTypes,
   FACILITY_LEVELS,
@@ -63,6 +64,7 @@ function EffectBar({ level }) {
 
 // ── 设施详情弹窗 ──────────────────────────────────────
 function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
+  const navigate = useNavigate()
   const isMax   = facility.level === '顶级'
   const isEmpty = facility.type === 'empty'
   const upCost  = !isEmpty && !isMax ? upgradeCost(facility.type, facility.level) : null
@@ -70,6 +72,14 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
   const nextLevel = !isEmpty && !isMax
     ? FACILITY_LEVELS[FACILITY_LEVELS.indexOf(facility.level) + 1]
     : null
+
+  // 装备店各级别效果说明
+  const SHOP_LEVEL_EFFECT = {
+    糟糕: { research: '仅可研发普通道具', points: '+3/周', slots: 2, unlock: '普通' },
+    普通: { research: '可研发普通/精良道具', points: '+5/周', slots: 3, unlock: '精良' },
+    高级: { research: '解锁卓越道具研发，研发时间-20%', points: '+12/周', slots: 4, unlock: '卓越' },
+    顶级: { research: '解锁传奇道具研发，研发时间-35%', points: '+20/周', slots: 5, unlock: '传奇' },
+  }
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -173,8 +183,37 @@ function FacilityDetail({ facility, onClose, onUpgrade, onToggleMaintenance }) {
             )
           })()}
 
+          {/* 装备店专属：各级别效果说明 */}
+          {facility.type === 'shop' && (
+            <div className={styles.effectCard} style={{ marginTop: 12 }}>
+              <div className={styles.effectCardTitle}>
+                <i className="ti ti-flask" aria-hidden="true" /> 装备研发能力
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-mid)', lineHeight: 1.8 }}>
+                <div>📦 当前等级（{facility.level}）：{SHOP_LEVEL_EFFECT[facility.level]?.research}</div>
+                <div>🔬 研发点数加成：{SHOP_LEVEL_EFFECT[facility.level]?.points}</div>
+                <div>📋 同时研发项目：{SHOP_LEVEL_EFFECT[facility.level]?.slots} 个</div>
+                {nextLevel && (
+                  <div style={{ marginTop: 6, color: 'var(--forest)', fontWeight: 500 }}>
+                    ↑ 升级后解锁：{SHOP_LEVEL_EFFECT[nextLevel]?.unlock}级道具研发
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 操作按钮 */}
           <div className={styles.actionRow}>
+            {/* 装备店专属：进入装备店按钮 */}
+            {facility.type === 'shop' && (
+              <button
+                className={styles.btnUpgrade}
+                style={{ background: 'var(--gold)', color: 'var(--ink)' }}
+                onClick={() => { onClose(); navigate('/shop') }}
+              >
+                <i className="ti ti-shopping-bag" aria-hidden="true" /> 进入装备店
+              </button>
+            )}
             {!isEmpty && !facility.maintenancePaid && (
               <button
                 className={styles.btnPay}

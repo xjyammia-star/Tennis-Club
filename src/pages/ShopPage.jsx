@@ -8,7 +8,14 @@ import { useGameCtx } from '../App'
 import { ITEM_DEFS, ITEM_CATEGORIES, getItemsByCategory } from '../data/itemDefs'
 import styles from './ShopPage.module.css'
 
-// ── 研发点数消耗（按稀有度）────────────────────────────
+// ── 装备店等级对研发系统的限制 ───────────────────────
+const SHOP_LEVEL_CONFIG = {
+  糟糕: { maxRarity: 'common',    maxSlots: 2, researchSpeedMult: 1.0, extraPoints: 3  },
+  普通: { maxRarity: 'rare',      maxSlots: 3, researchSpeedMult: 1.0, extraPoints: 5  },
+  高级: { maxRarity: 'epic',      maxSlots: 4, researchSpeedMult: 0.8, extraPoints: 12 },
+  顶级: { maxRarity: 'legendary', maxSlots: 5, researchSpeedMult: 0.65, extraPoints: 20 },
+}
+const RARITY_ORDER_IDX = { common: 0, rare: 1, epic: 2, legendary: 3 }
 const RESEARCH_POINT_COST = {
   common:    100,
   rare:      250,
@@ -76,6 +83,11 @@ function effectSummary(effect, duration) {
 export default function ShopPage() {
   const { state, dispatch } = useGameCtx()
   const { research, inventory, activeFacilityItems, players, finance, gameState } = state
+
+  // ── 装备店设施检查 ──────────────────────────────────
+  const shopFacility = (state.facilities || []).find(f => f.type === 'shop')
+  const shopLevel    = shopFacility?.level || null
+  const shopConfig   = shopLevel ? SHOP_LEVEL_CONFIG[shopLevel] : null
 
   const [activeTab,   setActiveTab]   = useState('recovery')
   const [activeView,  setActiveView]  = useState('shop')   // 'shop' | 'research' | 'inventory'
@@ -180,6 +192,28 @@ export default function ShopPage() {
     return def?.category === activeTab
   })
 
+  // ── 无装备店时显示引导页 ────────────────────────────
+  if (!shopFacility) {
+    return (
+      <div className={styles.page}>
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+        }}>
+          <i className="ti ti-shopping-bag" style={{
+            fontSize: 48, color: 'var(--cream-dark)', marginBottom: 16,
+          }} />
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>
+            装备店尚未建造
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--ink-muted)', lineHeight: 1.7, maxWidth: 280 }}>
+            前往「俱乐部设施」页面，在空地上建造装备店，即可解锁道具研发与购买功能。
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.page}>
 
@@ -240,8 +274,16 @@ export default function ShopPage() {
         </div>
         <div style={{ flex: 1, minWidth: 120 }}>
           <div style={{ fontSize: 12, color: 'var(--gold-pale)', opacity: 0.7, marginBottom: 4 }}>
-            进行中研发
+            装备店等级
           </div>
+          <div style={{ fontSize: 14, color: 'var(--gold)', fontWeight: 600 }}>
+            {shopLevel}装备店
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--gold-pale)', opacity: 0.6, marginTop: 2 }}>
+            最高研发：{shopConfig ? { common:'普通', rare:'精良', epic:'卓越', legendary:'传奇' }[shopConfig.maxRarity] : '—'}
+            · 并行{shopConfig?.maxSlots ?? 3}项
+          </div>
+        </div>
           {activeProjects.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--gold-pale)', opacity: 0.5 }}>暂无</div>
             : activeProjects.map(proj => {
@@ -377,10 +419,14 @@ export default function ShopPage() {
               const rCfg         = RARITY_CFG[itemDef.rarity]
               const isDone       = completedItems.includes(itemDef.id)
               const inProgress   = activeProjects.find(p => p.itemId === itemDef.id)
-              const isFull       = activeProjects.length >= 3
+              const maxSlots     = shopConfig?.maxSlots ?? 3
+              const isFull       = activeProjects.length >= maxSlots
               const cost         = RESEARCH_POINT_COST[itemDef.rarity] || 100
               const canAffordPts = currentResearch.points >= cost
-              const disabled     = isDone || !!inProgress || isFull || !canAffordPts
+              // 装备店等级限制：稀有度超出当前装备店上限则锁定
+              const maxRarity    = shopConfig?.maxRarity ?? 'rare'
+              const isRarityLocked = RARITY_ORDER_IDX[itemDef.rarity] > RARITY_ORDER_IDX[maxRarity]
+              const disabled     = isDone || !!inProgress || isFull || !canAffordPts || isRarityLocked
 
               return (
                 <div
@@ -392,7 +438,7 @@ export default function ShopPage() {
                     <div className={styles.itemName}>{itemDef.name}</div>
                     <div className={styles.itemWeeks}>
                       {isDone ? '已完成' : `${itemDef.researchWeeks} 周`} · {rCfg.label}
-                      {!isDone && !inProgress && (
+                      {!isDone && !inProgress && !isRarityLocked && (
                         <span style={{
                           marginLeft: 6,
                           color: canAffordPts ? 'var(--forest)' : 'var(--red-soft)',
@@ -401,10 +447,20 @@ export default function ShopPage() {
                           · {cost} 点
                         </span>
                       )}
+                      {isRarityLocked && (
+                        <span style={{ marginLeft: 6, color: 'var(--ink-muted)' }}>
+                          · 需升级装备店
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isDone ? (
                     <span className={styles.doneTag}>✓ 已解锁</span>
+                  ) : isRarityLocked ? (
+                    <span style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
+                      <i className="ti ti-lock" style={{ marginRight: 3 }} />
+                      {rCfg.label}锁定
+                    </span>
                   ) : inProgress ? (
                     <span className={styles.inProgressTag}>研发中</span>
                   ) : (
