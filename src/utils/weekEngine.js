@@ -723,6 +723,15 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
     }
 
     // ✅ 新增：构建历史战绩记录，存入 eventHistory
+    // 确定赛事冠军：先看我方球员有没有夺冠，没有则从 worldPlayers 取排名最高者
+    const ourChampionResult = results.find(r => r.finalRound === 'champion')
+    let eventChampion = ourChampionResult?.playerName || null
+    if (!eventChampion && worldPlayers.length > 0) {
+      // 取排名最高的世界球员作为"赛事冠军"（模拟真实赛果）
+      const sorted = [...worldPlayers].sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
+      eventChampion = sorted[0]?.name || null
+    }
+
     const historyRecord = {
       id: `h_${event.id}_${state.gameState.year}_${newWeek}`,
       eventId:    event.id,
@@ -732,12 +741,14 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
       surface:    event.surface,
       year:       state.gameState.year,
       week:       newWeek,
-      // 简版摘要（HistoryRow 展示用）
+      champion:   eventChampion,  // ✅ 赛事冠军
+      // 简版摘要（HistoryRow 展示用），加入 matchResults 供历史战绩比分展示
       results: results.map(r => ({
         playerName:   r.playerName,
         round:        r.finalRoundLabel,
         prize:        r.prize,
         points:       r.points,
+        matchResults: r.matchResults,  // ✅ 新增：保留逐轮比分供历史页展示
       })),
       totalPrize,
       totalPrestige,

@@ -473,8 +473,10 @@ function GameProvider({ children }) {
         // 把 eventHistory 里本周的记录转成动画需要的格式
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
-          return playerResults
-            .filter(pr => pr && Array.isArray(pr.matchResults) && pr.matchResults.length > 0)
+          // ✅ 修复：放宽过滤条件，只要 matchResults 是数组就纳入（不要求 length>0）
+          // 之前 length>0 的限制导致某些赛事（如250赛首轮即败）的战报被过滤掉
+          const playerCards = playerResults
+            .filter(pr => pr && Array.isArray(pr.matchResults))
             .map(pr => ({
               playerId:     pr.playerId,
               playerName:   pr.playerName || '未知球员',
@@ -482,6 +484,29 @@ function GameProvider({ children }) {
               level:        record.level || 'itf',
               matchResults: pr.matchResults,
             }))
+
+          // ✅ 新增：在每个赛事的最后加一张赛事总结卡
+          // 显示赛事冠军（从 worldPlayers 最高排名球员推断，或从结果里取）
+          if (playerCards.length > 0) {
+            // 找本赛事冠军：优先我方球员冠军，否则用 record.champion（由 weekEngine 记录）
+            const ourChampion = playerResults.find(pr =>
+              pr.matchResults?.some(m => m.result === 'champion')
+            )
+            playerCards.push({
+              _isSummaryCard: true,
+              eventName:   record.eventName || '赛事',
+              level:       record.level || 'itf',
+              champion:    ourChampion?.playerName || record.champion || null,
+              totalPrize:  record.totalPrize || 0,
+              // 我方最好成绩
+              bestResults: playerResults.map(pr => ({
+                playerName: pr.playerName,
+                round:      pr.finalRoundLabel || pr.finalRound,
+              })),
+            })
+          }
+
+          return playerCards
         })
 
         if (animData.length > 0) {

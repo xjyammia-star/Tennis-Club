@@ -28,7 +28,8 @@ function buildPlayQueue(matchData) {
   // 收集所有实际出现的轮次
   const allRounds = new Set()
   matchData.forEach(player => {
-    (player.matchResults || []).forEach(m => {
+    if (player._isSummaryCard) return  // 总结卡不参与轮次收集
+    ;(player.matchResults || []).forEach(m => {
       if (m && m.round) allRounds.add(m.round)
     })
   })
@@ -38,8 +39,8 @@ function buildPlayQueue(matchData) {
   const queue = []
   sortedRounds.forEach(round => {
     matchData.forEach(player => {
+      if (player._isSummaryCard) return
       const match = (player.matchResults || []).find(m => m && m.round === round)
-      // ✅ 必须有 match 且有轮次标签才加入队列
       if (match && match.round) {
         queue.push({
           playerName:  player.playerName || '未知球员',
@@ -52,6 +53,13 @@ function buildPlayQueue(matchData) {
         })
       }
     })
+  })
+
+  // ✅ 总结卡放在最后
+  matchData.forEach(player => {
+    if (player._isSummaryCard) {
+      queue.push({ _isSummaryCard: true, ...player })
+    }
   })
 
   return queue
@@ -89,6 +97,89 @@ function ScoreDisplay({ score, playerName, revealed }) {
             </span>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 赛事总结卡 ────────────────────────────────────────
+function SummaryCard({ item, onNext, isLast, onSkipAll }) {
+  const levelColor = LEVEL_COLOR[item.level] || '#4a5a48'
+  const isOurChampion = item.bestResults?.some(r =>
+    r.round === '冠军' || r.round === 'champion'
+  )
+
+  return (
+    <div className={styles.matchCard}>
+      <div className={styles.cardHeader}>
+        <span className={styles.eventTag} style={{ color: levelColor }}>
+          {item.eventName}
+        </span>
+        <span className={styles.roundTag}>赛事总结</span>
+      </div>
+
+      <div style={{ padding: '20px 0 8px', textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>
+          {isOurChampion ? '🏆' : '🎾'}
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 16 }}>
+          {item.eventName} 赛事结束
+        </div>
+
+        {/* 赛事冠军 */}
+        {item.champion && (
+          <div style={{
+            background: 'linear-gradient(135deg, #f5edda, #fdf6e3)',
+            border: '1px solid var(--gold)',
+            borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+          }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 4 }}>
+              🏆 本届冠军
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#9a6e0a' }}>
+              {item.champion}
+            </div>
+          </div>
+        )}
+
+        {/* 我方球员成绩 */}
+        {item.bestResults?.length > 0 && (
+          <div style={{
+            background: 'var(--cream)', borderRadius: 10,
+            padding: '10px 16px', textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 8 }}>
+              我方球员成绩
+            </div>
+            {item.bestResults.map((r, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between',
+                fontSize: 13, color: 'var(--ink)', marginBottom: 4,
+              }}>
+                <span>{r.playerName}</span>
+                <span style={{ color: 'var(--forest)', fontWeight: 500 }}>{r.round}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 奖金 */}
+        {item.totalPrize > 0 && (
+          <div style={{ fontSize: 13, color: 'var(--ink-mid)', marginTop: 10 }}>
+            总奖金收入：<span style={{ color: 'var(--forest)', fontWeight: 600 }}>
+              ¥{item.totalPrize.toLocaleString()}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.cardFooter}>
+        <button className={styles.skipAllBtn} onClick={onSkipAll}>
+          跳过全部 <i className="ti ti-player-skip-forward" />
+        </button>
+        <button className={styles.nextBtn} onClick={onNext}>
+          {isLast ? '查看本周总结' : '下一场'} <i className="ti ti-arrow-right" />
+        </button>
       </div>
     </div>
   )
@@ -248,6 +339,12 @@ export default function MatchAnimation({ visible, matchData, onComplete }) {
   // 每次切换到新 index 时，先播放动画再展示结果
   useEffect(() => {
     if (!visible || queue.length === 0) return
+    const current = queue[index]
+    // ✅ 总结卡直接显示，不需要 playing 动画
+    if (current?._isSummaryCard) {
+      setPhase('revealed')
+      return
+    }
     setPhase('playing')
     // 1.5秒后显示结果
     timerRef.current = setTimeout(() => {
@@ -308,15 +405,25 @@ export default function MatchAnimation({ visible, matchData, onComplete }) {
           <span className={styles.topCount}>{index + 1} / {queue.length}</span>
         </div>
 
-        {/* 比赛卡片 */}
-        <MatchCard
-          key={index}
-          item={current}
-          phase={phase}
-          onNext={handleNext}
-          isLast={isLast}
-          onSkipAll={handleSkipAll}
-        />
+        {/* 比赛卡片 or 总结卡 */}
+        {current._isSummaryCard ? (
+          <SummaryCard
+            key={`summary_${index}`}
+            item={current}
+            onNext={handleNext}
+            isLast={isLast}
+            onSkipAll={handleSkipAll}
+          />
+        ) : (
+          <MatchCard
+            key={index}
+            item={current}
+            phase={phase}
+            onNext={handleNext}
+            isLast={isLast}
+            onSkipAll={handleSkipAll}
+          />
+        )}
 
       </div>
     </div>
