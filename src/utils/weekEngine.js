@@ -649,83 +649,110 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
     const entry = myEntries.find(e => e.eventId === event.id)
     if (!entry) continue
 
-    let worldPlayers = []
-    try {
-      const firstPlayer = updatedPlayers.find(p => entry.playerIds.includes(p.id))
-      const gender = firstPlayer?.gender || 'male'
-      const url = `/api/worldplayers?level=${event.level}&gender=${gender}`
-      const res = await fetch(url)
-      if (!res.ok) {
-        console.warn(`[weekEngine] worldplayers API 返回非200: ${res.status} ${res.statusText}`)
-      } else {
-        const data = await res.json()
-        worldPlayers = data.players || []
-        if (worldPlayers.length === 0) {
-          console.warn(`[weekEngine] worldplayers 返回空数组，level=${event.level} gender=${gender}`)
-        } else {
-          // 打印前3个球员的 tour 字段，便于排查 tour 不匹配问题
-          console.log(`[weekEngine] worldplayers 获取成功: ${worldPlayers.length} 人，前3: ${
-            worldPlayers.slice(0, 3).map(p => `${p.name}(${p.tour})`).join(', ')
-          }`)
-        }
-      }
-    } catch (err) {
-      console.warn('[weekEngine] 获取世界球员失败，使用虚拟对手:', err)
-    }
-
     const participatingPlayers = updatedPlayers.filter(p => entry.playerIds.includes(p.id))
 
-    // ── 道具：叠加竞技系列加成到参赛球员（临时字段，matchEngine 读取后不持久化）──
-    const boostedPlayers = participatingPlayers.map(p => {
-      const combatItems = (p.activeItems || []).filter(ai =>
-        ai.duration === 'event' || (typeof ai.duration === 'number' && ai.duration > 0)
-      )
-      let powerBonus   = 0
-      let winProbBonus = 0
-      let extraPrestige = 0
-      combatItems.forEach(ai => {
-        const eff = ai.effect || {}
-        if (eff.combatPower)   powerBonus   += eff.combatPower
-        if (eff.winProbBonus)  winProbBonus += eff.winProbBonus
-        if (eff.prestige)      extraPrestige = eff.prestige      // 赢球后额外声望
-        if (eff.tacticsBonus)  powerBonus   += eff.tacticsBonus * 0.3  // 战术加成折算战力
-      })
-      if (powerBonus === 0 && winProbBonus === 0 && extraPrestige === 0) return p
-      return {
-        ...p,
-        _itemPowerBonus:    powerBonus,
-        _itemWinProbBonus:  winProbBonus,
-        _itemExtraPrestige: extraPrestige,
+    // ── 按性别分组，男女独立跑签表 ──────────────────────
+    const malePlayers   = participatingPlayers.filter(p => p.gender === 'male')
+    const femalePlayers = participatingPlayers.filter(p => p.gender === 'female')
+    // 有哪些性别分组就跑哪些（可能只有男、只有女、或男女都有）
+    const genderGroups = []
+    if (malePlayers.length > 0)   genderGroups.push({ gender: 'male',   players: malePlayers })
+    if (femalePlayers.length > 0) genderGroups.push({ gender: 'female', players: femalePlayers })
+
+    // ── 按性别分别拉取世界球员 ──────────────────────────
+    // 使用一个 Map 缓存，避免同一性别重复请求
+    const worldPlayersByGender = {}
+    for (const { gender } of genderGroups) {
+      if (worldPlayersByGender[gender]) continue
+      let worldPlayers = []
+      try {
+        const url = `/api/worldplayers?level=${event.level}&gender=${gender}`
+        const res = await fetch(url)
+        if (!res.ok) {
+          console.warn(`[weekEngine] worldplayers API 返回非200: ${res.status} ${res.statusText}`)
+        } else {
+          const data = await res.json()
+          worldPlayers = data.players || []
+          if (worldPlayers.length === 0) {
+            console.warn(`[weekEngine] worldplayers 返回空数组，level=${event.level} gender=${gender}`)
+          } else {
+            console.log(`[weekEngine] worldplayers 获取成功(${gender}): ${worldPlayers.length} 人，前3: ${
+              worldPlayers.slice(0, 3).map(p => `${p.name}(${p.tour})`).join(', ')
+            }`)
+          }
+        }
+      } catch (err) {
+        console.warn('[weekEngine] 获取世界球员失败，使用虚拟对手:', err)
       }
-    })
+      worldPlayersByGender[gender] = worldPlayers
+    }
 
-    const results = simulateTournament(boostedPlayers, event, worldPlayers)
-
-    let totalPrize = 0
-    let totalPrestige = 0
+    // ── 各性别组独立模拟 ────────────────────────────────
+    let allResults     = []
+    let maleChampion   = null   // 男子冠军
+    let femaleChampion = null   // 女子冠军
+    let totalPrize     = 0
+    let totalPrestige  = 0
     const resultSummaries = []
 
-    results.forEach(result => {
-      totalPrize += result.prize
-      totalPrestige += result.prestige || 0
-      const player = updatedPlayers.find(p => p.id === result.playerId)
-      if (player) {
-        const newPoints = (player.points || 0) + result.points
-        const { updatedAttrs, newPool } = applyMatchExp(player, result.expGained)
-        // ── 道具：赢球后额外声望（冠军基因激活剂）──
-        const wonMatch = result.finalRound !== result.finalRound  // 有晋级则为赢
-        const extraPrestige = (player._itemExtraPrestige || 0) *
-          (result.matchResults?.filter(m => m.result === 'win').length || 0)
-        totalPrestige += extraPrestige
-        updatedPlayers = updatedPlayers.map(p =>
-          p.id !== result.playerId ? p : {
-            ...p, ...updatedAttrs, expPool: newPool,
-            points: newPoints, inMatch: false, matchEventId: null,
-          }
+    for (const { gender, players: gPlayers } of genderGroups) {
+      const worldPlayers = worldPlayersByGender[gender] || []
+
+      // 道具：叠加竞技系列加成（临时字段，matchEngine 读取后不持久化）
+      const boostedPlayers = gPlayers.map(p => {
+        const combatItems = (p.activeItems || []).filter(ai =>
+          ai.duration === 'event' || (typeof ai.duration === 'number' && ai.duration > 0)
         )
+        let powerBonus    = 0
+        let winProbBonus  = 0
+        let extraPrestige = 0
+        combatItems.forEach(ai => {
+          const eff = ai.effect || {}
+          if (eff.combatPower)  powerBonus   += eff.combatPower
+          if (eff.winProbBonus) winProbBonus += eff.winProbBonus
+          if (eff.prestige)     extraPrestige = eff.prestige
+          if (eff.tacticsBonus) powerBonus   += eff.tacticsBonus * 0.3
+        })
+        if (powerBonus === 0 && winProbBonus === 0 && extraPrestige === 0) return p
+        return { ...p, _itemPowerBonus: powerBonus, _itemWinProbBonus: winProbBonus, _itemExtraPrestige: extraPrestige }
+      })
+
+      const results = simulateTournament(boostedPlayers, event, worldPlayers)
+
+      // 结算积分/奖金/经验
+      results.forEach(result => {
+        totalPrize    += result.prize
+        totalPrestige += result.prestige || 0
+        const player = updatedPlayers.find(p => p.id === result.playerId)
+        if (player) {
+          const newPoints = (player.points || 0) + result.points
+          const { updatedAttrs, newPool } = applyMatchExp(player, result.expGained)
+          const extraPrestige = (player._itemExtraPrestige || 0) *
+            (result.matchResults?.filter(m => m.result === 'win').length || 0)
+          totalPrestige += extraPrestige
+          updatedPlayers = updatedPlayers.map(p =>
+            p.id !== result.playerId ? p : {
+              ...p, ...updatedAttrs, expPool: newPool,
+              points: newPoints, inMatch: false, matchEventId: null,
+            }
+          )
+        }
+        resultSummaries.push(`${result.playerName} ${result.finalRoundLabel}`)
+      })
+
+      // 确定本性别组冠军：优先我方球员，否则从世界球员中取排名最高者
+      const ourChampion = results.find(r => r.finalRound === 'champion')
+      let champion = ourChampion?.playerName || null
+      if (!champion && worldPlayers.length > 0) {
+        const sorted = [...worldPlayers].sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
+        champion = sorted[0]?.name || null
       }
-      resultSummaries.push(`${result.playerName} ${result.finalRoundLabel}`)
-    })
+
+      if (gender === 'male')   maleChampion   = champion
+      if (gender === 'female') femaleChampion = champion
+
+      allResults = allResults.concat(results)
+    }
 
     if (totalPrize > 0) {
       matchTransactions.push({
@@ -735,47 +762,45 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
       })
     }
 
-    // ✅ 新增：构建历史战绩记录，存入 eventHistory
-    // 确定赛事冠军：先看我方球员有没有夺冠，没有则从 worldPlayers 取排名最高者
-    const ourChampionResult = results.find(r => r.finalRound === 'champion')
-    let eventChampion = ourChampionResult?.playerName || null
-    if (!eventChampion && worldPlayers.length > 0) {
-      // 取排名最高的世界球员作为"赛事冠军"（模拟真实赛果）
-      const sorted = [...worldPlayers].sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
-      eventChampion = sorted[0]?.name || null
-    }
-
+    // 构建历史战绩记录（男女冠军分别存储）
     const historyRecord = {
       id: `h_${event.id}_${state.gameState.year}_${newWeek}`,
-      eventId:    event.id,
-      eventName:  event.name,
-      level:      event.level,
-      levelLabel: event.levelLabel,
-      surface:    event.surface,
-      year:       state.gameState.year,
-      week:       newWeek,
-      champion:   eventChampion,  // ✅ 赛事冠军
-      // 简版摘要（HistoryRow 展示用），加入 matchResults 供历史战绩比分展示
-      results: results.map(r => ({
+      eventId:       event.id,
+      eventName:     event.name,
+      level:         event.level,
+      levelLabel:    event.levelLabel,
+      surface:       event.surface,
+      year:          state.gameState.year,
+      week:          newWeek,
+      maleChampion,    // ✅ 男子冠军
+      femaleChampion,  // ✅ 女子冠军
+      // 兼容旧代码：champion 取两个中有值的那个（或男子优先）
+      champion: maleChampion || femaleChampion || null,
+      results: allResults.map(r => ({
         playerName:   r.playerName,
         round:        r.finalRoundLabel,
         prize:        r.prize,
         points:       r.points,
-        matchResults: r.matchResults,  // ✅ 新增：保留逐轮比分供历史页展示
+        matchResults: r.matchResults,
       })),
       totalPrize,
       totalPrestige,
-      // 完整逐轮战报（MatchReportModal 详情用）
-      matchResults: results,
+      matchResults: allResults,
     }
     newHistoryRecords.push(historyRecord)
+
+    // 新闻文本区分男女冠军
+    const championText = [
+      maleChampion   ? `男子冠军：${maleChampion}`   : null,
+      femaleChampion ? `女子冠军：${femaleChampion}` : null,
+    ].filter(Boolean).join('，')
 
     matchNews.push({
       id: Date.now() + Math.random(),
       type: 'event',
-      text: `【${event.name}】结果出炉：${resultSummaries.join('，')}。总奖金 ¥${totalPrize.toLocaleString()}。`,
+      text: `【${event.name}】结果出炉：${resultSummaries.join('，')}。${championText ? championText + '。' : ''}总奖金 ¥${totalPrize.toLocaleString()}。`,
       week: newWeek,
-      matchResults: results,
+      matchResults: allResults,
     })
 
     entry.playerIds.forEach(pid => {

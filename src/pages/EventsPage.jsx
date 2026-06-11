@@ -143,21 +143,40 @@ function MatchReportModal({ record, onClose }) {
             </div>
           )}
 
-          {/* ✅ 赛事冠军 */}
-          {record.champion && (
+          {/* ✅ 赛事冠军：男女各一 */}
+          {(record.maleChampion || record.femaleChampion || record.champion) && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
+              display: 'flex', flexDirection: 'column', gap: 6,
               background: 'linear-gradient(135deg, #f5edda, #fdf6e3)',
               border: '1px solid var(--gold)', borderRadius: 10,
               padding: '10px 14px', marginBottom: 12,
             }}>
-              <span style={{ fontSize: 18 }}>🏆</span>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--ink-muted)' }}>本届冠军</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>
-                  {record.champion}
+              {/* 男子冠军 */}
+              {(record.maleChampion || (!record.femaleChampion && record.champion)) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🏆</span>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>
+                      {record.femaleChampion ? '男子冠军' : '本届冠军'}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>
+                      {record.maleChampion || record.champion}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+              {/* 女子冠军 */}
+              {record.femaleChampion && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🏆</span>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>女子冠军</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>
+                      {record.femaleChampion}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {isFullReport && currentReport && (

@@ -488,17 +488,23 @@ function GameProvider({ children }) {
           // ✅ 新增：在每个赛事的最后加一张赛事总结卡
           // 显示赛事冠军（从 worldPlayers 最高排名球员推断，或从结果里取）
           if (playerCards.length > 0) {
-            // 找本赛事冠军：优先我方球员冠军，否则用 record.champion（由 weekEngine 记录）
-            const ourChampion = playerResults.find(pr =>
-              pr.matchResults?.some(m => m.result === 'champion')
+            // 找我方球员中的男女冠军
+            const ourMaleChampion = playerResults.find(pr =>
+              pr.matchResults?.some(m => m.result === 'champion') &&
+              // 通过 playerId 找到对应球员的性别
+              newState.players?.find(p => p.id === pr.playerId)?.gender === 'male'
+            )
+            const ourFemaleChampion = playerResults.find(pr =>
+              pr.matchResults?.some(m => m.result === 'champion') &&
+              newState.players?.find(p => p.id === pr.playerId)?.gender === 'female'
             )
             playerCards.push({
-              _isSummaryCard: true,
-              eventName:   record.eventName || '赛事',
-              level:       record.level || 'itf',
-              champion:    ourChampion?.playerName || record.champion || null,
-              totalPrize:  record.totalPrize || 0,
-              // 我方最好成绩
+              _isSummaryCard:  true,
+              eventName:       record.eventName || '赛事',
+              level:           record.level || 'itf',
+              maleChampion:    ourMaleChampion?.playerName   || record.maleChampion   || null,
+              femaleChampion:  ourFemaleChampion?.playerName || record.femaleChampion || null,
+              totalPrize:      record.totalPrize || 0,
               bestResults: playerResults.map(pr => ({
                 playerName: pr.playerName,
                 round:      pr.finalRoundLabel || pr.finalRound,

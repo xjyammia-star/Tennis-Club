@@ -109,6 +109,11 @@ function SummaryCard({ item, onNext, isLast, onSkipAll }) {
     r.round === '冠军' || r.round === 'champion'
   )
 
+  // 兼容旧字段 champion（单一冠军）和新字段 maleChampion/femaleChampion
+  const maleChampion   = item.maleChampion   || (item.champion && !item.femaleChampion ? item.champion : null)
+  const femaleChampion = item.femaleChampion || null
+  const hasChampion    = maleChampion || femaleChampion
+
   return (
     <div className={styles.matchCard}>
       <div className={styles.cardHeader}>
@@ -126,19 +131,31 @@ function SummaryCard({ item, onNext, isLast, onSkipAll }) {
           {item.eventName} 赛事结束
         </div>
 
-        {/* 赛事冠军 */}
-        {item.champion && (
+        {/* 男女冠军 */}
+        {hasChampion && (
           <div style={{
             background: 'linear-gradient(135deg, #f5edda, #fdf6e3)',
             border: '1px solid var(--gold)',
             borderRadius: 10, padding: '10px 16px', marginBottom: 12,
           }}>
-            <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 4 }}>
-              🏆 本届冠军
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#9a6e0a' }}>
-              {item.champion}
-            </div>
+            {maleChampion && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: femaleChampion ? 8 : 0 }}>
+                <span style={{ fontSize: 16 }}>🏆</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>男子冠军</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>{maleChampion}</div>
+                </div>
+              </div>
+            )}
+            {femaleChampion && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>🏆</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>女子冠军</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>{femaleChampion}</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
