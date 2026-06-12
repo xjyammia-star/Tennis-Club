@@ -563,8 +563,19 @@ export default function LandingPage() {
     setInitAnim(true)
   }
 
-  // ✅ 动画完成后跳转
+  // ✅ 动画完成后跳转，同时初始化 game_rankings 排名表
   function handleInitComplete() {
+    // 异步初始化排名表（从 world_players 拷贝快照），不阻断跳转
+    const userStr = localStorage.getItem('tcm_user')
+    const user    = userStr ? (() => { try { return JSON.parse(userStr) } catch { return null } })() : null
+    const saveSlot = parseInt(localStorage.getItem('tcm_save_slot') || '1', 10)
+    if (user?.id) {
+      fetch('/api/game_rankings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'init', userId: user.id, saveSlot }),
+      }).catch(e => console.warn('[TCM] game_rankings init failed:', e))
+    }
     navigate('/home')
   }
 

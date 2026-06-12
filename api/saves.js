@@ -107,11 +107,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // delete：删除指定槽位存档
+    // delete：删除指定槽位存档（联动清理 game_rankings）
     if (action === 'delete') {
       if (!userId || !slot) return res.status(400).json({ error: '缺少参数' })
       try {
         await sql`DELETE FROM game_saves WHERE user_id = ${userId} AND slot = ${slot}`
+        // ✅ 联动清理该存档的游戏排名数据
+        await sql`DELETE FROM game_rankings WHERE user_id = ${userId} AND save_slot = ${slot}`
         return res.status(200).json({ success: true })
       } catch (err) {
         return res.status(500).json({ error: err.message })

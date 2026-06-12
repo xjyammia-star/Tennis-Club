@@ -887,6 +887,7 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
       const results = simulateTournament(boostedPlayers, event, worldPlayers)
 
       // 结算积分/奖金/经验
+      const rankingEntries = []  // ✅ 收集本赛事俱乐部球员得分，用于写入 game_rankings
       results.forEach(result => {
         totalPrize    += result.prize
         totalPrestige += result.prestige || 0
@@ -903,9 +904,52 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
               points: newPoints, inMatch: false, matchEventId: null,
             }
           )
+          // ✅ 收集有积分的球员用于写入排名表
+          if (result.points > 0) {
+            // 判断 tour：成年→ATP/WTA，青少年→ITF_JUNIOR
+            const isJunior = player.age < 18
+            let tour
+            if (isJunior) {
+              tour = 'ITF_JUNIOR'
+            } else {
+              tour = player.gender === 'male' ? 'ATP' : 'WTA'
+            }
+            rankingEntries.push({
+              playerId:    player.id,
+              playerName:  player.name,
+              gender:      player.gender,
+              age:         player.age,
+              nationality: player.nationality || '中国',
+              tour,
+              points:      result.points,
+              week:        newWeek,
+              year:        state.gameState.year,
+            })
+          }
         }
         resultSummaries.push(`${result.playerName} ${result.finalRoundLabel}`)
       })
+
+      // ✅ 异步写入 game_rankings（不阻断主流程，失败静默处理）
+      if (rankingEntries.length > 0) {
+        const userStr = typeof localStorage !== 'undefined'
+          ? localStorage.getItem('tcm_user') : null
+        const user = userStr ? (() => { try { return JSON.parse(userStr) } catch { return null } })() : null
+        const saveSlot = typeof localStorage !== 'undefined'
+          ? parseInt(localStorage.getItem('tcm_save_slot') || '1', 10) : 1
+        if (user?.id) {
+          fetch('/api/game_rankings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action:   'add_points',
+              userId:   user.id,
+              saveSlot,
+              entries:  rankingEntries,
+            }),
+          }).catch(e => console.warn('[TCM] game_rankings write failed:', e))
+        }
+      }
 
       // 确定本性别组冠军：优先我方球员，否则用加权概率从世界球员中决出
       const ourChampion = results.find(r => r.finalRound === 'champion')
@@ -1026,7 +1070,30 @@ export async function advanceWeekEngine(state) {
   // 1. 推进周历
   let newWeek = gameState.week + 1
   let newYear = gameState.year
-  if (newWeek > 52) { newWeek = 1; newYear++ }
+  if (newWeek > 52) {
+    newWeek = 1
+    newYear++
+    // ✅ 每年末触发积分滚动清算（滚动52周规则）
+    // 异步执行，不阻断主流程
+    const userStr = typeof localStorage !== 'undefined'
+      ? localStorage.getItem('tcm_user') : null
+    const user = userStr ? (() => { try { return JSON.parse(userStr) } catch { return null } })() : null
+    const saveSlot = typeof localStorage !== 'undefined'
+      ? parseInt(localStorage.getItem('tcm_save_slot') || '1', 10) : 1
+    if (user?.id) {
+      fetch('/api/game_rankings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action:      'purge_old',
+          userId:      user.id,
+          saveSlot,
+          currentWeek: 52,        // 刚结束的那周
+          currentYear: gameState.year,  // 刚结束的那年
+        }),
+      }).catch(e => console.warn('[TCM] game_rankings purge failed:', e))
+    }
+  }
 
   // 2. 生成本周私教排课
   const privateLessons = generatePrivateLessons({
