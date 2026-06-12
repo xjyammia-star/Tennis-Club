@@ -401,10 +401,15 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
   // ✅ 始终从空数组开始，已报名球员通过已选中状态标记显示，不预填
   const [selectedPlayers, setSelectedPlayers] = useState(entry?.playerIds ? [...entry.playerIds] : [])
 
+  // 俱乐部报名人数上限：ITF 6人，其他赛事 4人
+  const ENTRY_LIMIT = event.level === 'itf' ? 6 : 4
+
   function togglePlayer(id) {
-    setSelectedPlayers(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
+    setSelectedPlayers(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id)
+      if (prev.length >= ENTRY_LIMIT) return prev  // 已达上限，不再添加
+      return [...prev, id]
+    })
   }
 
   return (
@@ -452,6 +457,14 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
             <div className={styles.detailSectionTitle}>
               <i className="ti ti-users" aria-hidden="true" />
               可参赛球员（{eligible.length} 人符合资格）
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: 12,
+                fontWeight: 600,
+                color: selectedPlayers.length >= ENTRY_LIMIT ? '#e05a2b' : '#8a9688',
+              }}>
+                已选 {selectedPlayers.length} / {ENTRY_LIMIT} 人
+              </span>
             </div>
             {eligible.length > 0 ? (
               <div className={styles.playerGrid}>
@@ -462,7 +475,8 @@ function EventDetail({ event, entry, onClose, onEnter, onWithdraw, players, curr
                       key={p.id}
                       className={`${styles.playerBtn} ${sel ? styles.playerBtnSel : ''}`}
                       onClick={() => togglePlayer(p.id)}
-                      disabled={status === 'past'}
+                      disabled={status === 'past' || (!sel && selectedPlayers.length >= ENTRY_LIMIT)}
+                      title={!sel && selectedPlayers.length >= ENTRY_LIMIT ? `报名上限 ${ENTRY_LIMIT} 人` : undefined}
                     >
                       <div className={styles.playerBtnAvatar}>{p.name.charAt(0)}</div>
                       <div className={styles.playerBtnInfo}>
