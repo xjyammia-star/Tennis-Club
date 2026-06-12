@@ -280,7 +280,7 @@ function DifficultyModal({ onClose, onConfirm }) {
   const [step, setStep]         = useState(1)   // step1: 难度/年限  step2: 俱乐部名称
   const [selected, setSelected] = useState('normal')
   const [duration, setDuration] = useState(20)
-  const [clubName, setClubName] = useState('长青网球俱乐部')
+  const [clubName, setClubName] = useState('')
   const cfg = DIFFICULTY_CONFIG[selected]
 
   return (
@@ -390,7 +390,7 @@ function DifficultyModal({ onClose, onConfirm }) {
               <button
                 className={styles.btnStartGame}
                 style={{ background: cfg.color }}
-                disabled={!clubName.trim()}
+                disabled={false}
                 onClick={() => onConfirm(selected, duration, clubName.trim() || '长青网球俱乐部')}
               >
                 <i className="ti ti-arrow-right" /> 开始游戏

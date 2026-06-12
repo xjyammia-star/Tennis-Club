@@ -211,11 +211,8 @@ const HARD_FACILITIES = [
   { id: 'hard_4', type: 'hard_court', category: 'training', name: '硬地球场 4', level: '糟糕', count: 1, mainEffect: '技术 +80%，身体 +40%',   icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'locker_1', type: 'locker',   category: 'service',  name: '更衣室',     level: '糟糕', mainEffect: '每天疲劳 -2', icon: 'ti-door',         maintenancePaid: true },
   { id: 'gym_1',    type: 'gym',      category: 'training', name: '健身房',     level: '糟糕', mainEffect: '身体 +80%，精神 +40%', icon: 'ti-barbell', maintenancePaid: true },
-  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
-  { id: 'empty_2', type: 'empty', category: 'empty', name: '空地 B', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
-]
-
-const NORMAL_FACILITIES = [
+  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
+] = [
   { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
@@ -225,8 +222,7 @@ const NORMAL_FACILITIES = [
   { id: 'locker_1', type: 'locker',  category: 'service',  name: '更衣室', level: '普通', mainEffect: '每天疲劳 -4', icon: 'ti-door',    maintenancePaid: true },
   { id: 'gym_1',    type: 'gym',     category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell', maintenancePaid: true },
   { id: 'lounge_1', type: 'lounge',  category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',    maintenancePaid: true },
-  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
-  { id: 'empty_2', type: 'empty', category: 'empty', name: '空地 B', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
+  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
 const EASY_FACILITIES = [
@@ -242,7 +238,7 @@ const EASY_FACILITIES = [
   { id: 'gym_1',       type: 'gym',       category: 'training', name: '健身房', level: '普通', mainEffect: '身体 +100%，精神 +50%', icon: 'ti-barbell', maintenancePaid: true },
   { id: 'lounge_1',    type: 'lounge',    category: 'service',  name: '休息室', level: '普通', mainEffect: '每天疲劳 -5', icon: 'ti-sofa',    maintenancePaid: true },
   { id: 'dormitory_1', type: 'dormitory', category: 'service',  name: '宿舍',   level: '普通', mainEffect: '每天疲劳 -5，创收', icon: 'ti-bed', maintenancePaid: true },
-  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地 A', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
+  { id: 'empty_1', type: 'empty', category: 'empty', name: '空地', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
 ]
 
 // ══════════════════════════════════════════════════════

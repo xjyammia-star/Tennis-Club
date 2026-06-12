@@ -441,11 +441,12 @@ export default function FacilitiesPage() {
     }
   }
 
-  // ✅ 新建设施：UPDATE_FACILITY 替换空地 + ADD_TRANSACTION 记账 + DEDUCT_CASH 即时扣款
+  // ✅ 新建设施：ADD_FACILITY 新增（空地永久保留，不被替换）+ ADD_TRANSACTION 记账 + DEDUCT_CASH 即时扣款
   function handleBuild(emptyId, buildType, level) {
     const buildPrice = ((FACILITY_PRICES[buildType.type]?.[level] || 0) + 10) * 10000
+    // 用时间戳生成唯一 id，避免与现有设施冲突
     const newFacility = {
-      id: emptyId,
+      id: `${buildType.type}_${Date.now()}`,
       type: buildType.type,
       category: buildType.category,
       name: buildType.name,
@@ -454,7 +455,7 @@ export default function FacilitiesPage() {
       icon: buildType.icon,
       maintenancePaid: true,
     }
-    dispatch({ type: 'UPDATE_FACILITY', facility: newFacility })
+    dispatch({ type: 'ADD_FACILITY', facility: newFacility })
     dispatch({
       type: 'ADD_TRANSACTION',
       tx: { id: `tx_${Date.now()}`, category: 'facility', type: 'expense', amount: buildPrice, label: `建造${buildType.name}（${level}）`, _week: state.gameState?.week ?? 1 },
