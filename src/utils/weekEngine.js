@@ -744,8 +744,24 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
       const ourChampion = results.find(r => r.finalRound === 'champion')
       let champion = ourChampion?.playerName || null
       if (!champion) {
-        // 改动2：不直接取排名最高，而是按排名加权概率决出冠军（最高不超过70%）
-        champion = pickEventChampion(worldPlayers)
+        // 冠军只从符合本赛事排名范围的球员里选（和参赛对手池一致）
+        const genderMap = { male: 'ATP', female: 'WTA' }
+        const tour = genderMap[gender] || 'ATP'
+        let championPool = worldPlayers.filter(wp =>
+          wp.tour === tour || wp.tour === tour.toLowerCase()
+        )
+        if (championPool.length === 0) championPool = [...worldPlayers]
+        // 按赛事级别过滤排名范围
+        const r = wp => wp.ranking || 999
+        if (event.level === 'slam')  championPool = championPool.filter(wp => r(wp) >= 1   && r(wp) <= 150)
+        if (event.level === '1000')  championPool = championPool.filter(wp => r(wp) >= 1   && r(wp) <= 200)
+        if (event.level === '500')   championPool = championPool.filter(wp => r(wp) >= 50  && r(wp) <= 350)
+        if (event.level === '250')   championPool = championPool.filter(wp => r(wp) >= 100 && r(wp) <= 500)
+        if (event.level === 'itf')   championPool = worldPlayers.filter(wp =>
+          wp.tour === 'ITF_JUNIOR' || wp.tour === 'itf_junior'
+        )
+        if (championPool.length === 0) championPool = [...worldPlayers]
+        champion = pickEventChampion(championPool)
       }
 
       if (gender === 'male')   maleChampion   = champion

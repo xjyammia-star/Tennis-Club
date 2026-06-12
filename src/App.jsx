@@ -469,9 +469,11 @@ function GameProvider({ children }) {
         h => h.week === newState.gameState.week
       ) ?? []
 
+      console.log('[Anim]', 'matchResults.length='+matchResults.length, matchResults.map(r=>r.eventName+':matchResults长度'+(r.matchResults?.length||0)))
       if (matchResults.length > 0) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
+          console.log('[Anim] record:', record.eventName, 'playerResults.length='+playerResults.length, playerResults.map(pr=>pr?.playerName+':isArr='+Array.isArray(pr?.matchResults)+':len='+(pr?.matchResults?.length||0)))
           const playerCards = playerResults
             .filter(pr => pr && Array.isArray(pr.matchResults))
             .map(pr => ({
@@ -482,9 +484,13 @@ function GameProvider({ children }) {
               matchResults: pr.matchResults,
             }))
 
+          // ✅ 新增：在每个赛事的最后加一张赛事总结卡
+          // 显示赛事冠军（从 worldPlayers 最高排名球员推断，或从结果里取）
           if (playerCards.length > 0) {
+            // 找我方球员中的男女冠军
             const ourMaleChampion = playerResults.find(pr =>
               pr.matchResults?.some(m => m.result === 'champion') &&
+              // 通过 playerId 找到对应球员的性别
               newState.players?.find(p => p.id === pr.playerId)?.gender === 'male'
             )
             const ourFemaleChampion = playerResults.find(pr =>
@@ -504,6 +510,7 @@ function GameProvider({ children }) {
               })),
             })
           }
+
           return playerCards
         })
 
@@ -511,7 +518,7 @@ function GameProvider({ children }) {
           setMatchAnimData(animData)
           setSummaryState(newState)
           setShowMatchAnim(true)
-          return
+          return  // 等动画完成后再显示 summary
         }
       }
 
