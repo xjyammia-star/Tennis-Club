@@ -7,7 +7,7 @@ import { getClubSettings } from './clubSettings'
 import { calcCourtRentalIncome } from './courtRental'
 import { generatePrivateLessons } from './privateLesson'
 import { SKILL_DEFS, SKILL_NAMES, getSelfLearnChance, canCoachTeach } from '../data/skillDefs'
-import { simulateTournament, applyMatchExp } from './matchEngine'
+import { simulateTournament, applyMatchExp, pickEventChampion } from './matchEngine'
 import { MATCH_EXP, MATCH_ATTR_DIST } from '../data/gameConstants'
 // ✅ 新增：导入设施价格、维护费率、共用外租参数提取函数
 import { FACILITY_PRICES, MAINTENANCE_RATE } from '../data/mockData'
@@ -740,18 +740,40 @@ async function processMatchEvents(state, newWeek, currentPlayers) {
         resultSummaries.push(`${result.playerName} ${result.finalRoundLabel}`)
       })
 
-      // 确定本性别组冠军：优先我方球员，否则从世界球员中取排名最高者
+      // 确定本性别组冠军：优先我方球员，否则用加权概率从世界球员中决出
       const ourChampion = results.find(r => r.finalRound === 'champion')
       let champion = ourChampion?.playerName || null
-      if (!champion && worldPlayers.length > 0) {
-        const sorted = [...worldPlayers].sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
-        champion = sorted[0]?.name || null
+      if (!champion) {
+        // 改动2：不直接取排名最高，而是按排名加权概率决出冠军（最高不超过70%）
+        champion = pickEventChampion(worldPlayers)
       }
 
       if (gender === 'male')   maleChampion   = champion
       if (gender === 'female') femaleChampion = champion
 
       allResults = allResults.concat(results)
+
+      // 改动4：把本赛事中发生的随机事件写入新闻
+      results.forEach(result => {
+        ;(result.specialEvents || []).forEach(evt => {
+          const roundLabel = { r1:'首轮',r2:'第二轮',r3:'第三轮',qf:'四分之一决赛',sf:'半决赛' }[evt.round] || evt.round
+          let evtText = ''
+          if (evt.type === 'opp_retired')
+            evtText = `【${event.name}】${result.playerName}的对手在${roundLabel}中途因伤退赛，${result.playerName}自动晋级！`
+          else if (evt.type === 'opp_walkover')
+            evtText = `【${event.name}】${result.playerName}的对手在${roundLabel}退赛，${result.playerName}获得轮空晋级。`
+          else if (evt.type === 'player_injured')
+            evtText = `【${event.name}】${result.playerName}在${roundLabel}赛中受伤，带伤坚持完成了比赛。`
+          if (evtText) {
+            matchNews.push({
+              id: Date.now() + Math.random(),
+              type: 'injury',
+              text: evtText,
+              week: newWeek,
+            })
+          }
+        })
+      })
     }
 
     if (totalPrize > 0) {
@@ -953,6 +975,14 @@ export async function advanceWeekEngine(state) {
 
     const { updatedAttrs, newPool } = applyExpToPool(player, techExp, physExp, mentalExp)
 
+    // 改动6：收集本周属性成长（有提升的属性）供新闻通知
+    const attrGrowths = Object.entries(updatedAttrs)
+      .filter(([k, v]) => typeof v === 'number' && v > (player[k] || 0))
+      .map(([k, v]) => ({ attr: k, from: player[k] || 0, to: v }))
+    if (attrGrowths.length > 0) {
+      player._attrGrowthsThisWeek = attrGrowths
+    }
+
     // 弱势属性强化胶囊：立即永久+N（触发一次）
     if (itemAttrBonus) {
       const allAttrs = [...TECH_ATTRS, ...PHYS_ATTRS, ...MENTAL_ATTRS]
@@ -1011,6 +1041,26 @@ export async function advanceWeekEngine(state) {
   const updatedPlayersWithSkills = updatedPlayers.map(p =>
     playerUpdates[p.id] ? { ...p, skills: playerUpdates[p.id].skills } : p
   )
+
+  // 改动6：收集本周属性成长新闻（每个球员有提升就汇报）
+  const ATTR_LABEL = {
+    serve: '发球', forehand: '正手', backhand: '反手', returnServe: '接发球',
+    volley: '截击', footwork: '脚步', strength: '力量', stamina: '体力',
+    agility: '灵活性', pressure: '抗压', willpower: '意志力', focus: '专注力',
+  }
+  const attrGrowthNews = []
+  updatedPlayers.forEach(player => {
+    const growths = player._attrGrowthsThisWeek
+    if (!growths || growths.length === 0) return
+    const desc = growths.map(g => `${ATTR_LABEL[g.attr] || g.attr} ${g.from}→${g.to}`).join('、')
+    attrGrowthNews.push({
+      id:   `growth_${player.id}_${newWeek}`,
+      type: 'growth',
+      text: `${player.name} 本周属性提升：${desc}`,
+      week: newWeek,
+      playerId: player.id,
+    })
+  })
 
   // 6. 教练合同处理 + 疲劳度更新
   // ✅ 第4条：教练疲劳度 = 球员疲劳逻辑的50%
@@ -1176,7 +1226,7 @@ export async function advanceWeekEngine(state) {
   ].filter(t => t.amount > 0)
 
   // 8. 随机事件
-  let newRecentNews = [...matchNews, ...skillNews, ...contractNews, ...(state.recentNews || [])].slice(0, 15)
+  let newRecentNews = [...matchNews, ...skillNews, ...attrGrowthNews, ...contractNews, ...(state.recentNews || [])].slice(0, 20)
   let finalPlayers  = playersAfterLoyalty
 
   let eventPrestigeDelta = 0
@@ -1325,6 +1375,13 @@ export async function advanceWeekEngine(state) {
   const existingHistory = state.eventHistory || []
   const updatedEventHistory = [...newHistoryRecords, ...existingHistory].slice(0, 100)
 
+  // 清除球员身上的临时标记（不持久化到存档）
+  const cleanedFinalPlayers = finalPlayers.map(p => {
+    if (!p._attrGrowthsThisWeek) return p
+    const { _attrGrowthsThisWeek, ...rest } = p
+    return rest
+  })
+
   // ✅ Bug1最终修复：把本周产生的设施消费记录（_week === 当前周）带入新周
   // 下一周推进时，weekEngine 重建 newTx 不含 facility，所以它们自然消失
   // 这样：升级当周可见 → 下一周自动消失，无需任何过滤
@@ -1342,7 +1399,7 @@ export async function advanceWeekEngine(state) {
       prestigeChange: Math.floor(Math.random() * 10 - 3),
     },
     clubStats: { ...state.clubStats, coachCount: updatedCoaches.length },
-    players:  finalPlayers,
+    players:  cleanedFinalPlayers,
     coaches:  updatedCoaches,
     finance: {
       ...finance, cash: newCash,

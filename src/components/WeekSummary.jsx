@@ -7,13 +7,14 @@ const TYPE_CONFIG = {
   injury:  { priority: 1, icon: 'ti-first-aid-kit',  color: '#e05a2b', label: '伤病通知', bg: 'rgba(224,90,43,0.08)' },
   coach:   { priority: 2, icon: 'ti-user-star',      color: '#c9a84c', label: '教练动态', bg: 'rgba(201,168,76,0.08)' },
   skill:   { priority: 3, icon: 'ti-star',           color: '#c9a84c', label: '技能成就', bg: 'rgba(201,168,76,0.08)' },
-  event:   { priority: 4, icon: 'ti-trophy',         color: '#2a7a3a', label: '赛事动态', bg: 'rgba(42,122,58,0.08)'  },
-  sponsor: { priority: 5, icon: 'ti-rosette',        color: '#2a5fa8', label: '赞助消息', bg: 'rgba(42,95,168,0.08)'  },
-  finance: { priority: 6, icon: 'ti-currency-yen',   color: '#2a7a3a', label: '财务动态', bg: 'rgba(42,122,58,0.08)'  },
-  player:  { priority: 7, icon: 'ti-user',           color: '#4a5a48', label: '球员动态', bg: 'rgba(74,90,72,0.06)'   },
-  staff:   { priority: 7, icon: 'ti-user-check',     color: '#4a5a48', label: '员工动态', bg: 'rgba(74,90,72,0.06)'   },
-  facility:{ priority: 7, icon: 'ti-building',       color: '#4a5a48', label: '设施事件', bg: 'rgba(74,90,72,0.06)'   },
-  default: { priority: 8, icon: 'ti-bell',           color: '#4a5a48', label: '动态',     bg: 'rgba(74,90,72,0.06)'   },
+  growth:  { priority: 4, icon: 'ti-trending-up',    color: '#2a7a3a', label: '属性成长', bg: 'rgba(42,122,58,0.07)'  },
+  event:   { priority: 5, icon: 'ti-trophy',         color: '#2a7a3a', label: '赛事动态', bg: 'rgba(42,122,58,0.08)'  },
+  sponsor: { priority: 6, icon: 'ti-rosette',        color: '#2a5fa8', label: '赞助消息', bg: 'rgba(42,95,168,0.08)'  },
+  finance: { priority: 7, icon: 'ti-currency-yen',   color: '#2a7a3a', label: '财务动态', bg: 'rgba(42,122,58,0.08)'  },
+  player:  { priority: 8, icon: 'ti-user',           color: '#4a5a48', label: '球员动态', bg: 'rgba(74,90,72,0.06)'   },
+  staff:   { priority: 8, icon: 'ti-user-check',     color: '#4a5a48', label: '员工动态', bg: 'rgba(74,90,72,0.06)'   },
+  facility:{ priority: 8, icon: 'ti-building',       color: '#4a5a48', label: '设施事件', bg: 'rgba(74,90,72,0.06)'   },
+  default: { priority: 9, icon: 'ti-bell',           color: '#4a5a48', label: '动态',     bg: 'rgba(74,90,72,0.06)'   },
 }
 
 // 随机事件专属样式（更醒目）
@@ -47,7 +48,7 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
 
   const allMsgs = [...deficitMsgs, ...thisWeekNews]
     .sort((a, b) => getCfg(a.type).priority - getCfg(b.type).priority)
-    .slice(0, 8)
+    .slice(0, 10)
 
   // 下周赛事提醒
   const nextEvents = (allEvents || []).filter(ev => ev.week === currentWeek + 1)
