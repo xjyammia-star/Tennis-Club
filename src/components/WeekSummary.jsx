@@ -28,11 +28,15 @@ function getCfg(type) { return TYPE_CONFIG[type] || TYPE_CONFIG.default }
 
 export default function WeekSummary({ visible, onClose, newState, prevFinance }) {
   const [tab, setTab] = useState('news')
+  const [newsPage, setNewsPage] = useState(1)
+  const PAGE_SIZE = 10
 
   if (!visible || !newState) return null
 
   const { gameState, finance, recentNews, allEvents, lastEvent } = newState
   const currentWeek = gameState.week
+
+  function handleTabChange(t) { setTab(t); setNewsPage(1) }
 
   // 本周新消息（排除随机事件，因为随机事件单独展示）
   const thisWeekNews = (recentNews || []).filter(n => n.week === currentWeek)
@@ -48,7 +52,9 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
 
   const allMsgs = [...deficitMsgs, ...thisWeekNews]
     .sort((a, b) => getCfg(a.type).priority - getCfg(b.type).priority)
-    .slice(0, 10)
+
+  const totalPages = Math.max(1, Math.ceil(allMsgs.length / PAGE_SIZE))
+  const pagedMsgs  = allMsgs.slice((newsPage - 1) * PAGE_SIZE, newsPage * PAGE_SIZE)
 
   // 下周赛事提醒
   const nextEvents = (allEvents || []).filter(ev => ev.week === currentWeek + 1)
@@ -73,14 +79,14 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
 
         {/* 标签 */}
         <div className={styles.tabs}>
-          <button className={`${styles.tab} ${tab === 'news' ? styles.active : ''}`} onClick={() => setTab('news')}>
+          <button className={`${styles.tab} ${tab === 'news' ? styles.active : ''}`} onClick={() => handleTabChange('news')}>
             <i className="ti ti-bell" />
             本周动态
             {(allMsgs.length > 0 || hasEvent) && (
               <span className={styles.badge}>{allMsgs.length + (hasEvent ? 1 : 0)}</span>
             )}
           </button>
-          <button className={`${styles.tab} ${tab === 'finance' ? styles.active : ''}`} onClick={() => setTab('finance')}>
+          <button className={`${styles.tab} ${tab === 'finance' ? styles.active : ''}`} onClick={() => handleTabChange('finance')}>
             <i className="ti ti-chart-bar" />
             收支概览
           </button>
@@ -117,7 +123,7 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
                   <i className="ti ti-check" />
                   <span>本周一切正常，无特别消息</span>
                 </div>
-              ) : allMsgs.map((n, i) => {
+              ) : pagedMsgs.map((n, i) => {
                 const cfg = getCfg(n.type)
                 return (
                   <div key={n.id ?? i} className={styles.newsItem} style={{ background: cfg.bg, animationDelay: `${i * 60}ms` }}>
@@ -131,6 +137,29 @@ export default function WeekSummary({ visible, onClose, newState, prevFinance })
                   </div>
                 )
               })}
+
+              {/* 翻页控件：超过10条时显示 */}
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button
+                    className={styles.pageBtn}
+                    disabled={newsPage === 1}
+                    onClick={() => setNewsPage(p => p - 1)}
+                  >
+                    <i className="ti ti-chevron-left" />
+                  </button>
+                  <span className={styles.pageInfo}>
+                    第 {newsPage} / {totalPages} 页 · 共 {allMsgs.length} 条
+                  </span>
+                  <button
+                    className={styles.pageBtn}
+                    disabled={newsPage === totalPages}
+                    onClick={() => setNewsPage(p => p + 1)}
+                  >
+                    <i className="ti ti-chevron-right" />
+                  </button>
+                </div>
+              )}
 
               {nextEvents.length > 0 && (
                 <div className={styles.upcoming}>
