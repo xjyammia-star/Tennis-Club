@@ -427,6 +427,7 @@ function GameProvider({ children }) {
   }, [])
 
   function handleMatchAnimComplete() {
+    console.log('[TCM] handleMatchAnimComplete called')
     setShowMatchAnim(false)
     setMatchAnimData(null)
     setShowSummary(true)
@@ -516,6 +517,7 @@ function GameProvider({ children }) {
           setMatchAnimData(animData)
           setSummaryState(newState)
           setShowMatchAnim(true)
+          console.log(`[TCM] week=${newState.gameState.week} 动画触发 animData.length=${animData.length}`)
           return  // 等动画完成后再显示 summary
         }
       }
