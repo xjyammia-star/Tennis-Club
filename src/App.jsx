@@ -469,20 +469,17 @@ function GameProvider({ children }) {
         h => h.week === newState.gameState.week
       ) ?? []
 
-      console.log(`[AnimData] 本周(${newState.gameState.week})比赛记录数: ${matchResults.length}`)
+      console.log(`[AnimData] 本周(${newState.gameState.week}) 比赛记录数: ${matchResults.length}`)
       matchResults.forEach((record, ri) => {
-        console.log(`[AnimData] record[${ri}] eventName=${record.eventName} week=${record.week} matchResults长度=${record.matchResults?.length}`)
+        console.log(`[AnimData] record[${ri}] ${record.eventName} matchResults长度=${record.matchResults?.length}`)
         ;(record.matchResults || []).forEach((pr, pi) => {
-          console.log(`[AnimData]   pr[${pi}] playerName=${pr.playerName} pr.matchResults类型=${typeof pr.matchResults} 是数组=${Array.isArray(pr.matchResults)} 长度=${pr.matchResults?.length}`)
+          console.log(`[AnimData]   pr[${pi}] ${pr.playerName} 是数组=${Array.isArray(pr.matchResults)} 长度=${pr.matchResults?.length}`)
         })
       })
 
       if (matchResults.length > 0) {
-        // 把 eventHistory 里本周的记录转成动画需要的格式
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
-          // ✅ 修复：放宽过滤条件，只要 matchResults 是数组就纳入（不要求 length>0）
-          // 之前 length>0 的限制导致某些赛事（如250赛首轮即败）的战报被过滤掉
           const playerCards = playerResults
             .filter(pr => pr && Array.isArray(pr.matchResults))
             .map(pr => ({
@@ -493,13 +490,9 @@ function GameProvider({ children }) {
               matchResults: pr.matchResults,
             }))
 
-          // ✅ 新增：在每个赛事的最后加一张赛事总结卡
-          // 显示赛事冠军（从 worldPlayers 最高排名球员推断，或从结果里取）
           if (playerCards.length > 0) {
-            // 找我方球员中的男女冠军
             const ourMaleChampion = playerResults.find(pr =>
               pr.matchResults?.some(m => m.result === 'champion') &&
-              // 通过 playerId 找到对应球员的性别
               newState.players?.find(p => p.id === pr.playerId)?.gender === 'male'
             )
             const ourFemaleChampion = playerResults.find(pr =>
@@ -519,16 +512,18 @@ function GameProvider({ children }) {
               })),
             })
           }
-
           return playerCards
         })
 
+        console.log(`[AnimData] animData.length=${animData.length}`)
         if (animData.length > 0) {
           setMatchAnimData(animData)
           setSummaryState(newState)
           setShowMatchAnim(true)
-          return  // 等动画完成后再显示 summary
+          console.log('[AnimData] setShowMatchAnim(true) 已调用，return')
+          return
         }
+        console.log('[AnimData] animData为空，跌落到周总结')
       }
 
       // 无比赛直接显示周总结
