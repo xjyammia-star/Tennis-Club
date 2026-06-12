@@ -469,14 +469,6 @@ function GameProvider({ children }) {
         h => h.week === newState.gameState.week
       ) ?? []
 
-      console.log(`[AnimData] 本周(${newState.gameState.week}) 比赛记录数: ${matchResults.length}`)
-      matchResults.forEach((record, ri) => {
-        console.log(`[AnimData] record[${ri}] ${record.eventName} matchResults长度=${record.matchResults?.length}`)
-        ;(record.matchResults || []).forEach((pr, pi) => {
-          console.log(`[AnimData]   pr[${pi}] ${pr.playerName} 是数组=${Array.isArray(pr.matchResults)} 长度=${pr.matchResults?.length}`)
-        })
-      })
-
       if (matchResults.length > 0) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
@@ -515,15 +507,12 @@ function GameProvider({ children }) {
           return playerCards
         })
 
-        console.log(`[AnimData] animData.length=${animData.length}`)
         if (animData.length > 0) {
           setMatchAnimData(animData)
           setSummaryState(newState)
           setShowMatchAnim(true)
-          console.log('[AnimData] setShowMatchAnim(true) 已调用，return')
           return
         }
-        console.log('[AnimData] animData为空，跌落到周总结')
       }
 
       // 无比赛直接显示周总结
