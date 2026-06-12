@@ -373,7 +373,6 @@ function GameProvider({ children }) {
             localStorage.removeItem(key)
           }
         })
-        console.log(`[TCM] 版本更新 ${storedVersion} → ${currentVersion}，已清理所有旧缓存`)
       }
       localStorage.setItem('tcm_build_version', currentVersion)
     } catch (err) {
@@ -427,7 +426,6 @@ function GameProvider({ children }) {
   }, [])
 
   function handleMatchAnimComplete() {
-    console.log('[TCM] handleMatchAnimComplete called')
     setShowMatchAnim(false)
     setMatchAnimData(null)
     setShowSummary(true)
@@ -469,7 +467,6 @@ function GameProvider({ children }) {
       const matchResults = newState.eventHistory?.filter(
         h => h.week === newState.gameState.week
       ) ?? []
-      console.log(`[TCM] week=${newState.gameState.week} eventHistory=${newState.eventHistory?.length} matchResults=${matchResults.length} animData会有卡=${matchResults.flatMap(r=>(r.matchResults||[]).filter(pr=>pr&&Array.isArray(pr.matchResults)&&pr.matchResults.length>0)).length}`)
       if (matchResults.length > 0) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
@@ -517,7 +514,6 @@ function GameProvider({ children }) {
           setMatchAnimData(animData)
           setSummaryState(newState)
           setShowMatchAnim(true)
-          console.log(`[TCM] week=${newState.gameState.week} 动画触发 animData.length=${animData.length}`)
           return  // 等动画完成后再显示 summary
         }
       }

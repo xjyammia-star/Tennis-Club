@@ -2,7 +2,7 @@
 // 比赛动画弹窗：在 WeekSummary 前逐轮展示比赛过程
 // 数据来源：weekEngine 计算好的 matchResults，这里只做展示
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import styles from './MatchAnimation.module.css'
 
 const ROUND_LABEL = {
@@ -348,10 +348,13 @@ function MatchCard({ item, phase, onNext, isLast, onSkipAll }) {
 
 // ── 主组件 ────────────────────────────────────────────
 export default function MatchAnimation({ visible, matchData, onComplete }) {
-  const queue              = buildPlayQueue(matchData || [])
   const [index, setIndex]  = useState(0)
-  const [phase, setPhase]  = useState('playing') // 'playing' | 'revealed'
+  const [phase, setPhase]  = useState('playing')
   const timerRef           = useRef(null)
+
+  // ✅ 用 useMemo 缓存 queue，matchData 变化时才重新计算
+  // 避免每次渲染都重新计算导致 index 和 queue 不同步
+  const queue = useMemo(() => buildPlayQueue(matchData || []), [matchData])
 
   // 每次切换到新 index 时，先播放动画再展示结果
   useEffect(() => {
@@ -375,6 +378,9 @@ export default function MatchAnimation({ visible, matchData, onComplete }) {
     if (visible) {
       setIndex(0)
       setPhase('playing')
+    } else {
+      // visible=false 时也重置 index，避免下次显示时旧 index 越界新 queue
+      setIndex(0)
     }
   }, [visible])
 
