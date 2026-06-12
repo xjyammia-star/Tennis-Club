@@ -212,7 +212,9 @@ const HARD_FACILITIES = [
   { id: 'locker_1', type: 'locker',   category: 'service',  name: '更衣室',     level: '糟糕', mainEffect: '每天疲劳 -2', icon: 'ti-door',         maintenancePaid: true },
   { id: 'gym_1',    type: 'gym',      category: 'training', name: '健身房',     level: '糟糕', mainEffect: '身体 +80%，精神 +40%', icon: 'ti-barbell', maintenancePaid: true },
   { id: 'empty_1', type: 'empty', category: 'empty', name: '空地', level: null, mainEffect: '可建设新设施（¥10万开发费）', icon: 'ti-square-plus', maintenancePaid: null },
-] = [
+]
+
+const NORMAL_FACILITIES = [
   { id: 'hard_1', type: 'hard_court', category: 'training', name: '硬地球场 1', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_2', type: 'hard_court', category: 'training', name: '硬地球场 2', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
   { id: 'hard_3', type: 'hard_court', category: 'training', name: '硬地球场 3', level: '普通', count: 1, mainEffect: '技术 +100%，身体 +50%', icon: 'ti-rectangle', maintenancePaid: true },
