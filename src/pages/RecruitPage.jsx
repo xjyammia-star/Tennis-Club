@@ -56,11 +56,10 @@ function MiniBar({ value, color = 'forest' }) {
 }
 
 // ── 确认弹窗 ──────────────────────────────────────────
-function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
+function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck, confirming }) {
   const isCoach  = type === 'coach'
   const isPlayer = type === 'player'
-  // ✅ 设施不满足时禁用确认按钮
-  const canConfirm = isPlayer || !facilityCheck || facilityCheck.met
+  const canConfirm = (isPlayer || !facilityCheck || facilityCheck.met) && !confirming
 
   return (
     <div className={styles.modalOverlay} onClick={onCancel}>
@@ -134,7 +133,7 @@ function ConfirmModal({ type, item, onConfirm, onCancel, facilityCheck }) {
             disabled={!canConfirm}
             style={!canConfirm ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
           >
-            {canConfirm ? `确认${isCoach ? '聘用' : '招募'}` : '设施不足，无法聘用'}
+            {canConfirm ? `确认${isCoach ? '聘用' : '招募'}` : confirming ? '处理中…' : '设施不足，无法聘用'}
           </button>
         </div>
       </div>
@@ -274,9 +273,10 @@ function PlayerRecruitCard({ player, onRecruit }) {
 // ── 主页面 ────────────────────────────────────────────
 export default function RecruitPage() {
   const { state, dispatch } = useGameCtx()
-  const [tab, setTab]           = useState('players')
-  const [pending, setPending]   = useState(null)
-  const [accepted, setAccepted] = useState([])
+  const [tab, setTab]             = useState('players')
+  const [pending, setPending]     = useState(null)
+  const [accepted, setAccepted]   = useState([])
+  const [confirming, setConfirming] = useState(false)  // ✅ 防双击重复招募
 
   const facilities = state.facilities || []
 
@@ -294,7 +294,8 @@ export default function RecruitPage() {
   }
 
   function handleConfirm(item) {
-    // ✅ 教练：再次确认设施满足才执行（双重保险）
+    if (confirming) return  // ✅ 防止双击：已在处理中则忽略
+    setConfirming(true)
     if (tab === 'coaches') {
       const check = checkFacilityRequirement(item.requiresFacility, facilities)
       if (!check.met) return  // 不满足设施要求，静默拦截
@@ -349,6 +350,7 @@ export default function RecruitPage() {
     const key = tab === 'coaches' ? `coach-${item.id}` : `player-${item.id}`
     setAccepted(prev => [...prev, key])
     setPending(null)
+    setConfirming(false)  // ✅ 解除锁定
   }
 
   const pendingFacilityCheck = pending?.type === 'coach'
@@ -419,8 +421,9 @@ export default function RecruitPage() {
           type={pending.type}
           item={pending.item}
           onConfirm={handleConfirm}
-          onCancel={() => setPending(null)}
+          onCancel={() => { setPending(null); setConfirming(false) }}
           facilityCheck={pendingFacilityCheck}
+          confirming={confirming}
         />
       )}
     </div>
