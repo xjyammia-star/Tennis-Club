@@ -326,7 +326,9 @@ function simulatePlayerTournament(player, event, opponents, drawSize) {
       break
     }
 
-    const opponent  = opponents[i] || opponents[opponents.length - 1]
+    const opponent = opponents[i] || opponents[opponents.length - 1]
+    // 对手不存在时跳过（不应发生，但加保护避免崩溃）
+    if (!opponent) break
     const isFiveSet = event.level === 'slam' && roundKey === 'sf'
     const result    = simulateMatch(player, opponent, maxRanking, isFiveSet)
 
@@ -433,6 +435,7 @@ export function simulateTournament(players, event, worldPlayers) {
     }
 
     const opponents = pickOpponents(pool, neededOpps, useWeighted)
+    console.log(`[match] ${player.name} level=${event.level} pool=${pool.length} neededOpps=${neededOpps} opponents=${opponents.length}`)
 
     return {
       playerId:   player.id,

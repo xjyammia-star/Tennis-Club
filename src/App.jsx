@@ -468,17 +468,11 @@ function GameProvider({ children }) {
       const matchResults = newState.eventHistory?.filter(
         h => h.week === newState.gameState.week
       ) ?? []
-
-      console.log('[Anim]', 'matchResults.length='+matchResults.length, matchResults.map(r=>r.eventName+':matchResults长度'+(r.matchResults?.length||0)))
       if (matchResults.length > 0) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
-          console.log('[Anim] record:', record.eventName, 'playerResults.length='+playerResults.length, playerResults.map(pr=>pr?.playerName+':isArr='+Array.isArray(pr?.matchResults)+':len='+(pr?.matchResults?.length||0)))
-          playerResults.forEach(pr => {
-            if (pr?.matchResults?.[0]) console.log('[Anim] first match round='+pr.matchResults[0].round+' result='+pr.matchResults[0].result, 'has score='+!!pr.matchResults[0].score)
-          })
           const playerCards = playerResults
-            .filter(pr => pr && Array.isArray(pr.matchResults))
+            .filter(pr => pr && Array.isArray(pr.matchResults) && pr.matchResults.length > 0)
             .map(pr => ({
               playerId:     pr.playerId,
               playerName:   pr.playerName || '未知球员',
