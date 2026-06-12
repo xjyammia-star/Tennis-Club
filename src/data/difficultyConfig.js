@@ -43,43 +43,61 @@ function randAttr(base, spread = 12) {
 }
 
 // 根据球员属性均值计算初始排名
-// gender: 'male' → ATP排名范围更大（竞争更激烈）
-// gender: 'female' → WTA排名相对靠前
+// ✅ 重要：排名必须在数据库范围外，避免与真实球员冲突
+//   成年球员（18岁+）：ATP/WTA 数据库存有前500名，所以从 501 起
+//   青少年（14-17岁）：ITF 数据库存有前200名（男女各200），所以从 201 起
+//   13岁及以下：无排名（太小，尚未进入任何系统排名）
 function calcInitialRanking(avgAttr, age, gender) {
   // 属性均值越高 → 排名越靠前（数字越小）
   // 年龄越大 → 已积累更多积分 → 排名略好
-  // 男子整体排名区间比女子大 2~3 倍（ATP竞争更激烈）
-
-  // 基础分：属性越高，基础排名越靠前
-  // avgAttr 范围约 20~85，映射到排名系数
   const attrFactor = Math.max(0, Math.min(1, (avgAttr - 20) / 65)) // 0~1
+  const ageFactor  = (age - 13) / 10  // 13岁=0, 17岁=0.4
+  const score      = attrFactor * 0.75 + ageFactor * 0.25  // 0~1，越高排名越好
 
-  // 年龄加成：年龄越大，排名越好一点
-  const ageFactor = (age - 13) / 10  // 13岁=0, 17岁=0.4
-
-  // 综合系数：0~1，越高排名越好
-  const score = attrFactor * 0.75 + ageFactor * 0.25
-
-  if (age < 18) {
-    // 青少年：ITF排名，范围 30~800
-    // score=1 → 排名30，score=0 → 排名800
-    const raw = Math.round(800 - score * 770)
-    return Math.max(30, Math.min(800, raw + randInt(-30, 30)))
+  if (age < 14) {
+    // 13岁及以下：无排名
+    return null
   }
 
-  // 成年球员排名区间
+  if (age < 18) {
+    // 青少年 ITF：从 201 起（数据库前200名不冲突）
+    // score=1 → 201，score=0 → 800
+    const raw = Math.round(800 - score * 599)
+    return Math.max(201, Math.min(800, raw + randInt(-30, 30)))
+  }
+
+  // 成年球员：从 501 起（数据库前500名不冲突）
   if (gender === 'male') {
-    // ATP：竞争激烈，排名区间 200~1500
-    const raw = Math.round(1500 - score * 1300)
-    return Math.max(200, Math.min(1500, raw + randInt(-80, 80)))
+    // ATP：501~1800
+    const raw = Math.round(1800 - score * 1299)
+    return Math.max(501, Math.min(1800, raw + randInt(-80, 80)))
   } else {
-    // WTA：排名区间 100~900（同属性女子排名明显优于男子）
-    const raw = Math.round(900 - score * 800)
-    return Math.max(100, Math.min(900, raw + randInt(-60, 60)))
+    // WTA：501~1200
+    const raw = Math.round(1200 - score * 699)
+    return Math.max(501, Math.min(1200, raw + randInt(-60, 60)))
   }
 }
 
-function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set()) {
+// 根据排名计算初始积分（同步版本，用保守参考值）
+// 游戏启动时无法调用 API，使用固定参考边界值（与真实数据库接近的保守估算）
+// ATP/WTA 第500名约 80 分，ITF 第200名约 20 分
+// 公式：points = boundary × (boundaryRank / rank)²，排名越低积分衰减越快
+function calcInitialPoints(ranking, age) {
+  if (!ranking || ranking <= 0) return 0
+  if (age < 14) return 0
+
+  if (age < 18) {
+    // ITF青少年：boundary=20分，boundaryRank=200
+    const raw = 20 * Math.pow(200 / ranking, 2)
+    const jitter = 0.85 + Math.random() * 0.30
+    return Math.max(0, Math.round(raw * jitter))
+  } else {
+    // 成年 ATP/WTA：boundary=80分，boundaryRank=500
+    const raw = 80 * Math.pow(500 / ranking, 2)
+    const jitter = 0.85 + Math.random() * 0.30
+    return Math.max(0, Math.round(raw * jitter))
+  }
+}
   const talent = randInt(talentRange[0], talentRange[1])
   const age    = randInt(13, 17)
 
@@ -125,7 +143,7 @@ function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set
     fatigue:      randInt(10, 30),
     loyalty:      randInt(65, 85),
     ranking,
-    points:       0,
+    points:       calcInitialPoints(ranking, age),
     talent,
     talentLabel:  talentLabel(talent),
     injuryResist: Math.min(90, Math.max(55, randAttr(injuryBase, 8))),

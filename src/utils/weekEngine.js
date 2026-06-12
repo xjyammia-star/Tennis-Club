@@ -47,43 +47,202 @@ function randAttr(base, spread = 15) {
   return Math.round(Math.min(99, Math.max(1, base + randInt(-spread, spread))))
 }
 
-// 生成招募球员（每周5人）
-function generateRecruitPlayers(currentWeek) {
-  const count = 5
-  const result = []
-  for (let i = 0; i < count; i++) {
-    const gender = Math.random() < 0.5 ? 'male' : 'female'
-    const name = gender === 'male'
+// ── 获取积分边界值（查询数据库排名末位球员的积分作为上限）──────────────
+// 返回 { atpBoundary, wtaBoundary, itfMaleBoundary, itfFemaleBoundary }
+// 任一接口失败时使用保守默认值，不阻断招募刷新
+async function fetchPointsBoundary() {
+  const BASE = '/api/worldplayers'
+  const safe = async (url, fallback) => {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) return fallback
+      const data = await res.json()
+      return typeof data.boundaryPoints === 'number' ? data.boundaryPoints : fallback
+    } catch { return fallback }
+  }
+  const [atpBoundary, wtaBoundary, itfMaleBoundary, itfFemaleBoundary] = await Promise.all([
+    safe(`${BASE}?mode=boundary&tour=ATP`,                          80),
+    safe(`${BASE}?mode=boundary&tour=WTA`,                          80),
+    safe(`${BASE}?mode=boundary&tour=ITF_JUNIOR&gender=male`,       20),
+    safe(`${BASE}?mode=boundary&tour=ITF_JUNIOR&gender=female`,     20),
+  ])
+  return { atpBoundary, wtaBoundary, itfMaleBoundary, itfFemaleBoundary }
+}
+
+// ── 根据排名和积分上限计算系统生成球员的初始积分 ───────────────────────
+// 原理：排名第(boundaryRank)的球员有 boundaryPoints 分
+//       排名越低于 boundaryRank，积分衰减越快（平方反比）
+//       公式：points = boundaryPoints × (boundaryRank / rank)²
+// 例：ATP末位排名500分80分，排名600 → 80×(500/600)² ≈ 56分
+//     排名1000 → 80×(500/1000)² = 20分
+//     排名1500 → 80×(500/1500)² ≈ 9分
+function calcPointsByRank(rank, boundaryRank, boundaryPoints) {
+  if (!rank || rank <= 0) return 0
+  if (rank <= boundaryRank) return 0  // 不应生成数据库范围内的球员，防御性处理
+  const raw = boundaryPoints * Math.pow(boundaryRank / rank, 2)
+  // 加小幅随机浮动 ±15%，避免所有同排名球员积分完全一样
+  const jitter = 0.85 + Math.random() * 0.30
+  return Math.max(0, Math.round(raw * jitter))
+}
+
+// ── 生成招募球员（每周5人，async）─────────────────────────────────────
+// 每次刷新时：
+//   1. 从数据库获取4条积分边界值（ATP/WTA/ITF男/ITF女末位积分）
+//   2. 尝试从数据库拉取1~2名真实球员（按声望加权概率）
+//   3. 其余名额生成系统虚构球员，排名在数据库范围外，积分不超过边界
+async function generateRecruitPlayers(currentWeek, prestige = 0) {
+  const TOTAL = 5
+  const allSkills = Object.keys(SKILL_DEFS)
+
+  // 1. 获取积分边界
+  const { atpBoundary, wtaBoundary, itfMaleBoundary, itfFemaleBoundary } =
+    await fetchPointsBoundary()
+
+  // 2. 决定本周是否出现真实球员，最多2名
+  //    出现概率随声望上升，声望0约5%，声望5000约40%
+  const realPlayerCount = (() => {
+    const baseProb = Math.min(0.40, 0.05 + prestige / 15000)
+    let count = 0
+    for (let i = 0; i < 2; i++) {
+      if (Math.random() < baseProb) count++
+    }
+    return count
+  })()
+
+  // 3. 从数据库拉取真实球员（按声望决定可见范围 + 加权随机）
+  let realPlayers = []
+  if (realPlayerCount > 0) {
+    try {
+      const res = await fetch(
+        `/api/worldplayers?mode=recruit&prestige=${prestige}&count=${realPlayerCount}`
+      )
+      if (res.ok) {
+        const data = await res.json()
+        // 将数据库真实球员转换为招募市场格式
+        realPlayers = (data.players || []).map((p, i) => {
+          const isItf = p.tour === 'ITF_JUNIOR'
+          // 真实球员直接使用数据库中的排名和积分
+          // 属性根据排名反推：排名越高属性越好
+          const rankScore = isItf
+            ? Math.max(0, Math.min(1, (200 - p.ranking) / 200))
+            : Math.max(0, Math.min(1, (500 - p.ranking) / 500))
+          const inferredBase = Math.round(40 + rankScore * 45) // 40~85
+          const spread = 8
+          return {
+            id:          90000 + currentWeek * 10 + i,
+            name:        p.name,
+            gender:      p.gender,
+            age:         p.age || (isItf ? randInt(14, 18) : randInt(19, 28)),
+            height:      p.gender === 'male' ? randInt(175, 198) : randInt(165, 180),
+            weight:      p.gender === 'male' ? randInt(68, 88)   : randInt(55, 70),
+            familyBg:    '普通',
+            nationality: p.nationality || '',
+            currentClub: '职业巡回赛',
+            talent:      Math.round(60 + rankScore * 30),  // 60~90
+            talentLabel: getTalentLabel(Math.round(60 + rankScore * 30)),
+            health:      'healthy',
+            // ✅ 直接使用数据库真实排名和积分
+            ranking:     p.ranking,
+            points:      p.points || 0,
+            isRealPlayer: true,  // 标记为真实球员，供 RecruitPage 展示特殊标志
+            tour:        p.tour,
+            injuryResist: randInt(45, 70),
+            strength:    randAttr(inferredBase * 0.85, spread),
+            stamina:     randAttr(inferredBase * 0.90, spread),
+            agility:     randAttr(inferredBase * 0.88, spread),
+            serve:       randAttr(inferredBase * 0.82, spread),
+            forehand:    randAttr(inferredBase * 0.85, spread),
+            backhand:    randAttr(inferredBase * 0.80, spread),
+            footwork:    randAttr(inferredBase * 0.85, spread),
+            pressure:    randAttr(inferredBase * 0.78, spread),
+            willpower:   randAttr(inferredBase * 0.80, spread),
+            focus:       randAttr(inferredBase * 0.82, spread),
+            skills:      [],
+            note:        `职业球员，ATP/WTA 排名 #${p.ranking}，现役职业选手。`,
+            joinFee:     0,
+            expPool:     {},
+            fatigue:     randInt(20, 50),
+            loyalty:     randInt(50, 70),  // 真实职业球员忠诚度偏低（职业习惯）
+            isSponsored: false,
+            inMatch:     false,
+            matchEventId: null,
+          }
+        })
+      }
+    } catch (e) {
+      console.warn('[TCM] 真实球员招募拉取失败，跳过:', e)
+      realPlayers = []
+    }
+  }
+
+  // 4. 生成剩余名额的系统虚构球员
+  const syntheticCount = TOTAL - realPlayers.length
+  const syntheticPlayers = []
+
+  for (let i = 0; i < syntheticCount; i++) {
+    const gender  = Math.random() < 0.5 ? 'male' : 'female'
+    const name    = gender === 'male'
       ? randName(MALE_SURNAMES, MALE_GIVEN)
       : randName(FEMALE_SURNAMES, FEMALE_GIVEN)
-    const age = randInt(13, 24)
-    const talent = randInt(55, 92)
+    const age     = randInt(13, 24)
+    const talent  = randInt(55, 92)
     const familyBg = FAMILY_BG_LIST[randInt(0, 3)]
 
     const baseStat = Math.floor(age * 1.8 + talent * 0.3)
     const hasSkill = talent >= 75 && Math.random() < 0.4
-    const allSkills = Object.keys(SKILL_DEFS)
-    const skills = hasSkill ? [allSkills[randInt(0, allSkills.length - 1)]] : []
+    const skills   = hasSkill ? [allSkills[randInt(0, allSkills.length - 1)]] : []
 
-    const injuryBase = age <= 11 ? 85 : age <= 14 ? 75 : age <= 18 ? 65 : 50
+    const injuryBase   = age <= 11 ? 85 : age <= 14 ? 75 : age <= 18 ? 65 : 50
     const injuryResist = Math.min(99, Math.max(30, randAttr(injuryBase, 8)))
+    const joinFee      = familyBg === '贫穷' ? 500 : 0
 
-    const joinFee = familyBg === '贫穷' ? 500 : 0
+    // ✅ 排名必须在数据库范围外（避免与真实球员冲突）
+    // 18岁及以上：ATP/WTA 范围外，排名从 501 起
+    // 14-17岁（ITF青少年）：ITF 范围外，排名从 201 起
+    // 13岁或无排名：无排名（太小，尚未进入任何系统排名）
+    let ranking = null
+    let points  = 0
 
-    result.push({
-      id: 200 + currentWeek * 10 + i,
+    if (age >= 18) {
+      // 成年球员，ATP/WTA 范围外
+      // 属性好的排名好一点（501~800），属性差的排名更靠后（501~2000）
+      const attrScore = talent / 92  // 0~1
+      const rankMin = 501
+      const rankMax = Math.round(2000 - attrScore * 1000)  // 1000~2000
+      ranking = randInt(rankMin, Math.max(rankMin + 50, rankMax))
+      // 积分：以ATP/WTA末位积分为上限，按平方反比衰减
+      const boundary    = gender === 'male' ? atpBoundary : wtaBoundary
+      const boundaryRnk = gender === 'male' ? 500         : 500
+      points = calcPointsByRank(ranking, boundaryRnk, boundary)
+
+    } else if (age >= 14) {
+      // 青少年，ITF 范围外，排名从 201 起
+      const attrScore = talent / 92
+      const rankMin = 201
+      const rankMax = Math.round(800 - attrScore * 400)  // 400~800
+      ranking = randInt(rankMin, Math.max(rankMin + 50, rankMax))
+      // 积分：以ITF末位积分为上限，按平方反比衰减
+      const boundary    = gender === 'male' ? itfMaleBoundary : itfFemaleBoundary
+      const boundaryRnk = 200
+      points = calcPointsByRank(ranking, boundaryRnk, boundary)
+
+    }
+    // age < 14：ranking=null，points=0（太小，尚无排名）
+
+    syntheticPlayers.push({
+      id:          200 + currentWeek * 10 + i,
       name,
       gender,
       age,
-      height: gender === 'male' ? randInt(160, 195) : randInt(155, 178),
-      weight: gender === 'male' ? randInt(58, 90)   : randInt(48, 70),
+      height:      gender === 'male' ? randInt(160, 195) : randInt(155, 178),
+      weight:      gender === 'male' ? randInt(58, 90)   : randInt(48, 70),
       familyBg,
       currentClub: Math.random() < 0.4 ? '其他俱乐部' : '无',
       talent,
       talentLabel: getTalentLabel(talent),
-      health: 'healthy',
-      ranking: age >= 18 && talent >= 65 ? randInt(200, 500) : null,
-      points: age >= 18 ? randInt(0, 400) : 0,
+      health:      'healthy',
+      ranking,
+      points,
       injuryResist,
       strength:    randAttr(baseStat * 0.85, 12),
       stamina:     randAttr(baseStat * 0.90, 12),
@@ -99,18 +258,25 @@ function generateRecruitPlayers(currentWeek) {
         ? `天赋出众，有很大发展潜力。`
         : `普通球员，适合作为俱乐部梯队培养。`,
       joinFee,
-      expPool: {},
-      pressure:  randAttr(baseStat * 0.75, 12),
-      willpower: randAttr(baseStat * 0.80, 12),
-      focus:     randAttr(baseStat * 0.78, 12),
-      fatigue: randInt(10, 40),
-      loyalty: randInt(60, 85),
+      expPool:     {},
+      pressure:    randAttr(baseStat * 0.75, 12),
+      willpower:   randAttr(baseStat * 0.80, 12),
+      focus:       randAttr(baseStat * 0.78, 12),
+      fatigue:     randInt(10, 40),
+      loyalty:     randInt(60, 85),
       isSponsored: false,
-      inMatch: false,
+      inMatch:     false,
       matchEventId: null,
     })
   }
-  return result
+
+  // 5. 合并真实球员和虚构球员，随机打乱顺序（不让真实球员固定出现在头部）
+  const combined = [...realPlayers, ...syntheticPlayers]
+  for (let i = combined.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [combined[i], combined[j]] = [combined[j], combined[i]]
+  }
+  return combined
 }
 
 // 生成招募教练（每周3人）
@@ -1383,8 +1549,9 @@ export async function advanceWeekEngine(state) {
     return false  // duration: 0 的即时道具不保留
   })
 
-  // 每周刷新招募市场
-  const newRecruitPlayers = generateRecruitPlayers(newWeek)
+  // 每周刷新招募市场（async：需获取数据库积分边界 + 可能拉取真实球员）
+  const prestige = gameState?.prestige || 0
+  const newRecruitPlayers = await generateRecruitPlayers(newWeek, prestige)
   const newRecruitCoaches = generateRecruitCoaches(newWeek)
 
   // ✅ 新增：将本周新战绩追加到 eventHistory，并保留历史（最多保留100条）
