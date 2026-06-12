@@ -468,6 +468,7 @@ function GameProvider({ children }) {
       const matchResults = newState.eventHistory?.filter(
         h => h.week === newState.gameState.week
       ) ?? []
+      console.log(`[TCM] week=${newState.gameState.week} eventHistory=${newState.eventHistory?.length} matchResults=${matchResults.length} animData会有卡=${matchResults.flatMap(r=>(r.matchResults||[]).filter(pr=>pr&&Array.isArray(pr.matchResults)&&pr.matchResults.length>0)).length}`)
       if (matchResults.length > 0) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []

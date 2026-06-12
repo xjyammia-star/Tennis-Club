@@ -435,7 +435,6 @@ export function simulateTournament(players, event, worldPlayers) {
     }
 
     const opponents = pickOpponents(pool, neededOpps, useWeighted)
-    console.log(`[match] ${player.name} level=${event.level} pool=${pool.length} neededOpps=${neededOpps} opponents=${opponents.length}`)
 
     return {
       playerId:   player.id,
