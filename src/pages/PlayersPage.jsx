@@ -179,10 +179,15 @@ function PlayerDetail({ player, onClose, onToggleSponsor, onDismiss }) {
 
           {/* ── 操作区 ── */}
           <div className={styles.detailSection}>
-            <div className={styles.detailSectionTitle}><i className="ti ti-settings" aria-hidden="true" /> 管理操作</div>
+            <div className={styles.detailSectionTitle}>
+              <i className="ti ti-settings" aria-hidden="true" /> 管理操作
+            </div>
 
             {/* 赞助切换 */}
             <div className={styles.actionCard}>
+              <div className={styles.actionCardIcon}>
+                <i className={`ti ${player.isSponsored ? 'ti-star-off' : 'ti-star'}`} aria-hidden="true" />
+              </div>
               <div className={styles.actionCardInfo}>
                 <span className={styles.actionCardTitle}>
                   {player.isSponsored ? '取消赞助' : '提供赞助'}
@@ -194,21 +199,24 @@ function PlayerDetail({ player, onClose, onToggleSponsor, onDismiss }) {
                 </span>
               </div>
               <button
-                className={player.isSponsored ? styles.btnWarning : styles.btnPrimary}
+                className={player.isSponsored ? styles.actionBtnWarn : styles.actionBtnPrimary}
                 onClick={() => { onToggleSponsor(player); onClose() }}
               >
-                {player.isSponsored ? '取消赞助' : '提供赞助'}
+                {player.isSponsored ? '取消' : '赞助'}
               </button>
             </div>
 
             {/* 开除球员 */}
             {!confirmDismiss ? (
               <div className={styles.actionCard}>
+                <div className={styles.actionCardIcon} style={{ color: 'var(--red-soft)' }}>
+                  <i className="ti ti-user-minus" aria-hidden="true" />
+                </div>
                 <div className={styles.actionCardInfo}>
                   <span className={styles.actionCardTitle}>开除球员</span>
                   <span className={styles.actionCardDesc}>无需支付费用，球员将立即离队</span>
                 </div>
-                <button className={styles.btnDanger} onClick={() => setConfirmDismiss(true)}>
+                <button className={styles.actionBtnDanger} onClick={() => setConfirmDismiss(true)}>
                   开除
                 </button>
               </div>
@@ -216,8 +224,8 @@ function PlayerDetail({ player, onClose, onToggleSponsor, onDismiss }) {
               <div className={styles.dismissConfirm}>
                 <p>确认开除 <strong>{player.name}</strong>？此操作不可撤销。</p>
                 <div className={styles.dismissBtns}>
-                  <button className={styles.btnSecondary} onClick={() => setConfirmDismiss(false)}>取消</button>
-                  <button className={styles.btnDanger} onClick={() => { onDismiss(player); onClose() }}>确认开除</button>
+                  <button className={styles.actionBtnSecondary} onClick={() => setConfirmDismiss(false)}>取消</button>
+                  <button className={styles.actionBtnDanger} onClick={() => { onDismiss(player); onClose() }}>确认开除</button>
                 </div>
               </div>
             )}

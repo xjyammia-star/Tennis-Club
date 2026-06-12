@@ -42,11 +42,76 @@ function randAttr(base, spread = 12) {
   return Math.round(Math.min(85, Math.max(20, base + randInt(-spread, spread))))
 }
 
+// 根据球员属性均值计算初始排名
+// gender: 'male' → ATP排名范围更大（竞争更激烈）
+// gender: 'female' → WTA排名相对靠前
+function calcInitialRanking(avgAttr, age, gender) {
+  // 属性均值越高 → 排名越靠前（数字越小）
+  // 年龄越大 → 已积累更多积分 → 排名略好
+  // 男子整体排名区间比女子大 2~3 倍（ATP竞争更激烈）
+
+  // 基础分：属性越高，基础排名越靠前
+  // avgAttr 范围约 20~85，映射到排名系数
+  const attrFactor = Math.max(0, Math.min(1, (avgAttr - 20) / 65)) // 0~1
+
+  // 年龄加成：年龄越大，排名越好一点
+  const ageFactor = (age - 13) / 10  // 13岁=0, 17岁=0.4
+
+  // 综合系数：0~1，越高排名越好
+  const score = attrFactor * 0.75 + ageFactor * 0.25
+
+  if (age < 18) {
+    // 青少年：ITF排名，范围 30~800
+    // score=1 → 排名30，score=0 → 排名800
+    const raw = Math.round(800 - score * 770)
+    return Math.max(30, Math.min(800, raw + randInt(-30, 30)))
+  }
+
+  // 成年球员排名区间
+  if (gender === 'male') {
+    // ATP：竞争激烈，排名区间 200~1500
+    const raw = Math.round(1500 - score * 1300)
+    return Math.max(200, Math.min(1500, raw + randInt(-80, 80)))
+  } else {
+    // WTA：排名区间 100~900（同属性女子排名明显优于男子）
+    const raw = Math.round(900 - score * 800)
+    return Math.max(100, Math.min(900, raw + randInt(-60, 60)))
+  }
+}
+
 function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set()) {
   const talent = randInt(talentRange[0], talentRange[1])
   const age    = randInt(13, 17)
-  const base   = Math.floor(age * 1.8 + talent * 0.25)
+
+  // ✅ 修复a：资质越好 → base越高 → 属性越好
+  // 提高 talent 权重（原0.25 → 0.45），减少年龄权重，确保资质差异明显体现在属性上
+  const base = Math.floor(age * 1.5 + talent * 0.45)
+
+  // 属性随机幅度随资质收窄：天才球员属性更稳定，普通球员更随机
+  const spread = talent >= 78 ? 6 : talent >= 65 ? 9 : 12
+
   const injuryBase = age <= 14 ? 75 : 65
+
+  const serve       = randAttr(base * 0.80, spread)
+  const forehand    = randAttr(base * 0.85, spread)
+  const backhand    = randAttr(base * 0.80, spread)
+  const returnServe = randAttr(base * 0.75, spread)
+  const volley      = randAttr(base * 0.65, spread)
+  const footwork    = randAttr(base * 0.82, spread)
+  const strength    = randAttr(base * 0.85, spread)
+  const stamina     = randAttr(base * 0.90, spread)
+  const agility     = randAttr(base * 0.90, spread)
+  const pressure    = randAttr(base * 0.75, spread)
+  const willpower   = randAttr(base * 0.80, spread)
+  const focus       = randAttr(base * 0.78, spread)
+
+  // ✅ 修复b + c：属性均值决定排名，男女排名区间分开
+  const avgAttr = Math.round(
+    (serve + forehand + backhand + returnServe + volley + footwork +
+     strength + stamina + agility + pressure + willpower + focus) / 12
+  )
+  const ranking = calcInitialRanking(avgAttr, age, gender)
+
   return {
     id,
     name:         pickName(gender, usedNames),
@@ -59,23 +124,13 @@ function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set
     health:       'healthy',
     fatigue:      randInt(10, 30),
     loyalty:      randInt(65, 85),
-    ranking:      null,
+    ranking,
     points:       0,
     talent,
     talentLabel:  talentLabel(talent),
     injuryResist: Math.min(90, Math.max(55, randAttr(injuryBase, 8))),
-    strength:     randAttr(base * 0.85, 10),
-    stamina:      randAttr(base * 0.90, 10),
-    agility:      randAttr(base * 0.90, 10),
-    pressure:     randAttr(base * 0.75, 10),
-    willpower:    randAttr(base * 0.80, 10),
-    focus:        randAttr(base * 0.78, 10),
-    serve:        randAttr(base * 0.80, 10),
-    forehand:     randAttr(base * 0.85, 10),
-    backhand:     randAttr(base * 0.80, 10),
-    returnServe:  randAttr(base * 0.75, 10),
-    volley:       randAttr(base * 0.65, 10),
-    footwork:     randAttr(base * 0.82, 10),
+    serve, forehand, backhand, returnServe, volley, footwork,
+    strength, stamina, agility, pressure, willpower, focus,
     skills:       [],
     preferences:  [],
     expPool:      {},

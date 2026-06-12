@@ -661,3 +661,138 @@
   color: var(--ink-faint);
   font-style: italic;
 }
+
+/* ── 操作卡片 ── */
+.actionCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--cream);
+  border: 0.5px solid var(--cream-dark);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.actionCardIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 0.5px solid var(--cream-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: var(--forest);
+  flex-shrink: 0;
+}
+
+.actionCardInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actionCardTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.actionCardDesc {
+  font-size: 11px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+/* 操作按钮 — 主要（赞助） */
+.actionBtnPrimary {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
+  border: none;
+  background: var(--forest);
+  color: var(--gold-pale);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.actionBtnPrimary:hover { background: var(--forest-mid); }
+
+/* 操作按钮 — 警告（取消赞助） */
+.actionBtnWarn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
+  border: 0.5px solid #d4a02a;
+  background: #fef3d8;
+  color: #9a6e0a;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.actionBtnWarn:hover { background: #fde9b0; }
+
+/* 操作按钮 — 危险（开除） */
+.actionBtnDanger {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
+  border: 0.5px solid #f0a0a0;
+  background: #fdecea;
+  color: #802020;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.actionBtnDanger:hover { background: #fbd8d8; }
+
+/* 操作按钮 — 次要（取消确认） */
+.actionBtnSecondary {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
+  border: 0.5px solid var(--cream-dark);
+  background: var(--white);
+  color: var(--ink-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.actionBtnSecondary:hover { background: var(--cream-dark); }
+
+/* 开除二次确认框 */
+.dismissConfirm {
+  background: #fdecea;
+  border: 0.5px solid #f0a0a0;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 8px;
+}
+.dismissConfirm p {
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.dismissBtns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
