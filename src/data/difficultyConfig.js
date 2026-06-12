@@ -98,6 +98,8 @@ function calcInitialPoints(ranking, age) {
     return Math.max(0, Math.round(raw * jitter))
   }
 }
+
+function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set()) {
   const talent = randInt(talentRange[0], talentRange[1])
   const age    = randInt(13, 17)
 
