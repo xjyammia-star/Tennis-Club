@@ -53,16 +53,51 @@ function LevelBadge({ level, label }) {
 //   - 完整格式（weekEngine 生成）：含 matchResults 逐轮数据
 //   - 简版格式（mockData eventHistory）：只有 results 汇总
 // ════════════════════════════════════════════════════════
-function MatchReportModal({ record, onClose }) {
-  // 判断是哪种格式
-  // 完整格式：record.matchResults 是数组（来自 weekEngine 写入 recentNews）
-  // 简版格式：record.results 是数组（来自 mockData eventHistory）
+function MatchReportModal({ record, onClose, players }) {
   const isFullReport = Array.isArray(record.matchResults) && record.matchResults.length > 0
   const [activePlayer, setActivePlayer] = useState(0)
 
-  // 完整格式下：当前选中的球员战报
   const playerReports = isFullReport ? record.matchResults : null
   const currentReport = playerReports?.[activePlayer]
+
+  // 通过 playerId 从 players 数组查性别
+  function getGender(r) {
+    if (players) {
+      const found = players.find(p => p.id === r.playerId)
+      if (found) return found.gender
+    }
+    return r.gender || null
+  }
+
+  const maleReports   = playerReports?.filter(r => getGender(r) === 'male')   ?? []
+  const femaleReports = playerReports?.filter(r => getGender(r) === 'female') ?? []
+  const hasBothGenders = maleReports.length > 0 && femaleReports.length > 0
+
+  function renderSummaryCard(r) {
+    const realIndex = playerReports?.indexOf(r) ?? 0
+    return (
+      <button
+        key={r.playerId}
+        className={`${styles.reportSummaryCard} ${activePlayer === realIndex ? styles.reportSummaryCardActive : ''}`}
+        onClick={() => setActivePlayer(realIndex)}
+      >
+        <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
+        <div className={styles.reportSummaryInfo}>
+          <span className={styles.reportSummaryName}>{r.playerName}</span>
+          <span className={`${styles.reportSummaryResult} ${
+            r.finalRound === 'champion'  ? styles.reportResultChampion :
+            r.finalRound === 'runner_up' ? styles.reportResultRunnerUp :
+            ['sf','qf'].includes(r.finalRound) ? styles.reportResultGood : ''
+          }`}>
+            {r.finalRoundLabel ?? ROUND_LABEL[r.finalRound] ?? r.finalRound}
+          </span>
+          {r.prize > 0 && (
+            <span className={styles.reportSummaryPrize}>+¥{r.prize.toLocaleString()}</span>
+          )}
+        </div>
+      </button>
+    )
+  }
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -92,47 +127,57 @@ function MatchReportModal({ record, onClose }) {
 
         <div className={styles.reportBody}>
 
-          {/* ── 汇总成绩卡 ── */}
-          <div className={styles.reportSummaryRow}>
-            {isFullReport
-              ? playerReports.map((r, i) => (
-                  <button
-                    key={r.playerId ?? i}
-                    className={`${styles.reportSummaryCard} ${activePlayer === i ? styles.reportSummaryCardActive : ''}`}
-                    onClick={() => setActivePlayer(i)}
-                  >
-                    <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
-                    <div className={styles.reportSummaryInfo}>
-                      <span className={styles.reportSummaryName}>{r.playerName}</span>
-                      <span className={`${styles.reportSummaryResult} ${
-                        r.finalRound === 'champion' ? styles.reportResultChampion :
-                        r.finalRound === 'runner_up' ? styles.reportResultRunnerUp :
-                        ['sf','qf'].includes(r.finalRound) ? styles.reportResultGood : ''
-                      }`}>
-                        {r.finalRoundLabel ?? ROUND_LABEL[r.finalRound] ?? r.finalRound}
-                      </span>
-                      {r.prize > 0 && (
-                        <span className={styles.reportSummaryPrize}>
-                          +¥{r.prize.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))
-              : (record.results ?? []).map((r, i) => (
-                  <div key={i} className={styles.reportSummaryCard}>
-                    <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
-                    <div className={styles.reportSummaryInfo}>
-                      <span className={styles.reportSummaryName}>{r.playerName}</span>
-                      <span className={styles.reportSummaryResult}>{r.round}</span>
-                      {r.prize > 0 && (
-                        <span className={styles.reportSummaryPrize}>+¥{r.prize.toLocaleString()}</span>
-                      )}
-                    </div>
+          {/* ── 汇总成绩卡：男女分列 ── */}
+          {isFullReport ? (
+            hasBothGenders ? (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-muted)', letterSpacing: '0.08em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-gender-male" style={{ fontSize: 12, color: '#2a5fa8' }} /> 男子签表
                   </div>
-                ))
-            }
-          </div>
+                  <div className={styles.reportSummaryRow}>
+                    {maleReports.map(r => renderSummaryCard(r))}
+                  </div>
+                </div>
+                <div style={{ width: '0.5px', background: 'var(--cream-dark)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-muted)', letterSpacing: '0.08em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-gender-female" style={{ fontSize: 12, color: '#b8396a' }} /> 女子签表
+                  </div>
+                  <div className={styles.reportSummaryRow}>
+                    {femaleReports.map(r => renderSummaryCard(r))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-muted)', letterSpacing: '0.08em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {maleReports.length > 0
+                    ? <><i className="ti ti-gender-male" style={{ fontSize: 12, color: '#2a5fa8' }} /> 男子签表</>
+                    : <><i className="ti ti-gender-female" style={{ fontSize: 12, color: '#b8396a' }} /> 女子签表</>
+                  }
+                </div>
+                <div className={styles.reportSummaryRow}>
+                  {playerReports.map(r => renderSummaryCard(r))}
+                </div>
+              </div>
+            )
+          ) : (
+            <div className={styles.reportSummaryRow} style={{ marginBottom: 12 }}>
+              {(record.results ?? []).map((r, i) => (
+                <div key={i} className={styles.reportSummaryCard}>
+                  <div className={styles.reportSummaryAvatar}>{r.playerName?.charAt(0)}</div>
+                  <div className={styles.reportSummaryInfo}>
+                    <span className={styles.reportSummaryName}>{r.playerName}</span>
+                    <span className={styles.reportSummaryResult}>{r.round}</span>
+                    {r.prize > 0 && (
+                      <span className={styles.reportSummaryPrize}>+¥{r.prize.toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── 总奖金 ── */}
           {(record.totalPrize > 0) && (
@@ -143,7 +188,7 @@ function MatchReportModal({ record, onClose }) {
             </div>
           )}
 
-          {/* ✅ 赛事冠军：男女各一 */}
+          {/* ✅ 赛事冠军 */}
           {(record.maleChampion || record.femaleChampion || record.champion) && (
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 6,
@@ -151,10 +196,9 @@ function MatchReportModal({ record, onClose }) {
               border: '1px solid var(--gold)', borderRadius: 10,
               padding: '10px 14px', marginBottom: 12,
             }}>
-              {/* 男子冠军 */}
               {(record.maleChampion || (!record.femaleChampion && record.champion)) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>🏆</span>
+                  <span style={{ fontSize: 16 }}>🏆</span>
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>
                       {record.femaleChampion ? '男子冠军' : '本届冠军'}
@@ -165,10 +209,9 @@ function MatchReportModal({ record, onClose }) {
                   </div>
                 </div>
               )}
-              {/* 女子冠军 */}
               {record.femaleChampion && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>🏆</span>
+                  <span style={{ fontSize: 16 }}>🏆</span>
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--ink-muted)' }}>女子冠军</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#9a6e0a' }}>
@@ -756,6 +799,7 @@ export default function EventsPage() {
         <MatchReportModal
           record={reportRecord}
           onClose={() => setReportRecord(null)}
+          players={players}
         />
       )}
     </div>
