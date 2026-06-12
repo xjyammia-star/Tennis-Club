@@ -34,7 +34,7 @@ function buildSteps(players, coaches, difficulty) {
   return steps
 }
 
-export default function GameInitAnimation({ visible, players, coaches, difficulty, onComplete }) {
+export default function GameInitAnimation({ visible, players, coaches, difficulty, clubName, onComplete }) {
   const [stepIndex, setStepIndex]   = useState(0)
   const [progress, setProgress]     = useState(0)
   const [done, setDone]             = useState(false)
@@ -91,7 +91,7 @@ export default function GameInitAnimation({ visible, players, coaches, difficult
           </div>
           <div>
             <div className={styles.titleEyebrow}>正在初始化</div>
-            <div className={styles.titleMain}>长青网球俱乐部</div>
+            <div className={styles.titleMain}>{clubName || '长青网球俱乐部'}</div>
           </div>
         </div>
 

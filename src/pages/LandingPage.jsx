@@ -472,10 +472,11 @@ export default function LandingPage() {
   const [modal, setModal] = useState(null)
 
   // ✅ 新增：初始化动画状态
-  const [initAnim, setInitAnim]       = useState(false)
-  const [initPlayers, setInitPlayers] = useState([])
-  const [initCoaches, setInitCoaches] = useState([])
+  const [initAnim, setInitAnim]             = useState(false)
+  const [initPlayers, setInitPlayers]       = useState([])
+  const [initCoaches, setInitCoaches]       = useState([])
   const [initDifficulty, setInitDifficulty] = useState('normal')
+  const [initClubName, setInitClubName]     = useState('')
   const [pendingState, setPendingState]     = useState(null)
 
   function handleAuthSuccess(u) {
@@ -557,6 +558,7 @@ export default function LandingPage() {
     setInitPlayers(tempState.players || [])
     setInitCoaches(tempState.coaches || [])
     setInitDifficulty(difficulty)
+    setInitClubName(clubName)
     setPendingState(tempState)
     setInitAnim(true)
   }
@@ -658,6 +660,7 @@ export default function LandingPage() {
         players={initPlayers}
         coaches={initCoaches}
         difficulty={initDifficulty}
+        clubName={initClubName}
         onComplete={handleInitComplete}
       />
     </div>
