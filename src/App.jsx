@@ -53,6 +53,8 @@ const INIT = {
   expenseBreakdown: [...initExpense],
   recentNews:       [...initNews],
   upcomingEvents:   [...initUpcoming],
+  // 贷款系统初始状态（null = 无贷款/无待审批）
+  loan: null,
 }
 
 function reducer(state, action) {
@@ -256,6 +258,93 @@ function reducer(state, action) {
         inventory:           newInventory,
         players:             newPlayers,
         activeFacilityItems: newFacilityItems,
+      }
+    }
+
+    // ── 贷款：申请贷款（进入待审批状态，2周后由 weekEngine 处理结果）──
+    // action.loanApp = { amount, annualRate, termWeeks, applyWeek }
+    case 'APPLY_LOAN': {
+      // 已有贷款或已有待审批时不允许再申请（UI层拦截，这里兜底）
+      if (state.loan) return state
+      return {
+        ...state,
+        loan: {
+          status:       'pending',        // pending=待审批 | active=还款中 | null=无
+          amount:       action.loanApp.amount,
+          annualRate:   action.loanApp.annualRate,
+          termWeeks:    action.loanApp.termWeeks,
+          applyWeek:    action.loanApp.applyWeek,  // 申请周次
+          approveWeek:  action.loanApp.applyWeek + 2,  // 2周后审批
+          // 以下字段在审批通过后由 weekEngine 填写
+          startWeek:    null,
+          endWeek:      null,
+          weeklyPayment: null,
+          paidWeeks:    0,
+          remainingPrincipal: null,
+        },
+      }
+    }
+
+    // ── 贷款：审批通过，发放贷款（由 weekEngine 调用，不由玩家触发）──
+    // action.startWeek, action.weeklyPayment, action.endWeek
+    case 'APPROVE_LOAN': {
+      if (!state.loan || state.loan.status !== 'pending') return state
+      const { amount } = state.loan
+      return {
+        ...state,
+        loan: {
+          ...state.loan,
+          status:             'active',
+          startWeek:          action.startWeek,
+          endWeek:            action.endWeek,
+          weeklyPayment:      action.weeklyPayment,
+          paidWeeks:          0,
+          remainingPrincipal: amount,
+        },
+        finance: {
+          ...state.finance,
+          cash: state.finance.cash + amount,
+        },
+        gameState: {
+          ...state.gameState,
+          cash: (state.gameState.cash ?? state.finance.cash) + amount,
+        },
+      }
+    }
+
+    // ── 贷款：每周自动还款（由 weekEngine 财务结算时调用）──
+    // action.payment = 本周实际扣款金额（可能含逾期罚息）
+    // action.principal = 本次归还的本金部分
+    case 'REPAY_LOAN': {
+      if (!state.loan || state.loan.status !== 'active') return state
+      const newPaid = (state.loan.paidWeeks || 0) + 1
+      const newRemaining = Math.max(0, (state.loan.remainingPrincipal || 0) - action.principal)
+      const isFullyRepaid = newRemaining <= 0 || newPaid >= state.loan.termWeeks
+      return {
+        ...state,
+        loan: isFullyRepaid ? null : {
+          ...state.loan,
+          paidWeeks:          newPaid,
+          remainingPrincipal: newRemaining,
+        },
+      }
+    }
+
+    // ── 贷款：玩家主动提前还清贷款 ──
+    case 'EARLY_REPAY_LOAN': {
+      if (!state.loan || state.loan.status !== 'active') return state
+      const remaining = state.loan.remainingPrincipal || 0
+      return {
+        ...state,
+        loan: null,
+        finance: {
+          ...state.finance,
+          cash: state.finance.cash - remaining,
+        },
+        gameState: {
+          ...state.gameState,
+          cash: (state.gameState.cash ?? state.finance.cash) - remaining,
+        },
       }
     }
 

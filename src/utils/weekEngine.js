@@ -1397,6 +1397,123 @@ export async function advanceWeekEngine(state) {
   const weekExpense = coachSalary + insurance + subsidy + totalMaintenance  // ✅ 加入维护费
   let newCash       = finance.cash + weekIncome - weekExpense
 
+  // ── 贷款系统处理 ──────────────────────────────────────────────────────
+  // 审批不通过的理由（10%概率随机选一条）
+  const REJECT_REASONS = [
+    '俱乐部近期财务流水不足，信用评分未达标',
+    '当前账户余额过低，贷款风险评估不通过',
+    '俱乐部声望值未达到贷款机构最低要求',
+    '近期存在大额亏损记录，暂不符合贷款条件',
+    '贷款机构本期额度已满，请下期重新申请',
+  ]
+
+  let loanState   = state.loan ?? null
+  let loanNews    = []
+  let loanTx      = []
+  let loanDispatch = []  // 需要返回给 App.jsx 的 dispatch 指令列表
+
+  if (loanState) {
+    // 1. 待审批 → 到期审批
+    if (loanState.status === 'pending' && newWeek >= loanState.approveWeek) {
+      const approved = Math.random() > 0.10  // 90% 通过
+
+      if (approved) {
+        // 计算等额还款（本金+利息平摊）
+        // 周利率 = 年利率 / 52
+        const weeklyRate    = loanState.annualRate / 52
+        const n             = loanState.termWeeks
+        // 等额还款公式：P × r(1+r)^n / ((1+r)^n - 1)
+        const factor        = Math.pow(1 + weeklyRate, n)
+        const weeklyPayment = Math.round(loanState.amount * weeklyRate * factor / (factor - 1))
+        const endWeek       = newWeek + n
+
+        loanState = {
+          ...loanState,
+          status:             'active',
+          startWeek:          newWeek,
+          endWeek,
+          weeklyPayment,
+          paidWeeks:          0,
+          remainingPrincipal: loanState.amount,
+        }
+        newCash += loanState.amount  // 贷款金额到账
+
+        loanTx.push({
+          id: `tx_${newWeek}_loan_in`,
+          type: 'income', category: 'other',
+          label: `贷款到账（¥${(loanState.amount / 10000).toFixed(0)}万）`,
+          amount: loanState.amount,
+        })
+        loanNews.push({
+          id: `news_loan_approve_${newWeek}`,
+          type: 'finance',
+          text: `🎉 贷款申请审批通过！¥${(loanState.amount / 10000).toFixed(0)}万已到账，共${n}周还清，每周还款¥${weeklyPayment.toLocaleString()}。`,
+          week: newWeek,
+        })
+      } else {
+        // 审批不通过
+        const reason = REJECT_REASONS[Math.floor(Math.random() * REJECT_REASONS.length)]
+        loanState = null  // 清除申请
+
+        loanNews.push({
+          id: `news_loan_reject_${newWeek}`,
+          type: 'finance',
+          text: `❌ 贷款申请未通过：${reason}。如需资金支持，请改善俱乐部状况后重新申请。`,
+          week: newWeek,
+        })
+      }
+    }
+
+    // 2. 还款中 → 每周自动扣还款
+    else if (loanState?.status === 'active') {
+      let payment = loanState.weeklyPayment
+
+      // 逾期处理：超过还款期仍未还清，罚息 ×1.5
+      if (newWeek > loanState.endWeek) {
+        payment = Math.round(payment * 1.5)
+        loanNews.push({
+          id: `news_loan_overdue_${newWeek}`,
+          type: 'deficit',
+          text: `⚠️ 贷款已逾期！本周扣除罚息还款¥${payment.toLocaleString()}，请尽快还清贷款。`,
+          week: newWeek,
+        })
+      }
+
+      // 本周还款中本金部分（总还款 - 利息部分）
+      const weeklyRate      = loanState.annualRate / 52
+      const interestPart    = Math.round((loanState.remainingPrincipal || 0) * weeklyRate)
+      const principalPart   = Math.max(0, payment - interestPart)
+      const newRemaining    = Math.max(0, (loanState.remainingPrincipal || 0) - principalPart)
+      const newPaid         = (loanState.paidWeeks || 0) + 1
+      const isFullyRepaid   = newRemaining <= 0 || newPaid >= loanState.termWeeks
+
+      newCash -= payment
+      loanTx.push({
+        id: `tx_${newWeek}_loan_out`,
+        type: 'expense', category: 'other',
+        label: `贷款还款（剩余${isFullyRepaid ? 0 : Math.round(newRemaining / 10000 * 10) / 10}万）`,
+        amount: payment,
+      })
+
+      if (isFullyRepaid) {
+        loanState = null
+        loanNews.push({
+          id: `news_loan_done_${newWeek}`,
+          type: 'finance',
+          text: `✅ 贷款已全部还清！俱乐部财务信用良好。`,
+          week: newWeek,
+        })
+      } else {
+        loanState = {
+          ...loanState,
+          paidWeeks:          newPaid,
+          remainingPrincipal: newRemaining,
+        }
+      }
+    }
+  }
+  // ── 贷款处理结束 ──────────────────────────────────────────────────────
+
   const newTx = [
     { id: `tx_${newWeek}_1`, type: 'income',  category: 'court_rent',    label: '场地外租',   amount: rentalInfo.income },
     { id: `tx_${newWeek}_2`, type: 'income',  category: 'private_cut',   label: '私教分成',   amount: privateIncome     },
@@ -1406,10 +1523,11 @@ export async function advanceWeekEngine(state) {
     { id: `tx_${newWeek}_6`, type: 'expense', category: 'subsidy',       label: '赞助球员补助', amount: subsidy          },
     { id: `tx_${newWeek}_7`, type: 'expense', category: 'maintenance',   label: '设施维护费', amount: totalMaintenance  },
     ...matchTransactions,
+    ...loanTx,   // ✅ 贷款相关收支
   ].filter(t => t.amount > 0)
 
   // 8. 随机事件
-  let newRecentNews = [...matchNews, ...skillNews, ...attrGrowthNews, ...contractNews, ...(state.recentNews || [])].slice(0, 20)
+  let newRecentNews = [...loanNews, ...matchNews, ...skillNews, ...attrGrowthNews, ...contractNews, ...(state.recentNews || [])].slice(0, 20)
   let finalPlayers  = playersAfterLoyalty
 
   let eventPrestigeDelta = 0
@@ -1604,5 +1722,7 @@ export async function advanceWeekEngine(state) {
     // ── 装备系统 ──
     research:            updatedResearch,
     activeFacilityItems: updatedFacilityItems,
+    // ── 贷款系统 ──
+    loan: loanState,  // null=无贷款，pending=待审批，active=还款中
   }
 }

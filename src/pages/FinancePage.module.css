@@ -244,3 +244,138 @@
   padding: 11px; cursor: pointer; transition: background 0.15s;
 }
 .btnAd:hover { background: var(--forest-mid); }
+/* ── 贷款弹窗样式（追加到 FinancePage.module.css 末尾）── */
+
+.loanPanel {
+  width: min(420px, 100vw);
+  max-height: 88vh;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  box-shadow: 0 -4px 40px rgba(0,0,0,0.2);
+}
+@media (min-width: 640px) {
+  .loanPanel { border-radius: 20px; animation: scaleIn 0.28s cubic-bezier(0.34,1.2,0.64,1); }
+}
+
+.loanHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 18px 14px;
+  background: #1c3a1a;
+  flex-shrink: 0;
+}
+.loanTitle { font-size: 18px; font-weight: 700; color: #f5edda; }
+
+.loanBody {
+  flex: 1; overflow-y: auto; padding: 16px;
+  background: #f0ece3;
+}
+
+.loanNote {
+  font-size: 12px; color: #8a9688; line-height: 1.6;
+  background: #fff; border-radius: 8px; padding: 10px 12px;
+  margin: 0 0 14px; border-left: 3px solid #c9a84c;
+}
+
+.loanSectionTitle {
+  font-size: 12px; font-weight: 700; color: #4a5a48;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.loanOptions { display: flex; flex-direction: column; gap: 8px; }
+
+.loanOptBtn {
+  width: 100%; text-align: left; border: 2px solid #e8e2d6;
+  border-radius: 10px; padding: 11px 13px;
+  background: #fff; cursor: pointer; transition: all 0.15s;
+}
+.loanOptBtn:hover:not(:disabled) { border-color: #1c3a1a; }
+.loanOptActive { border-color: #1c3a1a !important; background: rgba(28,58,26,0.04) !important; }
+.loanOptLocked { opacity: 0.5; cursor: not-allowed !important; }
+
+.loanOptTop { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.loanOptLabel { font-size: 14px; font-weight: 600; color: #1a2a18; }
+.loanOptAmt   { font-size: 14px; font-weight: 700; color: #1c3a1a; }
+.loanOptRate  { font-size: 12px; color: #8a9688; }
+.loanOptLockMsg { font-size: 11px; color: #c9a84c; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+
+.termOptions { display: flex; gap: 8px; }
+.termBtn {
+  flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 500;
+  border: 2px solid #e8e2d6; border-radius: 8px;
+  background: #fff; cursor: pointer; transition: all 0.15s; color: #4a5a48;
+}
+.termBtn:hover { border-color: #1c3a1a; }
+.termBtnActive { border-color: #1c3a1a !important; background: #1c3a1a !important; color: #f5edda !important; }
+
+.loanPreview {
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+  margin-top: 14px; display: flex; flex-direction: column; gap: 7px;
+}
+.loanPreviewRow {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; color: #4a5a48;
+}
+.loanPreviewRow strong { font-weight: 700; color: #1a2a18; }
+
+.loanFooter {
+  padding: 12px 14px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  background: #f0ece3;
+  border-top: 1px solid #e8e2d6;
+  display: flex; gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnLoanApply {
+  flex: 1; height: 44px; background: #1c3a1a; color: #f5edda;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background 0.15s;
+}
+.btnLoanApply:hover:not(:disabled) { background: #2a4e28; }
+.btnLoanApply:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btnLoanConfirm {
+  flex: 1; height: 44px; background: #c9a84c; color: #1c3a1a;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+/* 还款状态卡 */
+.loanStatusCard {
+  background: #fff; border-radius: 10px; padding: 14px;
+  border-left: 4px solid; display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 12px;
+}
+.loanStatusIcon { font-size: 22px; margin-top: 2px; flex-shrink: 0; }
+.loanStatusTitle { font-size: 15px; font-weight: 700; color: #1a2a18; margin-bottom: 5px; }
+.loanStatusDesc { font-size: 13px; color: #4a5a48; line-height: 1.7; }
+
+.loanProgressWrap { margin-bottom: 12px; }
+.loanProgressBar {
+  height: 8px; background: #e8e2d6; border-radius: 4px; overflow: hidden; margin-bottom: 5px;
+}
+.loanProgressFill { height: 100%; background: #2a7a3a; border-radius: 4px; transition: width 0.3s; }
+.loanProgressLabel { font-size: 12px; color: #8a9688; }
+
+.loanEarlyRow {
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.loanEarlyInfo { display: flex; flex-direction: column; gap: 2px; }
+.loanEarlyLabel { font-size: 12px; color: #8a9688; }
+.loanEarlyAmt   { font-size: 16px; font-weight: 700; color: #1a2a18; }
+.loanEarlyNote  { font-size: 11px; color: #2a7a3a; }
+
+.btnEarlyRepay {
+  flex-shrink: 0; height: 38px; padding: 0 16px;
+  background: #e05a2b; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.btnEarlyRepay:disabled { opacity: 0.4; cursor: not-allowed; }
