@@ -474,6 +474,9 @@ function GameProvider({ children }) {
         const animData = matchResults.flatMap(record => {
           const playerResults = record.matchResults || []
           console.log('[Anim] record:', record.eventName, 'playerResults.length='+playerResults.length, playerResults.map(pr=>pr?.playerName+':isArr='+Array.isArray(pr?.matchResults)+':len='+(pr?.matchResults?.length||0)))
+          playerResults.forEach(pr => {
+            if (pr?.matchResults?.[0]) console.log('[Anim] first match round='+pr.matchResults[0].round+' result='+pr.matchResults[0].result, 'has score='+!!pr.matchResults[0].score)
+          })
           const playerCards = playerResults
             .filter(pr => pr && Array.isArray(pr.matchResults))
             .map(pr => ({
