@@ -308,17 +308,38 @@ export default function PlayersPage() {
   const [filterGender, setFilterGender]   = useState('all')
   const [filterAgeGroup, setFilterAgeGroup] = useState('all')
   const [filterHealth, setFilterHealth]   = useState('all')
+  const [sortBy, setSortBy]               = useState('default')
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   const filtered = useMemo(() => {
-    return players.filter(p => {
+    const list = players.filter(p => {
       if (search && !p.name.includes(search)) return false
       if (filterGender !== 'all' && p.gender !== filterGender) return false
       if (filterHealth !== 'all' && p.health !== filterHealth) return false
       if (filterAgeGroup !== 'all' && AGE_GROUP(p.age) !== filterAgeGroup) return false
       return true
     })
-  }, [search, filterGender, filterAgeGroup, filterHealth, players])
+
+    const techAvg = p => {
+      const vals = [p.serve, p.forehand, p.backhand, p.returnServe, p.volley, p.footwork].filter(v => v != null)
+      return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0
+    }
+    const physAvg = p => {
+      const vals = [p.strength, p.stamina, p.agility].filter(v => v != null)
+      return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0
+    }
+
+    if (sortBy === 'age')     return [...list].sort((a, b) => a.age - b.age)
+    if (sortBy === 'tech')    return [...list].sort((a, b) => techAvg(b) - techAvg(a))
+    if (sortBy === 'phys')    return [...list].sort((a, b) => physAvg(b) - physAvg(a))
+    if (sortBy === 'ranking') return [...list].sort((a, b) => {
+      if (a.ranking == null && b.ranking == null) return 0
+      if (a.ranking == null) return 1   // 无排名排最后
+      if (b.ranking == null) return -1
+      return a.ranking - b.ranking
+    })
+    return list
+  }, [search, filterGender, filterAgeGroup, filterHealth, sortBy, players])
 
   const stats = useMemo(() => ({
     total:     players.length,
@@ -429,6 +450,18 @@ export default function PlayersPage() {
           <div className={styles.filterGroup}>
             {[{v:'all',l:'全状态'},{v:'healthy',l:'健康'},{v:'minor',l:'轻伤'},{v:'major',l:'重伤'}].map(({v,l}) => (
               <button key={v} className={`${styles.filterBtn} ${filterHealth===v?styles.filterBtnActive:''}`} onClick={() => setFilterHealth(v)}>{l}</button>
+            ))}
+          </div>
+          <div className={styles.filterGroup}>
+            <span className={styles.sortLabel}>排序</span>
+            {[
+              {v:'default', l:'默认'},
+              {v:'age',     l:'年龄↑'},
+              {v:'tech',    l:'技术↓'},
+              {v:'phys',    l:'身体↓'},
+              {v:'ranking', l:'排名↑'},
+            ].map(({v,l}) => (
+              <button key={v} className={`${styles.filterBtn} ${sortBy===v?styles.filterBtnActive:''}`} onClick={() => setSortBy(v)}>{l}</button>
             ))}
           </div>
         </div>

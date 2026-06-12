@@ -796,3 +796,12 @@
   justify-content: flex-end;
 }
 
+
+/* ── 排序标签 ── */
+.sortLabel {
+  font-size: 11px;
+  color: var(--ink-muted);
+  padding: 5px 4px 5px 0;
+  white-space: nowrap;
+  align-self: center;
+}
