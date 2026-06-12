@@ -126,8 +126,13 @@ async function generateRecruitPlayers(currentWeek, prestige = 0) {
           const rankScore = isItf
             ? Math.max(0, Math.min(1, (200 - p.ranking) / 200))
             : Math.max(0, Math.min(1, (500 - p.ranking) / 500))
-          const inferredBase = Math.round(40 + rankScore * 45) // 40~85
-          const spread = 8
+          // ✅ 修正：职业球员属性基础值应明显高于青少年和业余球员
+          // 排名500→base≈58，排名300→base≈65，排名150→base≈73，排名1→base≈90
+          // ITF青少年排名200→base≈58，排名1→base≈78
+          const inferredBase = isItf
+            ? Math.round(58 + rankScore * 20)   // ITF: 58~78
+            : Math.round(58 + rankScore * 32)   // ATP/WTA: 58~90
+          const spread = 5  // 职业球员属性更稳定，随机浮动缩小
           return {
             id:          90000 + currentWeek * 10 + i,
             name:        p.name,
@@ -146,17 +151,17 @@ async function generateRecruitPlayers(currentWeek, prestige = 0) {
             points:      p.points || 0,
             isRealPlayer: true,  // 标记为真实球员，供 RecruitPage 展示特殊标志
             tour:        p.tour,
-            injuryResist: randInt(45, 70),
-            strength:    randAttr(inferredBase * 0.85, spread),
-            stamina:     randAttr(inferredBase * 0.90, spread),
-            agility:     randAttr(inferredBase * 0.88, spread),
-            serve:       randAttr(inferredBase * 0.82, spread),
-            forehand:    randAttr(inferredBase * 0.85, spread),
-            backhand:    randAttr(inferredBase * 0.80, spread),
-            footwork:    randAttr(inferredBase * 0.85, spread),
-            pressure:    randAttr(inferredBase * 0.78, spread),
-            willpower:   randAttr(inferredBase * 0.80, spread),
-            focus:       randAttr(inferredBase * 0.82, spread),
+            injuryResist: randInt(50, 75),
+            strength:    randAttr(inferredBase * 0.97, spread),
+            stamina:     randAttr(inferredBase * 1.00, spread),
+            agility:     randAttr(inferredBase * 0.98, spread),
+            serve:       randAttr(inferredBase * 0.96, spread),
+            forehand:    randAttr(inferredBase * 0.98, spread),
+            backhand:    randAttr(inferredBase * 0.95, spread),
+            footwork:    randAttr(inferredBase * 0.97, spread),
+            pressure:    randAttr(inferredBase * 0.94, spread),
+            willpower:   randAttr(inferredBase * 0.96, spread),
+            focus:       randAttr(inferredBase * 0.95, spread),
             skills:      [],
             note:        `职业球员，ATP/WTA 排名 #${p.ranking}，现役职业选手。`,
             joinFee:     0,
