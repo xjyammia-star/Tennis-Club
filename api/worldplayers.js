@@ -27,13 +27,26 @@ export default async function handler(req, res) {
     if (level === '250')   { rankingLimit = 500; tourFilter = [tour] }
     if (level === 'itf')   { rankingLimit = 400; tourFilter = ['ITF_JUNIOR'] }
 
-    const players = await sql`
-      SELECT id, ranking, name, age, nationality, points, gender, tour
-      FROM world_players
-      WHERE tour = ANY(${tourFilter})
-        AND ranking <= ${rankingLimit}
-      ORDER BY ranking ASC
-    `
+    // ITF 赛事按 gender 过滤（ITF_JUNIOR 库里有 male/female 区分）
+    // 非 ITF 赛事：tour 已经对应了性别（ATP=男，WTA=女），不需要额外 gender 过滤
+    const needGenderFilter = (level === 'itf') && (gender === 'male' || gender === 'female')
+
+    const players = needGenderFilter
+      ? await sql`
+          SELECT id, ranking, name, age, nationality, points, gender, tour
+          FROM world_players
+          WHERE tour = ANY(${tourFilter})
+            AND ranking <= ${rankingLimit}
+            AND gender = ${gender}
+          ORDER BY ranking ASC
+        `
+      : await sql`
+          SELECT id, ranking, name, age, nationality, points, gender, tour
+          FROM world_players
+          WHERE tour = ANY(${tourFilter})
+            AND ranking <= ${rankingLimit}
+          ORDER BY ranking ASC
+        `
 
     return res.status(200).json({ players })
   } catch (err) {
