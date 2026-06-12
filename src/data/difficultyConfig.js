@@ -42,40 +42,43 @@ function randAttr(base, spread = 12) {
   return Math.round(Math.min(85, Math.max(20, base + randInt(-spread, spread))))
 }
 
-// 根据球员属性均值计算初始排名
-// ✅ 重要：排名必须在数据库范围外，避免与真实球员冲突
-//   成年球员（18岁+）：ATP/WTA 数据库存有前500名，所以从 501 起
-//   青少年（14-17岁）：ITF 数据库存有前200名（男女各200），所以从 201 起
-//   13岁及以下：无排名（太小，尚未进入任何系统排名）
+// 计算初始排名（仅在调用方决定"该球员有排名"后才调用）
+// ✅ 排名必须在数据库范围外：成年501+，青少年201+，13岁以下无排名
+// prestige 参数仅供 difficultyConfig 内部调用时传入（可选），默认走5%概率
 function calcInitialRanking(avgAttr, age, gender) {
-  // 属性均值越高 → 排名越靠前（数字越小）
-  // 年龄越大 → 已积累更多积分 → 排名略好
-  const attrFactor = Math.max(0, Math.min(1, (avgAttr - 20) / 65)) // 0~1
-  const ageFactor  = (age - 13) / 10  // 13岁=0, 17岁=0.4
-  const score      = attrFactor * 0.75 + ageFactor * 0.25  // 0~1，越高排名越好
+  const attrFactor = Math.max(0, Math.min(1, (avgAttr - 20) / 65))
+  const ageFactor  = (age - 13) / 10
+  const score      = attrFactor * 0.75 + ageFactor * 0.25
 
-  if (age < 14) {
-    // 13岁及以下：无排名
-    return null
-  }
+  if (age < 14) return null
 
   if (age < 18) {
-    // 青少年 ITF：从 201 起（数据库前200名不冲突）
-    // score=1 → 201，score=0 → 800
+    // 青少年 ITF：201~800
     const raw = Math.round(800 - score * 599)
     return Math.max(201, Math.min(800, raw + randInt(-30, 30)))
   }
 
-  // 成年球员：从 501 起（数据库前500名不冲突）
   if (gender === 'male') {
-    // ATP：501~1800
+    // ATP 成年：501~1800
     const raw = Math.round(1800 - score * 1299)
     return Math.max(501, Math.min(1800, raw + randInt(-80, 80)))
   } else {
-    // WTA：501~1200
+    // WTA 成年：501~1200
     const raw = Math.round(1200 - score * 699)
     return Math.max(501, Math.min(1200, raw + randInt(-60, 60)))
   }
+}
+
+// 决定一名系统生成球员是否拥有排名
+// prestige: 俱乐部声望（越高，接触到有排名球员的概率越高）
+// 初始建队时无声望参考，传 null 使用固定5%
+// 上限25%：即使顶级俱乐部，绝大多数招募对象仍是无排名的青少年苗子
+function rollHasRanking(age, prestige = null) {
+  if (age < 14) return false  // 13岁以下从不有排名
+  const p = prestige === null
+    ? 0.05  // 初始建队固定5%
+    : Math.min(0.25, 0.03 + prestige / 55000)
+  return Math.random() < p
 }
 
 // 根据排名计算初始积分（同步版本，用保守参考值）
@@ -130,7 +133,11 @@ function makeYoungPlayer(id, gender, talentRange = [55, 85], usedNames = new Set
     (serve + forehand + backhand + returnServe + volley + footwork +
      strength + stamina + agility + pressure + willpower + focus) / 12
   )
-  const ranking = calcInitialRanking(avgAttr, age, gender)
+  // ✅ 只有5%概率拥有排名（初始建队无声望参考，用固定保守概率）
+  // 绝大多数初始球员是未经历系统赛事的青少年苗子，没有正式排名
+  const ranking = rollHasRanking(age, null)
+    ? calcInitialRanking(avgAttr, age, gender)
+    : null
 
   return {
     id,

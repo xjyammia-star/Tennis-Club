@@ -196,38 +196,34 @@ async function generateRecruitPlayers(currentWeek, prestige = 0) {
     const injuryResist = Math.min(99, Math.max(30, randAttr(injuryBase, 8)))
     const joinFee      = familyBg === '贫穷' ? 500 : 0
 
-    // ✅ 排名必须在数据库范围外（避免与真实球员冲突）
-    // 18岁及以上：ATP/WTA 范围外，排名从 501 起
-    // 14-17岁（ITF青少年）：ITF 范围外，排名从 201 起
-    // 13岁或无排名：无排名（太小，尚未进入任何系统排名）
+    // ✅ 有排名的概率与俱乐部声望挂钩，且整体概率很低
+    // 声望0 → 3%，声望3000 → 8.5%，声望10000 → 21%，上限25%
+    // 大多数招募对象是尚未参加系统赛事的青少年苗子，不该有排名
+    const rankProb = Math.min(0.25, 0.03 + prestige / 55000)
+    const hasRanking = age >= 14 && Math.random() < rankProb
+
     let ranking = null
     let points  = 0
 
-    if (age >= 18) {
-      // 成年球员，ATP/WTA 范围外
-      // 属性好的排名好一点（501~800），属性差的排名更靠后（501~2000）
-      const attrScore = talent / 92  // 0~1
+    if (hasRanking && age >= 18) {
+      // 成年球员，ATP/WTA 范围外（501+）
+      const attrScore = talent / 92
       const rankMin = 501
-      const rankMax = Math.round(2000 - attrScore * 1000)  // 1000~2000
+      const rankMax = Math.round(2000 - attrScore * 1000)
       ranking = randInt(rankMin, Math.max(rankMin + 50, rankMax))
-      // 积分：以ATP/WTA末位积分为上限，按平方反比衰减
       const boundary    = gender === 'male' ? atpBoundary : wtaBoundary
-      const boundaryRnk = gender === 'male' ? 500         : 500
-      points = calcPointsByRank(ranking, boundaryRnk, boundary)
+      points = calcPointsByRank(ranking, 500, boundary)
 
-    } else if (age >= 14) {
-      // 青少年，ITF 范围外，排名从 201 起
+    } else if (hasRanking && age >= 14) {
+      // 青少年，ITF 范围外（201+）
       const attrScore = talent / 92
       const rankMin = 201
-      const rankMax = Math.round(800 - attrScore * 400)  // 400~800
+      const rankMax = Math.round(800 - attrScore * 400)
       ranking = randInt(rankMin, Math.max(rankMin + 50, rankMax))
-      // 积分：以ITF末位积分为上限，按平方反比衰减
-      const boundary    = gender === 'male' ? itfMaleBoundary : itfFemaleBoundary
-      const boundaryRnk = 200
-      points = calcPointsByRank(ranking, boundaryRnk, boundary)
-
+      const boundary = gender === 'male' ? itfMaleBoundary : itfFemaleBoundary
+      points = calcPointsByRank(ranking, 200, boundary)
     }
-    // age < 14：ranking=null，points=0（太小，尚无排名）
+    // hasRanking=false 或 age<14：ranking=null，points=0
 
     syntheticPlayers.push({
       id:          200 + currentWeek * 10 + i,
